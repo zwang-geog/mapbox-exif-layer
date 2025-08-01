@@ -1,0 +1,4 @@
+{
+    "rh": {"band": 2},
+    "te": {"band": 1, "to_fahrenheit": true}
+}

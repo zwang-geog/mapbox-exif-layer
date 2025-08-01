@@ -1,0 +1,3 @@
+{
+    "wind": {"band":[1,2], "to_mph": true, "calculate_speed": true}
+}
