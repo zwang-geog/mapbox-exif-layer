@@ -1,5 +1,7 @@
 # Mapbox EXIF Layer
 
+[![npm version](https://badge.fury.io/js/mapbox-exif-layer.svg)](https://badge.fury.io/js/mapbox-exif-layer)
+
 Custom Mapbox GL JS layers for rendering particle motion (e.g., wind) or smooth raster (e.g., temperature, relative humidity, precipitation) based on EXIF-enabled JPEG images
 
 **Feature Highlights**
