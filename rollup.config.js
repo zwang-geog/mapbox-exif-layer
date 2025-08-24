@@ -1,6 +1,7 @@
 import resolve from '@rollup/plugin-node-resolve';
 import commonjs from '@rollup/plugin-commonjs';
 import terser from '@rollup/plugin-terser';
+import { dts } from 'rollup-plugin-dts';
 
 export default [
   // Main bundle
@@ -41,6 +42,7 @@ export default [
     output: {
       file: 'dist/index.d.ts',
       format: 'es'
-    }
+    },
+    plugins: [dts()]
   }
 ]; 

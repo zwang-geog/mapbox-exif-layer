@@ -32,8 +32,9 @@
   "devDependencies": {
     "@rollup/plugin-commonjs": "^25.0.0",
     "@rollup/plugin-node-resolve": "^15.0.0",
+    "@rollup/plugin-terser": "^0.4.4",
     "rollup": "^4.0.0",
-    "@rollup/plugin-terser": "^0.4.4"
+    "rollup-plugin-dts": "^6.2.3"
   },
   "dependencies": {
     "exifreader": "^4.26.2"
