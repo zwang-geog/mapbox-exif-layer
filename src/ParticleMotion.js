@@ -198,13 +198,12 @@ const renderVertexShader =
     uniform mediump float u_point_size;    // Base point size
     uniform mediump float u_speed_factor;  // Speed multiplier
     uniform mediump float u_trail_size_decay; // Size decay rate for trail particles
-    uniform mediump float u_trail_fade_rate;  // Opacity decay rate for trail
     uniform sampler2D u_velocity_texture;  // Velocity texture
     uniform mediump vec2 u_value_range_u;  // Wind U component range
     uniform mediump vec2 u_value_range_v;  // Wind V component range
     
     out vec2 v_position;     // Pass position to fragment shader
-    out float v_opacity;     // Varying opacity for trail
+    // out float v_opacity;     // Varying opacity for trail
     
     const float PI = 3.141592653589793;
     
@@ -274,7 +273,7 @@ const renderVertexShader =
         v_position = currentPos;
         
         // Compute opacity for trail particles (1.0 for main particle, decreasing for trail)
-        v_opacity = trailOffset == 0.0 ? 1.0 : pow(u_trail_fade_rate, trailOffset);
+        // v_opacity = trailOffset == 0.0 ? 1.0 : 1.0 - (trailOffset / float(3));
         
         // Compute point size (decreasing for trail particles)
         float size = trailOffset == 0.0 ? u_point_size : u_point_size * pow(u_trail_size_decay, trailOffset);
@@ -419,7 +418,7 @@ function mpsToMph(mps) {
 
 export default class ParticleMotion extends Evented {
     constructor({id, source, color, bounds, particleCount = 5000, readyForDisplay = false, ageThreshold = 500, maxAge = 1000,
-        velocityFactor = 0.05, fadeOpacity = 0.9, updateInterval = 50, pointSize = 5.0, trailLength = 3, trailFadeRate = 0.7, trailSizeDecay = 0.8, unit = 'mph'}) {
+        velocityFactor = 0.05, fadeOpacity = 0.9, updateInterval = 50, pointSize = 5.0, trailLength = 3, trailSizeDecay = 0.8, unit = 'mph'}) {
         super();
         
         this.id = id;
@@ -442,7 +441,6 @@ export default class ParticleMotion extends Evented {
         
         // Trail settings
         this.trailLength = trailLength;           // Number of trailing particles per main particle
-        this.trailFadeRate = trailFadeRate;       // How quickly the trail fades (0-1)
         this.trailSizeDecay = trailSizeDecay;      // How quickly the point size decreases for trail particles
         
         // Age-based reset settings
@@ -714,7 +712,6 @@ export default class ParticleMotion extends Evented {
         gl.uniform1f(this.renderProgram.u_point_size, this.pointSize);
         gl.uniform1f(this.renderProgram.u_opacity, this.fadeOpacity);
         gl.uniform1f(this.renderProgram.u_speed_factor, this.velocityFactor);
-        gl.uniform1f(this.renderProgram.u_trail_fade_rate, this.trailFadeRate);
         gl.uniform1f(this.renderProgram.u_trail_size_decay, this.trailSizeDecay);
         gl.uniform2fv(this.renderProgram.u_value_range_u, this.valueRange_u);
         gl.uniform2fv(this.renderProgram.u_value_range_v, this.valueRange_v);

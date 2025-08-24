@@ -2,7 +2,9 @@ import resolve from '@rollup/plugin-node-resolve';
 import commonjs from '@rollup/plugin-commonjs';
 import terser from '@rollup/plugin-terser';
 
-export default {
+export default [
+  // Main bundle
+  {
   input: 'src/index.js',
   output: [
     {
@@ -32,4 +34,13 @@ export default {
     commonjs(),
     terser()
   ]
-}; 
+  },
+  // TypeScript declarations
+  {
+    input: 'src/index.d.ts',
+    output: {
+      file: 'dist/index.d.ts',
+      format: 'es'
+    }
+  }
+]; 

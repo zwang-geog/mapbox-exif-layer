@@ -13,6 +13,10 @@ Custom Mapbox GL JS layers for rendering particle motion (e.g., wind) or smooth 
 * Well-suited for displaying local or regional forecast results
 * Method for updating the source url is available, so setting forecast for different timestamps can be done easily
 
+**[Demo website (source code under react-demo/real-time-example)](mapbox-exif-layer.onrender.com)**
+**[Demo video recording](https://www.youtube.com/watch?v=HLu0Ylhu5x4)**
+**[Technique Explanation](https://medium.com/@zifanw9/a-low-cost-custom-wind-particle-motion-layer-in-mapbox-gl-js-9a51978e3ffb)**
+
 ## Background and Data Requirement
 
 Smooth raster layer (a.k.a. sample fill in [windgl](https://github.com/astrosat/windgl/tree/master), colorize in [wind-layer](https://blog.sakitam.com/wind-layer/playgrounds/mapbox-gl/colorize.html)) is just a different way to render the classic raster data on the web browser. The raw raster data consist of a grid of cells with each cell has one or more bands storing some kind of values (e.g., temperature), and a cell has a size (1/4 degrees, 5 km, 500 m, etc) making it looks like a box. The conventional way to render such data on the web is to generate a set of images by assigning colors to each cell and serving those images via a tile server; the eventual result is blocky, coarse cells appearing as a layer, just like what you typically see on a desktop GIS software like QGIS. For certain data such as weather data, we would expect strong spatial autocorrelation, and a smooth display of such data will be desired. With WebGL's varyings and fragment shader, automatic interpolation of colors across the space on clientside is possible (see [WebGL fundamentals](https://webglfundamentals.org/webgl/lessons/webgl-fundamentals.html)), and we do not need to worry about doing interpolation or down-scaling of the raster data ourselves to make the layer looks smooth for web visualization.
@@ -207,7 +211,6 @@ A particle-based visualization layer that creates animated particles, suitable f
 - `pointSize` (number): Size of particles in pixels (default: 5.0)
 - `fadeOpacity` (number): Global opacity for particles (default: 0.9)
 - `trailLength` (number): Number of trailing particles (default: 3)
-- `trailFadeRate` (number): How quickly the trail fades (default: 0.7)
 - `trailSizeDecay` (number): How quickly point size decreases for trail particles (default: 0.8)
 - `ageThreshold` (number): Age threshold before particle position reset probability increases. This prevents particles from degenerating to some circular/looped pattern (default: 500)
 - `maxAge` (number): Maximum age before particle position is forced to reset. This prevents particles from degenerating to some circular/looped pattern (default: 1000)
