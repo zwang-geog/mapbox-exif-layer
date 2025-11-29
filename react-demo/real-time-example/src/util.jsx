@@ -132,7 +132,7 @@ const weatherUrl = (layer, hour) => {
         filePrefix = "wind";
     }
     
-    return `https://ucsb-wri-data.s3.us-west-1.amazonaws.com/${folderName}/${filePrefix}_${hour}.jpeg`;
+    return `https://lfm-and-carbon-density.ucsbwriwebapp.org/${folderName}/${filePrefix}_${hour}.jpeg`;
 }
 
 function WeatherColorbar({ colors }) {

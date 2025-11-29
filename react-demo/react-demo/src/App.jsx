@@ -36,7 +36,7 @@ function App() {
 
   const windParticleLayer = useRef(new ParticleMotion({
     id: 'wind-particle',
-    source:  'https://ucsb-wri-data.s3.us-west-1.amazonaws.com/wind-images/wind_output.jpeg',
+    source:  'https://lfm-and-carbon-density.ucsbwriwebapp.org/wind-images/wind_output.jpeg',
     color: WIND_COLOR,
     bounds: [-121, 36, -117, 32],
     readyForDisplay: true
