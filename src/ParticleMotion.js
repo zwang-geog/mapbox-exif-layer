@@ -418,12 +418,17 @@ function mpsToMph(mps) {
 
 export default class ParticleMotion extends Evented {
     constructor({id, source, color, bounds, particleCount = 5000, readyForDisplay = false, ageThreshold = 500, maxAge = 1000,
-        velocityFactor = 0.05, fadeOpacity = 0.9, updateInterval = 50, pointSize = 5.0, trailLength = 3, trailSizeDecay = 0.8, unit = 'mph'}) {
+        velocityFactor = 0.05, fadeOpacity = 0.9, updateInterval = 50, pointSize = 5.0, trailLength = 3, trailSizeDecay = 0.8, 
+        unit = 'mph', cacheOption = 'no-cache', slot}) {
         super();
         
         this.id = id;
         this.type = 'custom';
         this.renderingMode = '2d';
+
+        if (slot !== undefined) {
+            this.slot = slot;
+        }
         
         this.source = source;
         this.color = color;
@@ -451,6 +456,7 @@ export default class ParticleMotion extends Evented {
         this.speedRange = [0, 100];
         
         this.unit = unit;  // Store the unit
+        this.cacheOption = cacheOption;  // Store the cache option
     }
 
     onAdd(map, gl) {
@@ -526,7 +532,7 @@ export default class ParticleMotion extends Evented {
         image.crossOrigin = "anonymous";
         
         fetch(source, {
-            cache: 'no-store'
+            cache: this.cacheOption
         })
             .then(response => 
                 Promise.all([

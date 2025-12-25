@@ -169,12 +169,16 @@ function createColormap(gl, colors, valueRange) {
 }
 
 export default class SmoothRaster extends Evented {
-    constructor({id, source, color, bounds, opacity = 1.0, readyForDisplay = false}) {
+    constructor({id, source, color, bounds, opacity = 1.0, readyForDisplay = false, cacheOption = 'no-cache', slot}) {
         super();
         
         this.id = id;
         this.type = 'custom';
         this.renderingMode = '2d';
+
+        if (slot !== undefined) {
+            this.slot = slot;
+        }
         
         this.source = source;
         this.color = color;
@@ -183,6 +187,7 @@ export default class SmoothRaster extends Evented {
         
         this.sourceLoaded = false;
         this.readyForDisplay = readyForDisplay;
+        this.cacheOption = cacheOption;  // Store the cache option
     }
 
     onAdd(map, gl) {
@@ -220,7 +225,7 @@ export default class SmoothRaster extends Evented {
         image.crossOrigin = "anonymous";
         
         fetch(source, {
-            cache: 'no-store'
+            cache: this.cacheOption
         })
             .then(response => 
                 Promise.all([

@@ -221,6 +221,8 @@ A particle-based visualization layer that creates animated particles, suitable f
   - `'mph'` (default): Miles per hour
   - `'kph'`: Kilometers per hour
   - `'mps'`: Meters per second
+- `cacheOption` (string): [Cache option](https://developer.mozilla.org/en-US/docs/Web/API/Request/cache) to use when fetching the source image. It can be one of no-cache (default in 1.0.3), no-store (default in 1.0.2), reload, default, or force-cache.
+- `slot` (string): Optional [slot](https://docs.mapbox.com/style-spec/reference/slots/) identifier for the layer (used by Mapbox GL JS for [layer ordering](https://docs.mapbox.com/mapbox-gl-js/api/map/#addlayer-parameters-layer-slot)); typical values may include "top", "middle" (recommended), "bottom".
 
 #### Methods
 
@@ -238,6 +240,8 @@ A raster visualization layer that provides a smooth display of the data.
 - `bounds` (array): Longitude (possible range -180 to 180) and latitude (possible range -90 to 90) of top-left and bottom-right corners of the extent in the format of `[minX, maxY, maxX, minY]`
 - `opacity` (number): Layer global opacity (default: 1.0)
 - `readyForDisplay` (bool): Preventing the layer from rendering when the layer is added to the map, if necessary (default: false)
+- `cacheOption` (string): [Cache option](https://developer.mozilla.org/en-US/docs/Web/API/Request/cache) to use when fetching the source image. It can be one of no-cache (default in 1.0.3), no-store (default in 1.0.2), reload, default, or force-cache.
+- `slot` (string): Optional [slot](https://docs.mapbox.com/style-spec/reference/slots/) identifier for the layer (used by Mapbox GL JS for [layer ordering](https://docs.mapbox.com/mapbox-gl-js/api/map/#addlayer-parameters-layer-slot)); typical values may include "top", "middle" (recommended), "bottom".
 
 #### Methods
 

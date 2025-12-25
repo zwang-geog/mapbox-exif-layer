@@ -7,6 +7,8 @@ declare module 'mapbox-exif-layer' {
       bounds: [number, number, number, number];
       opacity?: number;
       readyForDisplay?: boolean;
+      cacheOption?: 'no-cache' | 'no-store' | 'reload' | 'default' | 'force-cache';
+      slot?: string;
     });
     
     setSource(source: string, color?: Array<[number, number[]]>): void;
@@ -29,6 +31,8 @@ declare module 'mapbox-exif-layer' {
       ageThreshold?: number;
       maxAge?: number;
       unit?: 'mph' | 'kph' | 'mps';
+      cacheOption?: 'no-cache' | 'no-store' | 'reload' | 'default' | 'force-cache';
+      slot?: string;
     });
     
     setSource(source: string, percentReset?: number): void;
