@@ -2,7 +2,7 @@ import {Evented} from 'mapbox-gl';
 import ExifReader from 'exifreader';
 
 // B channel: 0 = no-data (new pipeline), 255 = valid
-const NODATA_B_THRESHOLD = 0.004;
+const NODATA_B_THRESHOLD = 0.08;
 const MIN_WIND_SPEED_MPH = 1.5;
 
 const vertexShader = 

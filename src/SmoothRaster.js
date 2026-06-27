@@ -53,6 +53,12 @@ const fragmentShader = `
     void main() {
         // Get the R value from the source image
         vec4 pixel = texture2D(u_image, v_tex_pos);
+
+        // Hide no-data cells (single-band pipeline: B=255 marks NA)
+        if (pixel.b > 0.6) {
+            discard;
+        }
+
         float normalized = pixel.r;
         
         // Use value as index into colormap

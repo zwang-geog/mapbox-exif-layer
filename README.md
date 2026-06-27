@@ -19,6 +19,20 @@ Custom Mapbox GL JS layers for rendering particle motion (e.g., wind) or smooth 
 
 [Technique Explanation](https://medium.com/@zifanw9/a-low-cost-custom-wind-particle-motion-layer-in-mapbox-gl-js-9a51978e3ffb)
 
+## Important Update — Breaking Change (v1.1.0)
+
+**Package version ≥ 1.1.0 is required** to correctly display raster data that contains NA/missing cells. Releases **1.0.3 and below** do not read the B band and will not mask NA values, which can produce incorrect colors or stray wind particles.
+
+**Use the latest `pipeline/grib2_to_image.py` in this repo (updated after 6/27/2026)** when preparing JPEG sources. Older pipeline scripts do not encode the B-band NA mask.
+
+Starting with v1.1.0, the **B band** marks whether a cell is NA:
+
+| Layer | R band | G band | B band (NA encoding) |
+|-------|--------|--------|----------------------|
+| Smooth raster (e.g. temperature, relative humidity, precipitation) | normalized attribute value | 0 | **255** = NA, **0** = valid |
+| Wind particles | normalized U velocity | normalized V velocity | **0** = NA, **255** = valid |
+
+The encoding is intentionally reversed between the two layer types so that legacy single-band images (B always 0) remain compatible with smooth raster layers.
 
 ## Background and Data Requirement
 
@@ -28,7 +42,9 @@ To use this package for displaying smooth raster layer or particle motion layer,
 
 For rendering smooth raster, the band of the attribute to map needs to have its values normalized to an integer between 0-255 and stored as R-band of a JPEG image. The min and max of the values without normalization is needed for the package to de-normalize the pixel values to the actual values. This package assumes such information to be stored as the EXIF image description, and in fact that is where the name of this package comes from. This idea of using EXIF is inspired by [wind-layer](https://github.com/sakitam-fdd/wind-layer/tree/master/packages/mapbox-gl). The idea of using an image to store normalized band values can be traced back to Vladimir Agafonkin's [article](https://blog.mapbox.com/how-i-built-a-wind-map-with-webgl-b63022b5537f). For smooth raster, the EXIF image description should be in the format of `min-attribute-value,max-attribute-value;`
 
-For rendering wind as particles, the u- and v-component velocity need to be converted to an unit in mph (m/s or km/h might also be possible, but not tested; see Usage Reminder for details), normalized to an integer between 0-255, and stored as R-band and G-band of a JPEG image, respectively; there is no requirement for B-band. Additionally, the min and max of u- and v-component velocity (without normalization), as well as the min and max of speed in mph (sqrt(u * u, v * v)) need to be written to EXIF image description in the format of `min-u-velocity,max-u-velocity;min-v-velocity,max-v-velocity;min-speed,max-speed;`
+**Starting with version 1.1.0, B band of the image is used to indicate if the cell is NA or not** (see table above). For smooth raster layers, NA values should be encoded as 255 while non-NA values should be encoded as 0 in the B band. For wind particle layers, the encoding is reversed: 255 for non-NA values and 0 for NA values.
+
+For rendering wind as particles, the u- and v-component velocity need to be converted to an unit in mph (m/s or km/h might also be possible, but not tested; see Usage Reminder for details), normalized to an integer between 0-255, and stored as R-band and G-band of a JPEG image, respectively; **for NA cells of wind, please encode them as 0 for B-band while encoding non-NA cells as 255**. Additionally, the min and max of u- and v-component velocity (without normalization), as well as the min and max of speed in mph (sqrt(u * u, v * v)) need to be written to EXIF image description in the format of `min-u-velocity,max-u-velocity;min-v-velocity,max-v-velocity;min-speed,max-speed;`
 
 Under pipeline folder of this repo, there is a Python script with associated sample json files (based on NOAA HIRESW forecast) for converting grib2 to EXIF-enabled JPEG images. Let us say we want to get NOAA HIRESW forecast for wind in southern California, we can write a bash script that utilizes following commands ([more public available data](https://nomads.ncep.noaa.gov/)):
 ```bash
