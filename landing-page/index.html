@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>mapbox-exif-layer — Wind particles &amp; smooth weather rasters for Mapbox GL JS</title>
+  <meta name="description" content="Open-source Mapbox GL JS custom layers for GPU wind particle animation and smooth weather rasters from EXIF-enabled JPEG images. Live demos, npm package, and documentation." />
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/marked@15.0.12/marked.min.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="#">mapbox-exif-layer</a>
+      <nav class="header-links">
+        <a href="https://www.npmjs.com/package/mapbox-exif-layer" target="_blank" rel="noopener">npm</a>
+        <a href="https://github.com/zwang-geog/mapbox-exif-layer" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://medium.com/@zifanw9/a-low-cost-custom-wind-particle-motion-layer-in-mapbox-gl-js-9a51978e3ffb" target="_blank" rel="noopener">Article</a>
+      </nav>
+      <button type="button" class="sidebar-toggle" id="sidebar-toggle" aria-label="Toggle navigation">☰</button>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="hero-inner">
+      <p class="eyebrow">Mapbox GL JS custom layers</p>
+      <h1>Wind particles &amp; smooth weather rasters from a single EXIF JPEG</h1>
+      <p class="lead">
+        GPU-accelerated particle motion for wind, smooth raster layers for temperature,
+        humidity, and precipitation — no tile server required.
+      </p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="https://www.npmjs.com/package/mapbox-exif-layer" target="_blank" rel="noopener">npm install</a>
+        <a class="btn btn-secondary" href="https://github.com/zwang-geog/mapbox-exif-layer" target="_blank" rel="noopener">API reference (GitHub)</a>
+        <a class="btn btn-secondary" href="https://medium.com/@zifanw9/a-low-cost-custom-wind-particle-motion-layer-in-mapbox-gl-js-9a51978e3ffb" target="_blank" rel="noopener">Technical background</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="videos" id="videos">
+    <div class="section-inner">
+      <h2>Demo videos</h2>
+      <p class="section-lead">Watch wind particles in action, then try the interactive demos below.</p>
+
+      <a class="video-featured" href="https://www.youtube.com/watch?v=Zo6MDJT718Y" target="_blank" rel="noopener">
+        <div class="video-thumb">
+          <img
+            src="https://img.youtube.com/vi/Zo6MDJT718Y/hqdefault.jpg"
+            alt="US continental wind particle animation map"
+            loading="lazy"
+            width="480"
+            height="360"
+          />
+          <span class="video-play" aria-hidden="true">▶</span>
+        </div>
+        <div class="video-caption">
+          <span class="demo-tag">Featured · v1.1.0</span>
+          <h3>US continental wind particle animation</h3>
+          <p>National-scale wind display with proper handling of null / no-data grid cells.</p>
+          <span class="demo-link">Watch on YouTube →</span>
+        </div>
+      </a>
+
+      <p class="video-secondary">
+        Also see:
+        <a href="https://www.youtube.com/watch?v=HLu0Ylhu5x4" target="_blank" rel="noopener">Southern California wind particles (earlier demo)</a>
+      </p>
+    </div>
+  </section>
+
+  <section class="demos" id="demos">
+    <div class="section-inner">
+      <h2>Live demos</h2>
+      <div class="demo-grid">
+        <a class="demo-card" href="https://www.us-wind-particle-map-demo.mapbox-exif-layer.com" target="_blank" rel="noopener">
+          <span class="demo-tag">CONUS</span>
+          <h3>US wind &amp; temperature</h3>
+          <p>Contiguous United States wind particle animation and temperature smooth raster. Toggle each layer on and off.</p>
+          <span class="demo-link">Open demo →</span>
+        </a>
+        <a class="demo-card" href="https://www.weather-map-time-slider-demo.mapbox-exif-layer.com" target="_blank" rel="noopener">
+          <span class="demo-tag">Southern California</span>
+          <h3>Weather map time slider</h3>
+          <p>NOAA NAM NEST forecast over Southern California — wind, temperature, humidity, precipitation with timestep controls.</p>
+          <span class="demo-link">Open demo →</span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <div class="docs-layout" id="documentation">
+    <aside class="sidebar" id="sidebar">
+      <p class="sidebar-title">Documentation</p>
+      <nav id="sidebar-nav">
+        <a href="#videos">Demo videos</a>
+        <a href="#demos">Live demos</a>
+        <p class="sidebar-loading">Loading docs…</p>
+      </nav>
+    </aside>
+
+    <main class="docs-main">
+      <article id="docs-content" class="markdown-body">
+        <p class="docs-loading">Loading documentation from GitHub…</p>
+      </article>
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <p>
+      <a href="https://github.com/zwang-geog/mapbox-exif-layer" target="_blank" rel="noopener">GitHub</a>
+      ·
+      <a href="https://www.npmjs.com/package/mapbox-exif-layer" target="_blank" rel="noopener">npm</a>
+      ·
+      <a href="https://medium.com/@zifanw9/a-low-cost-custom-wind-particle-motion-layer-in-mapbox-gl-js-9a51978e3ffb" target="_blank" rel="noopener">Medium article</a>
+      · MIT License
+    </p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

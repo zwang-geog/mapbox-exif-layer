@@ -13,9 +13,13 @@ Custom Mapbox GL JS layers for rendering particle motion (e.g., wind) or smooth 
 * Well-suited for displaying local or regional forecast results
 * Method for updating the source url is available, so setting forecast for different timestamps can be done easily
 
-[Demo website (source code under react-demo/real-time-example)](https://mapbox-exif-layer.onrender.com)
+[US wind & temperature demo (source: react-demo/react-demo)](https://www.us-wind-particle-map-demo.mapbox-exif-layer.com)
 
-[Demo video recording](https://www.youtube.com/watch?v=HLu0Ylhu5x4)
+[Weather map time slider demo (source: react-demo/real-time-example)](https://www.weather-map-time-slider-demo.mapbox-exif-layer.com)
+
+[Demo video — Southern California wind particles (earlier demo)](https://www.youtube.com/watch?v=HLu0Ylhu5x4)
+
+[Demo video — US continental wind particle animation (v1.1.0)](https://www.youtube.com/watch?v=Zo6MDJT718Y)
 
 [Technique Explanation](https://medium.com/@zifanw9/a-low-cost-custom-wind-particle-motion-layer-in-mapbox-gl-js-9a51978e3ffb)
 
