@@ -34,8 +34,11 @@ import {
   SkipNext
 } from '@mui/icons-material'
 
-// Set your Mapbox access token here
-mapboxgl.accessToken = 'pk.eyJ1IjoiemlmYW53OSIsImEiOiJjbThvcm5tdnYwM2xpMmtvZGFnZ2xvanNlIn0.JX_s1DRAEYY67sjw0tOvlg';
+const accessToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
+if (!accessToken) {
+  console.error('Missing VITE_MAPBOX_ACCESS_TOKEN. Copy .env.example to .env and set your Mapbox token.');
+}
+mapboxgl.accessToken = accessToken ?? '';
 
 function App() {
   const mapRef = useRef();
@@ -201,6 +204,10 @@ function App() {
   }, [isPlaying]);
 
   useEffect(() => {
+    if (!accessToken) {
+      return;
+    }
+
     mapRef.current = new mapboxgl.Map({
       container: mapContainerRef.current,
       style: 'mapbox://styles/mapbox/streets-v12',

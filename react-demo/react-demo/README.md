@@ -1,12 +1,32 @@
-# React + Vite
+# React demo
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Local demo for `mapbox-exif-layer` (wind particles and temperature raster).
 
-Currently, two official plugins are available:
+## Setup
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+```bash
+npm install
+cp .env.example .env
+```
 
-## Expanding the ESLint configuration
+Edit `.env` and set your [Mapbox access token](https://account.mapbox.com/access-tokens/):
 
-If you are developing a production application, we recommend using TypeScript and enable type-aware lint rules. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+```
+VITE_MAPBOX_ACCESS_TOKEN=pk.your_token_here
+```
+
+## Run
+
+```bash
+npm run dev
+```
+
+## Build
+
+The token is read from the environment at build time (Vite inlines `VITE_*` variables):
+
+```bash
+npm run build
+```
+
+For CI or hosting (e.g. Render), set `VITE_MAPBOX_ACCESS_TOKEN` in the build environment before running `npm run build`.

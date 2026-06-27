@@ -94,7 +94,13 @@ function App() {
   }));
 
   useEffect(() => {
-    mapboxgl.accessToken = 'pk.eyJ1IjoiemlmYW53OSIsImEiOiJjbThvcm5tdnYwM2xpMmtvZGFnZ2xvanNlIn0.JX_s1DRAEYY67sjw0tOvlg'
+    const accessToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
+    if (!accessToken) {
+      console.error('Missing VITE_MAPBOX_ACCESS_TOKEN. Copy .env.example to .env and set your Mapbox token.');
+      return;
+    }
+
+    mapboxgl.accessToken = accessToken;
     mapRef.current = new mapboxgl.Map({
       container: mapContainerRef.current,
       style: 'mapbox://styles/mapbox/dark-v11',
