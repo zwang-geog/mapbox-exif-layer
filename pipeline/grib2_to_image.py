@@ -8,15 +8,33 @@ from PIL.ExifTags import TAGS
 import piexif
 import json
 
-def normalize_array(arr):
-    """Normalize array to 0-255 range."""
-    arr_min = np.min(arr)
-    arr_max = np.max(arr)
+def build_nodata_mask(band_data, nodata_value, existing_mask=None):
+    """Return a boolean mask where True marks NoData pixels."""
+    mask = existing_mask.copy() if existing_mask is not None else np.zeros(band_data.shape, dtype=bool)
+    if nodata_value is not None:
+        mask |= band_data == nodata_value
+    return mask
+
+def normalize_array(arr, nodata_mask=None):
+    """Normalize array to 0-255 range, encoding NoData pixels as 0."""
+    if nodata_mask is not None:
+        valid = ~nodata_mask
+        if not np.any(valid):
+            return np.zeros(arr.shape, dtype=np.uint8), 0.0, 0.0
+        arr_min = np.min(arr[valid])
+        arr_max = np.max(arr[valid])
+    else:
+        valid = np.ones(arr.shape, dtype=bool)
+        arr_min = np.min(arr)
+        arr_max = np.max(arr)
+
+    normalized = np.zeros(arr.shape, dtype=np.uint8)
     if arr_max == arr_min:
-        # Return uint8 zeros, not float64 zeros
-        return np.zeros(arr.shape, dtype=np.uint8), arr_min, arr_max
-    normalized = ((arr - arr_min) * 255 / (arr_max - arr_min)).astype(np.uint8)
-    return normalized, arr_min, arr_max
+        return normalized, float(arr_min), float(arr_max)
+
+    print(arr_min, arr_max)
+    normalized[valid] = ((arr[valid] - arr_min) * 255 / (arr_max - arr_min)).astype(np.uint8)
+    return normalized, float(arr_min), float(arr_max)
 
 def celsius_to_fahrenheit(arr):
     """Convert temperature from Celsius to Fahrenheit."""
@@ -119,41 +137,41 @@ def process_grib(input_file, output_suffix, config_file, output_format='jpeg', a
             print(f"Warning: Skipping {param_name} due to error: {str(e)}")
             continue
 
+        raw_bands = []
+        nodata_mask = None
+
+        for band_idx in bands:
+            raster_band = ds.GetRasterBand(band_idx)
+            band_data = raster_band.ReadAsArray()
+            nodata_mask = build_nodata_mask(band_data, raster_band.GetNoDataValue(), nodata_mask)
+            raw_bands.append(band_data)
+
         normalized_bands = []
         min_max_values = []
 
-        # Process each band
-        for band_idx in bands:
-            # Read band data
-            band_data = ds.GetRasterBand(band_idx).ReadAsArray()
-            
-            # Apply conversions if needed
+        for band_data in raw_bands:
             if param_config.get('to_fahrenheit', False):
                 band_data = celsius_to_fahrenheit(band_data)
             if param_config.get('to_mph', False):
                 band_data = ms_to_mph(band_data)
             elif param_config.get('to_kph', False):
                 band_data = ms_to_kph(band_data)
-            
-            # Normalize band
-            normalized_band, band_min, band_max = normalize_array(band_data)
+
+            normalized_band, band_min, band_max = normalize_array(band_data, nodata_mask)
             normalized_bands.append(normalized_band)
             min_max_values.append((band_min, band_max))
-        
+
         if param_config.get('calculate_speed', False):
-            # Calculate speed from u and v components
-            u_band = ds.GetRasterBand(1).ReadAsArray()
-            v_band = ds.GetRasterBand(2).ReadAsArray()
-            
-            # Calculate speed from u and v components
-            speed_band = np.sqrt(u_band**2 + v_band**2)
+            u = np.where(nodata_mask, 0, raw_bands[0])
+            v = np.where(nodata_mask, 0, raw_bands[1])
+            speed_band = np.sqrt(u**2 + v**2)
 
             if param_config.get('to_mph', False):
                 speed_band = ms_to_mph(speed_band)
             elif param_config.get('to_kph', False):
                 speed_band = ms_to_kph(speed_band)
-            
-            normalized_band, band_min, band_max = normalize_array(speed_band)
+
+            normalized_band, band_min, band_max = normalize_array(speed_band, nodata_mask)
             normalized_bands.append(normalized_band)
             min_max_values.append((band_min, band_max))
 
