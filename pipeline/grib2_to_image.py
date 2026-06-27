@@ -1,6 +1,7 @@
 import sys
 import numpy as np
 from osgeo import gdal
+gdal.UseExceptions()  # Suppress FutureWarning and enable exceptions
 import os
 from PIL import Image
 from PIL.ExifTags import TAGS
@@ -12,7 +13,8 @@ def normalize_array(arr):
     arr_min = np.min(arr)
     arr_max = np.max(arr)
     if arr_max == arr_min:
-        return np.zeros_like(arr), arr_min, arr_max
+        # Return uint8 zeros, not float64 zeros
+        return np.zeros(arr.shape, dtype=np.uint8), arr_min, arr_max
     normalized = ((arr - arr_min) * 255 / (arr_max - arr_min)).astype(np.uint8)
     return normalized, arr_min, arr_max
 
