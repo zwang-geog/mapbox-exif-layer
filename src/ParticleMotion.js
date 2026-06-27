@@ -1,6 +1,10 @@
 import {Evented} from 'mapbox-gl';
 import ExifReader from 'exifreader';
 
+// B channel: 0 = no-data (new pipeline), 255 = valid
+const NODATA_B_THRESHOLD = 0.004;
+const MIN_WIND_SPEED_MPH = 1.5;
+
 const vertexShader = 
     `#version 300 es
     precision mediump float;
@@ -101,8 +105,8 @@ const vertexShader =
         // Get current age of particle and increment
         float age = a_age + 1.0;
         
-        // Reset if out of bounds or very low wind speed
-        if (newPos.x < 0.0 || newPos.x > 1.0 || newPos.y < 0.0 || newPos.y > 1.0 || windSpeed < 1.5) {
+        // Reset if out of bounds, no-data (B≈0), or very low wind speed
+        if (newPos.x < 0.0 || newPos.x > 1.0 || newPos.y < 0.0 || newPos.y > 1.0 || velocity.b < ${NODATA_B_THRESHOLD} || windSpeed < ${MIN_WIND_SPEED_MPH}) {
             shouldReset = true;
         }
         
@@ -167,9 +171,20 @@ const fragmentShader =
         
         // Sample wind velocity for coloring
         vec4 velocity = texture(u_velocity_texture, v_position);
+
+        // Hide particles over no-data cells (B≈0 in new pipeline; B≈0 speed in old)
+        if (velocity.b < ${NODATA_B_THRESHOLD}) {
+            discard;
+        }
+
         float u = mix(u_value_range_u[0], u_value_range_u[1], velocity.r);
         float v = mix(u_value_range_v[0], u_value_range_v[1], velocity.g);
         float speed = length(vec2(u, v));
+
+        if (speed < ${MIN_WIND_SPEED_MPH}) {
+            discard;
+        }
+
         float normalizedSpeed = (speed - u_speed_range[0]) / (u_speed_range[1] - u_speed_range[0]);
         
         // Sample color from colormap using normalized speed

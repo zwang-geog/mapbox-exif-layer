@@ -36,6 +36,15 @@ def normalize_array(arr, nodata_mask=None):
     normalized[valid] = ((arr[valid] - arr_min) * 255 / (arr_max - arr_min)).astype(np.uint8)
     return normalized, float(arr_min), float(arr_max)
 
+def build_mask_band(nodata_mask, two_band=False):
+    """Build B channel: single-band uses 255=NA; two-band (wind) uses 0=NA, 255=valid."""
+    mask_band = np.zeros(nodata_mask.shape, dtype=np.uint8)
+    if two_band:
+        mask_band[~nodata_mask] = 255
+    else:
+        mask_band[nodata_mask] = 255
+    return mask_band
+
 def celsius_to_fahrenheit(arr):
     """Convert temperature from Celsius to Fahrenheit."""
     return (arr * 9/5) + 32
@@ -161,7 +170,7 @@ def process_grib(input_file, output_suffix, config_file, output_format='jpeg', a
             normalized_bands.append(normalized_band)
             min_max_values.append((band_min, band_max))
 
-        if param_config.get('calculate_speed', False):
+        if len(raw_bands) == 2:
             u = np.where(nodata_mask, 0, raw_bands[0])
             v = np.where(nodata_mask, 0, raw_bands[1])
             speed_band = np.sqrt(u**2 + v**2)
@@ -171,19 +180,26 @@ def process_grib(input_file, output_suffix, config_file, output_format='jpeg', a
             elif param_config.get('to_kph', False):
                 speed_band = ms_to_kph(speed_band)
 
-            normalized_band, band_min, band_max = normalize_array(speed_band, nodata_mask)
-            normalized_bands.append(normalized_band)
-            min_max_values.append((band_min, band_max))
+            valid = ~nodata_mask
+            if np.any(valid):
+                speed_min = float(np.min(speed_band[valid]))
+                speed_max = float(np.max(speed_band[valid]))
+            else:
+                speed_min = speed_max = 0.0
+            print(speed_min, speed_max)
+            min_max_values.append((speed_min, speed_max))
+
+        mask_band = build_mask_band(nodata_mask, two_band=len(normalized_bands) == 2)
 
         # Create RGB array
         if len(normalized_bands) == 1:
-            rgb_array = np.stack([normalized_bands[0], 
-                                np.zeros_like(normalized_bands[0]), 
-                                np.zeros_like(normalized_bands[0])], axis=2)
+            rgb_array = np.stack([normalized_bands[0],
+                                np.zeros_like(normalized_bands[0]),
+                                mask_band], axis=2)
         elif len(normalized_bands) == 2:
-            rgb_array = np.stack([normalized_bands[0], 
-                                normalized_bands[1], 
-                                np.zeros_like(normalized_bands[0])], axis=2)
+            rgb_array = np.stack([normalized_bands[0],
+                                normalized_bands[1],
+                                mask_band], axis=2)
         else:
             rgb_array = np.stack(normalized_bands[:3], axis=2)
 
