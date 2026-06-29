@@ -728,7 +728,7 @@ export default class ParticleMotion extends Evented {
         gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
         
         // Set uniforms for rendering
-        gl.uniformMatrix4fv(this.renderProgram.u_matrix, false, matrix);
+        gl.uniformMatrix4fv(this.renderProgram.u_matrix, false, ArrayBuffer.isView(matrix) ? matrix : matrix.defaultProjectionData.mainMatrix);
         gl.uniform4fv(this.renderProgram.u_bounds, this.bounds);
         gl.uniform1f(this.renderProgram.u_point_size, this.pointSize);
         gl.uniform1f(this.renderProgram.u_opacity, this.fadeOpacity);

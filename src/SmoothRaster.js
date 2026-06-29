@@ -339,7 +339,7 @@ export default class SmoothRaster extends Evented {
         //gl.blendEquation(gl.FUNC_ADD);
 
         // Set uniforms
-        gl.uniformMatrix4fv(this.program.u_matrix, false, matrix);
+        gl.uniformMatrix4fv(this.program.u_matrix, false, ArrayBuffer.isView(matrix) ? matrix : matrix.defaultProjectionData.mainMatrix);
         gl.uniform4fv(this.program.u_bounds, this.bounds);
         gl.uniform1f(this.program.u_opacity, this.opacity);
         gl.uniform2fv(this.program.u_value_range, this.valueRange);
