@@ -472,11 +472,18 @@ export default class ParticleMotion extends Evented {
         
         this.unit = unit;  // Store the unit
         this.cacheOption = cacheOption;  // Store the cache option
+
+        this.projection = null;
     }
 
     onAdd(map, gl) {
         this.map = map;
         this.gl = gl;
+
+        this.projection = typeof map.getProjection === 'function'
+            ? map.getProjection()
+            : (map.style?.projection ?? null);
+        console.log('[ParticleMotion] projection:', this.projection);
 
         // Create programs with appropriate fragment shaders
         this.updateProgram = createProgram(gl, vertexShader, updateFragmentShader);
@@ -728,7 +735,7 @@ export default class ParticleMotion extends Evented {
         gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
         
         // Set uniforms for rendering
-        gl.uniformMatrix4fv(this.renderProgram.u_matrix, false, ArrayBuffer.isView(matrix) ? matrix : matrix.defaultProjectionData.mainMatrix);
+        gl.uniformMatrix4fv(this.renderProgram.u_matrix, false, (Array.isArray(matrix)) ? matrix : matrix.defaultProjectionData.mainMatrix);
         gl.uniform4fv(this.renderProgram.u_bounds, this.bounds);
         gl.uniform1f(this.renderProgram.u_point_size, this.pointSize);
         gl.uniform1f(this.renderProgram.u_opacity, this.fadeOpacity);
