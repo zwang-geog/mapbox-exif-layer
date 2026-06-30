@@ -90,7 +90,8 @@ function App() {
     source: '/te_1.jpeg',
     color: TEMPERATURE_COLOR,
     bounds: BOUNDS,
-    readyForDisplay: false
+    readyForDisplay: false,
+    opacity: 0.6
   }));
 
   useEffect(() => {

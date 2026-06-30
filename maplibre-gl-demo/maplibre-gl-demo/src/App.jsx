@@ -93,6 +93,7 @@ function App() {
     bounds: BOUNDS,
     readyForDisplay: false,
     mapRuntime: 'maplibre',  // Version 1.3.0+
+    opacity: 0.6
   }));
 
   useEffect(() => {
