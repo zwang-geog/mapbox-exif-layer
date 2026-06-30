@@ -1,6 +1,6 @@
 import {Evented} from 'mapbox-gl';
 import ExifReader from 'exifreader';
-import { setProjectionUniforms } from './mapLibreGlGlobeHelper.js';
+import { setProjectionUniforms, buildMapLibreVertexShader } from './mapLibreGlGlobeHelper.js';
 
 // B channel: 0 = no-data (new pipeline), 255 = valid
 const NODATA_B_THRESHOLD = 0.08;
@@ -296,14 +296,6 @@ const renderVertexShader =
     `#version 300 es
     uniform mediump mat4 u_matrix;
     ${renderVertexShaderInner.replace('{{PROJECTION}}', 'gl_Position = u_matrix * vec4(mercator, 0, 1);')}`;
-
-function buildMapLibreRenderVertexShader(shaderData) {
-    // Inject MapLibre projection prelude so projectTile() handles mercator and globe
-    return `#version 300 es
-    ${shaderData.vertexShaderPrelude}
-    ${shaderData.define}
-    ${renderVertexShaderInner.replace('{{PROJECTION}}', 'gl_Position = projectTile(mercator);')}`;
-}
 
 const updateFragmentShader = 
     `#version 300 es
@@ -742,7 +734,7 @@ export default class ParticleMotion extends Evented {
             return this.renderShaderMap.get(shaderData.variantName);
         }
 
-        const vertexSource = buildMapLibreRenderVertexShader(shaderData);
+        const vertexSource = buildMapLibreVertexShader(shaderData, renderVertexShaderInner);
         const program = createProgram(gl, vertexSource, fragmentShader);
         this.renderShaderMap.set(shaderData.variantName, program);
         return program;

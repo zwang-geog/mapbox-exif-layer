@@ -1,6 +1,6 @@
 import {Evented} from 'mapbox-gl';
 import ExifReader from 'exifreader';
-import { setProjectionUniforms } from './mapLibreGlGlobeHelper.js';
+import { setProjectionUniforms, createGlobeMesh, createIndexBuffer, buildMapLibreVertexShader } from './mapLibreGlGlobeHelper.js';
 
 const vertexShaderInner = `
     precision mediump float;
@@ -39,13 +39,6 @@ const vertexShaderInner = `
 const vertexShader = `#version 300 es
     uniform mat4 u_matrix;
     ${vertexShaderInner.replace('{{PROJECTION}}', 'gl_Position = u_matrix * vec4(mercator, 0, 1);')}`;
-
-function buildMapLibreVertexShader(shaderData) {
-    return `#version 300 es
-    ${shaderData.vertexShaderPrelude}
-    ${shaderData.define}
-    ${vertexShaderInner.replace('{{PROJECTION}}', 'gl_Position = projectTile(mercator);')}`;
-}
 
 const fragmentShader = `#version 300 es
     precision mediump float;
@@ -179,60 +172,6 @@ function createColormap(gl, colors, valueRange) {
     }
     
     return createTexture(gl, gl.NEAREST, data, 256, 1);
-}
-
-const GLOBE_SUBDIVISION_MIN = 4;
-const GLOBE_SUBDIVISION_MAX = 128;
-
-function computeGlobeSubdivisions(bounds) {
-    const lonSpan = bounds[2] - bounds[0];
-    const latSpan = bounds[3] - bounds[1];
-    const nCols = Math.min(GLOBE_SUBDIVISION_MAX, Math.max(GLOBE_SUBDIVISION_MIN, Math.round(lonSpan)));
-    const nRows = Math.min(GLOBE_SUBDIVISION_MAX, Math.max(GLOBE_SUBDIVISION_MIN, Math.round(latSpan)));
-    return {nCols, nRows};
-}
-
-// Subdivide bounds-normalized [0,1]² into an nCols×nRows grid for MapLibre globe projection.
-function createGlobeMesh(bounds) {
-    const {nCols, nRows} = computeGlobeSubdivisions(bounds);
-    const vertexCols = nCols + 1;
-    const vertexRows = nRows + 1;
-    const vertices = new Float32Array(vertexCols * vertexRows * 2);
-
-    let i = 0;
-    for (let row = 0; row < vertexRows; row++) {
-        for (let col = 0; col < vertexCols; col++) {
-            vertices[i++] = col / nCols;
-            vertices[i++] = row / nRows;
-        }
-    }
-
-    const indices = [];
-    for (let row = 0; row < nRows; row++) {
-        for (let col = 0; col < nCols; col++) {
-            const topLeft = row * vertexCols + col;
-            const topRight = topLeft + 1;
-            const bottomLeft = topLeft + vertexCols;
-            const bottomRight = bottomLeft + 1;
-            indices.push(topLeft, bottomLeft, topRight);
-            indices.push(topRight, bottomLeft, bottomRight);
-        }
-    }
-
-    return {
-        vertices,
-        indices: new Uint16Array(indices),
-        indexCount: indices.length,
-        nCols,
-        nRows,
-    };
-}
-
-function createIndexBuffer(gl, indices) {
-    const buffer = gl.createBuffer();
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffer);
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
-    return buffer;
 }
 
 export default class SmoothRaster extends Evented {
@@ -425,7 +364,7 @@ export default class SmoothRaster extends Evented {
             return this.renderShaderMap.get(shaderData.variantName);
         }
 
-        const vertexSource = buildMapLibreVertexShader(shaderData);
+        const vertexSource = buildMapLibreVertexShader(shaderData, vertexShaderInner);
         const program = createProgram(gl, vertexSource, fragmentShader);
         this.renderShaderMap.set(shaderData.variantName, program);
         return program;
