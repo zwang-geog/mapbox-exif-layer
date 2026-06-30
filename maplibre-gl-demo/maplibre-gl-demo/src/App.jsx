@@ -82,7 +82,8 @@ function App() {
     source: '/wind_1.jpeg',
     color: WIND_COLOR,
     bounds: BOUNDS,
-    readyForDisplay: true
+    readyForDisplay: true,
+    mapRuntime: 'maplibre',  // Version 1.3.0+
   }));
 
   const temperatureLayer = useRef(new SmoothRaster({
@@ -91,7 +92,7 @@ function App() {
     color: TEMPERATURE_COLOR,
     bounds: BOUNDS,
     readyForDisplay: false,
-    projection: 'mercator'
+    mapRuntime: 'maplibre',  // Version 1.3.0+
   }));
 
   useEffect(() => {
@@ -111,6 +112,12 @@ function App() {
       mapRef.current.setLayoutProperty('temperature', 'visibility', 'none');
       temperatureLayer.current.readyForDisplay = true;
       setMapLoaded(true);
+    });
+
+    mapRef.current.on('style.load', () => {
+      mapRef.current.setProjection({
+          type: 'globe', // Set projection to globe
+      });
     });
 
     return () => {

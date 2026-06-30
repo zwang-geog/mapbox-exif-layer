@@ -1,5 +1,6 @@
 import {Evented} from 'mapbox-gl';
 import ExifReader from 'exifreader';
+import { setProjectionUniforms } from './mapLibreGlGlobeHelper.js';
 
 // B channel: 0 = no-data (new pipeline), 255 = valid
 const NODATA_B_THRESHOLD = 0.08;
@@ -201,14 +202,12 @@ const fragmentShader =
     }
 `;
 
-const renderVertexShader = 
-    `#version 300 es
-    precision mediump float;
+const renderVertexShaderInner = 
+    `precision mediump float;
     
     in vec2 a_position;      // Position in [0,1] range
     in float a_trail_offset; // Trail offset (0=main particle, 1,2,3=trail segments)
     
-    uniform mediump mat4 u_matrix;
     uniform mediump vec4 u_bounds;         // [minX, maxY, maxX, minY]
     uniform mediump float u_point_size;    // Base point size
     uniform mediump float u_speed_factor;  // Speed multiplier
@@ -220,15 +219,13 @@ const renderVertexShader =
     out vec2 v_position;     // Pass position to fragment shader
     // out float v_opacity;     // Varying opacity for trail
     
-    const float PI = 3.141592653589793;
-    
     vec2 latLngToMercator(vec2 lnglat) {
         // Convert lng/lat to Web Mercator coordinates in [0, 1] range
         float x = (lnglat.x + 180.0) / 360.0;  // Convert longitude to [0,1]
         
         // Convert latitude to y coordinate using Web Mercator projection
-        float latRad = lnglat.y * PI / 180.0;
-        float y = 0.5 - (log(tan(PI / 4.0 + latRad / 2.0)) / (2.0 * PI));
+        float latRad = lnglat.y * 0.017453292519943295; // radians (pi/180)
+        float y = 0.5 - (log(tan(0.7853981633974483 + latRad / 2.0)) / 6.283185307179586); // pi/4, 2*pi
         
         return vec2(x, y);
     }
@@ -280,9 +277,9 @@ const renderVertexShader =
         float lng = mix(u_bounds[0], u_bounds[2], currentPos.x);
         float lat = mix(u_bounds[3], u_bounds[1], 1.0 - currentPos.y);
         
-        // Project to Web Mercator
+        // Project to Web Mercator in [0,1] world coordinates
         vec2 mercator = latLngToMercator(vec2(lng, lat));
-        gl_Position = u_matrix * vec4(mercator, 0, 1);
+        {{PROJECTION}}
         
         // Pass position to fragment shader
         v_position = currentPos;
@@ -293,8 +290,20 @@ const renderVertexShader =
         // Compute point size (decreasing for trail particles)
         float size = trailOffset == 0.0 ? u_point_size : u_point_size * pow(u_trail_size_decay, trailOffset);
         gl_PointSize = size;
-    }
-`;
+    }`;
+
+const renderVertexShader = 
+    `#version 300 es
+    uniform mediump mat4 u_matrix;
+    ${renderVertexShaderInner.replace('{{PROJECTION}}', 'gl_Position = u_matrix * vec4(mercator, 0, 1);')}`;
+
+function buildMapLibreRenderVertexShader(shaderData) {
+    // Inject MapLibre projection prelude so projectTile() handles mercator and globe
+    return `#version 300 es
+    ${shaderData.vertexShaderPrelude}
+    ${shaderData.define}
+    ${renderVertexShaderInner.replace('{{PROJECTION}}', 'gl_Position = projectTile(mercator);')}`;
+}
 
 const updateFragmentShader = 
     `#version 300 es
@@ -434,7 +443,7 @@ function mpsToMph(mps) {
 export default class ParticleMotion extends Evented {
     constructor({id, source, color, bounds, particleCount = 5000, readyForDisplay = false, ageThreshold = 500, maxAge = 1000,
         velocityFactor = 0.05, fadeOpacity = 0.9, updateInterval = 50, pointSize = 5.0, trailLength = 3, trailSizeDecay = 0.8, 
-        unit = 'mph', cacheOption = 'no-cache', slot}) {
+        unit = 'mph', cacheOption = 'no-cache', slot, mapRuntime = 'mapbox'}) {
         super();
         
         this.id = id;
@@ -473,21 +482,26 @@ export default class ParticleMotion extends Evented {
         this.unit = unit;  // Store the unit
         this.cacheOption = cacheOption;  // Store the cache option
 
+        // 'mapbox' (default) or 'maplibre' — selects which render implementation is bound below
+        this.mapRuntime = mapRuntime;
+        // Cached MapLibre render programs keyed by shaderData.variantName (globe / mercator transition)
+        this.renderShaderMap = new Map();
         this.projection = null;
+
+        this.render = mapRuntime === 'maplibre' ? this.renderMapLibre : this.renderMapbox;
     }
 
     onAdd(map, gl) {
         this.map = map;
         this.gl = gl;
 
-        this.projection = typeof map.getProjection === 'function'
-            ? map.getProjection()
-            : (map.style?.projection ?? null);
-        console.log('[ParticleMotion] projection:', this.projection);
+        this.projection = map.getProjection();
 
         // Create programs with appropriate fragment shaders
         this.updateProgram = createProgram(gl, vertexShader, updateFragmentShader);
-        this.renderProgram = createProgram(gl, renderVertexShader, fragmentShader);
+        if (this.mapRuntime === 'mapbox') {
+            this.renderProgram = createProgram(gl, renderVertexShader, fragmentShader);
+        }
 
         // Initialize particle positions with a uniform grid distribution
         const positions = new Float32Array(this.particleCount * 2);
@@ -644,135 +658,194 @@ export default class ParticleMotion extends Evented {
             });
     }
 
-    render(gl, matrix) {
-        if (!this.sourceLoaded || !this.readyForDisplay) {
-            return;
-        }
-
+    updateParticles(gl) {
         // Update particle positions with throttling
         const currentTime = performance.now();
         if (!this.lastTime) this.lastTime = currentTime;
         const deltaTime = currentTime - this.lastTime;
-        
-        // Only update particles if enough time has passed
-        const shouldUpdate = deltaTime >= this.updateInterval;
-        if (shouldUpdate) {
-            this.lastTime = currentTime;
 
-            // ---------- UPDATE STEP ----------
-            // Prevent rendering during update step
-            gl.colorMask(false, false, false, false);
-            gl.disable(gl.BLEND);
-            
-            gl.useProgram(this.updateProgram.program);
-            
-            // Set uniforms for update
-            gl.uniform1f(this.updateProgram.u_time, currentTime / 1000);
-            gl.uniform1f(this.updateProgram.u_speed_factor, this.velocityFactor);
-            gl.uniform4fv(this.updateProgram.u_bounds, this.bounds);
-            gl.uniform2fv(this.updateProgram.u_value_range_u, this.valueRange_u);
-            gl.uniform2fv(this.updateProgram.u_value_range_v, this.valueRange_v);
-            gl.uniform2fv(this.updateProgram.u_speed_range, this.speedRange);
-            gl.uniform1f(this.updateProgram.u_age_threshold, this.ageThreshold);
-            gl.uniform1f(this.updateProgram.u_max_age, this.maxAge);
-            
-            // Set new uniforms for particle reset
-            gl.uniform1f(this.updateProgram.u_percent_reset, this.percentParticleWhenSetSource || 0.0);
-            gl.uniform1i(this.updateProgram.u_should_reset, this.shouldResetParticles ? 1 : 0);
-            // Reset the flag after setting it
-            this.shouldResetParticles = false;
-            
-            // Bind velocity texture
-            gl.activeTexture(gl.TEXTURE0);
-            gl.bindTexture(gl.TEXTURE_2D, this.sourceTexture);
-            gl.uniform1i(this.updateProgram.u_velocity_texture, 0);
-            
-            // Bind current particle positions buffer as input
-            gl.bindBuffer(gl.ARRAY_BUFFER, this.currentBuffer);
-            gl.enableVertexAttribArray(this.updateProgram.a_position);
-            gl.vertexAttribPointer(this.updateProgram.a_position, 2, gl.FLOAT, false, 0, 0);
-            
-            // Bind current age buffer as input
-            gl.bindBuffer(gl.ARRAY_BUFFER, this.currentAgeBuffer);
-            gl.enableVertexAttribArray(this.updateProgram.a_age);
-            gl.vertexAttribPointer(this.updateProgram.a_age, 1, gl.FLOAT, false, 0, 0);
-            
-            // Bind transform feedback and next buffers
-            gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, this.transformFeedback);
-            gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, this.nextBuffer);  // Position
-            gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 1, this.nextAgeBuffer); // Age
-            
-            // Begin transform feedback
-            gl.beginTransformFeedback(gl.POINTS);
-            
-            // Draw particles to update positions (but nothing will be rendered due to colorMask)
-            gl.drawArrays(gl.POINTS, 0, this.particleCount);
-            
-            // End transform feedback
-            gl.endTransformFeedback();
-            
-            // Clean up state
-            gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, null);
-            gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, null);
-            gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 1, null);
-            
-            // Re-enable drawing to color buffer
-            gl.colorMask(true, true, true, true);
-            
-            // Swap buffers
-            [this.currentBuffer, this.nextBuffer] = [this.nextBuffer, this.currentBuffer];
-            [this.currentAgeBuffer, this.nextAgeBuffer] = [this.nextAgeBuffer, this.currentAgeBuffer];
+        // Only update particles if enough time has passed
+        if (deltaTime < this.updateInterval) {
+            return;
         }
-        
+
+        this.lastTime = currentTime;
+
+        // ---------- UPDATE STEP ----------
+        // Prevent rendering during update step
+        gl.colorMask(false, false, false, false);
+        gl.disable(gl.BLEND);
+
+        gl.useProgram(this.updateProgram.program);
+
+        // Set uniforms for update
+        gl.uniform1f(this.updateProgram.u_time, currentTime / 1000);
+        gl.uniform1f(this.updateProgram.u_speed_factor, this.velocityFactor);
+        gl.uniform4fv(this.updateProgram.u_bounds, this.bounds);
+        gl.uniform2fv(this.updateProgram.u_value_range_u, this.valueRange_u);
+        gl.uniform2fv(this.updateProgram.u_value_range_v, this.valueRange_v);
+        gl.uniform2fv(this.updateProgram.u_speed_range, this.speedRange);
+        gl.uniform1f(this.updateProgram.u_age_threshold, this.ageThreshold);
+        gl.uniform1f(this.updateProgram.u_max_age, this.maxAge);
+
+        // Set new uniforms for particle reset
+        gl.uniform1f(this.updateProgram.u_percent_reset, this.percentParticleWhenSetSource || 0.0);
+        gl.uniform1i(this.updateProgram.u_should_reset, this.shouldResetParticles ? 1 : 0);
+        // Reset the flag after setting it
+        this.shouldResetParticles = false;
+
+        // Bind velocity texture
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, this.sourceTexture);
+        gl.uniform1i(this.updateProgram.u_velocity_texture, 0);
+
+        // Bind current particle positions buffer as input
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.currentBuffer);
+        gl.enableVertexAttribArray(this.updateProgram.a_position);
+        gl.vertexAttribPointer(this.updateProgram.a_position, 2, gl.FLOAT, false, 0, 0);
+
+        // Bind current age buffer as input
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.currentAgeBuffer);
+        gl.enableVertexAttribArray(this.updateProgram.a_age);
+        gl.vertexAttribPointer(this.updateProgram.a_age, 1, gl.FLOAT, false, 0, 0);
+
+        // Bind transform feedback and next buffers
+        gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, this.transformFeedback);
+        gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, this.nextBuffer);  // Position
+        gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 1, this.nextAgeBuffer); // Age
+
+        // Begin transform feedback
+        gl.beginTransformFeedback(gl.POINTS);
+
+        // Draw particles to update positions (but nothing will be rendered due to colorMask)
+        gl.drawArrays(gl.POINTS, 0, this.particleCount);
+
+        // End transform feedback
+        gl.endTransformFeedback();
+
+        // Clean up state
+        gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, null);
+        gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, null);
+        gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 1, null);
+
+        // Re-enable drawing to color buffer
+        gl.colorMask(true, true, true, true);
+
+        // Swap buffers
+        [this.currentBuffer, this.nextBuffer] = [this.nextBuffer, this.currentBuffer];
+        [this.currentAgeBuffer, this.nextAgeBuffer] = [this.nextAgeBuffer, this.currentAgeBuffer];
+    }
+
+    getRenderProgram(gl, shaderData) {
+        // Pick a shader based on the current projection variant (mercator / globe / transition)
+        if (this.renderShaderMap.has(shaderData.variantName)) {
+            return this.renderShaderMap.get(shaderData.variantName);
+        }
+
+        const vertexSource = buildMapLibreRenderVertexShader(shaderData);
+        const program = createProgram(gl, vertexSource, fragmentShader);
+        this.renderShaderMap.set(shaderData.variantName, program);
+        return program;
+    }
+
+    setParticleRenderUniforms(gl, renderProgram) {
+        gl.uniform4fv(renderProgram.u_bounds, this.bounds);
+        gl.uniform1f(renderProgram.u_point_size, this.pointSize);
+        gl.uniform1f(renderProgram.u_opacity, this.fadeOpacity);
+        gl.uniform1f(renderProgram.u_speed_factor, this.velocityFactor);
+        gl.uniform1f(renderProgram.u_trail_size_decay, this.trailSizeDecay);
+        gl.uniform2fv(renderProgram.u_value_range_u, this.valueRange_u);
+        gl.uniform2fv(renderProgram.u_value_range_v, this.valueRange_v);
+        gl.uniform2fv(renderProgram.u_speed_range, this.speedRange);
+    }
+
+    bindAndDrawParticles(gl, renderProgram) {
+        // Bind textures
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, this.sourceTexture);
+        gl.uniform1i(renderProgram.u_velocity_texture, 0);
+
+        gl.activeTexture(gl.TEXTURE1);
+        gl.bindTexture(gl.TEXTURE_2D, this.colormapTexture);
+        gl.uniform1i(renderProgram.u_wind_color, 1);
+
+        // Bind current particle positions
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.currentBuffer);
+        gl.enableVertexAttribArray(renderProgram.a_position);
+        gl.vertexAttribPointer(renderProgram.a_position, 2, gl.FLOAT, false, 0, 0);
+
+        // Set up instanced rendering for trails
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.trailOffsetBuffer);
+        gl.enableVertexAttribArray(renderProgram.a_trail_offset);
+        gl.vertexAttribPointer(renderProgram.a_trail_offset, 1, gl.FLOAT, false, 0, 0);
+        gl.vertexAttribDivisor(renderProgram.a_trail_offset, 1); // This makes it instanced
+
+        // Draw trails using instanced rendering
+        // Each main particle will be drawn (trailLength+1) times with different offsets
+        gl.drawArraysInstanced(gl.POINTS, 0, this.particleCount, this.trailLength + 1);
+
+        // Reset vertex attrib divisor
+        gl.vertexAttribDivisor(renderProgram.a_trail_offset, 0);
+    }
+
+    drawParticlesMapbox(gl, matrix) {
         // ---------- RENDER STEP ----------
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
         gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-        
+
         gl.useProgram(this.renderProgram.program);
+
+        // Set up blending for transparency
+        gl.enable(gl.BLEND);
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+
+        // Set uniforms for rendering
+        gl.uniformMatrix4fv(this.renderProgram.u_matrix, false, matrix);
+        this.setParticleRenderUniforms(gl, this.renderProgram);
+        this.bindAndDrawParticles(gl, this.renderProgram);
+
+        gl.disable(gl.BLEND);
+    }
+
+    drawParticlesMapLibre(gl, renderProgram, defaultProjectionData) {
+        // ---------- RENDER STEP ----------
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+
+        gl.useProgram(renderProgram.program);
         
         // Set up blending for transparency
         gl.enable(gl.BLEND);
         gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
         
-        // Set uniforms for rendering
-        gl.uniformMatrix4fv(this.renderProgram.u_matrix, false, (Array.isArray(matrix)) ? matrix : matrix.defaultProjectionData.mainMatrix);
-        gl.uniform4fv(this.renderProgram.u_bounds, this.bounds);
-        gl.uniform1f(this.renderProgram.u_point_size, this.pointSize);
-        gl.uniform1f(this.renderProgram.u_opacity, this.fadeOpacity);
-        gl.uniform1f(this.renderProgram.u_speed_factor, this.velocityFactor);
-        gl.uniform1f(this.renderProgram.u_trail_size_decay, this.trailSizeDecay);
-        gl.uniform2fv(this.renderProgram.u_value_range_u, this.valueRange_u);
-        gl.uniform2fv(this.renderProgram.u_value_range_v, this.valueRange_v);
-        gl.uniform2fv(this.renderProgram.u_speed_range, this.speedRange);
-        
-        // Bind textures
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, this.sourceTexture);
-        gl.uniform1i(this.renderProgram.u_velocity_texture, 0);
-        
-        gl.activeTexture(gl.TEXTURE1);
-        gl.bindTexture(gl.TEXTURE_2D, this.colormapTexture);
-        gl.uniform1i(this.renderProgram.u_wind_color, 1);
-        
-        // Bind current particle positions
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.currentBuffer);
-        gl.enableVertexAttribArray(this.renderProgram.a_position);
-        gl.vertexAttribPointer(this.renderProgram.a_position, 2, gl.FLOAT, false, 0, 0);
-        
-        // Set up instanced rendering for trails
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.trailOffsetBuffer);
-        gl.enableVertexAttribArray(this.renderProgram.a_trail_offset);
-        gl.vertexAttribPointer(this.renderProgram.a_trail_offset, 1, gl.FLOAT, false, 0, 0);
-        gl.vertexAttribDivisor(this.renderProgram.a_trail_offset, 1); // This makes it instanced
-        
-        // Draw trails using instanced rendering
-        // Each main particle will be drawn (trailLength+1) times with different offsets
-        gl.drawArraysInstanced(gl.POINTS, 0, this.particleCount, this.trailLength + 1);
-        
-        // Reset vertex attrib divisor
-        gl.vertexAttribDivisor(this.renderProgram.a_trail_offset, 0);
+        // MapLibre projection uniforms for projectTile() in the vertex shader
+        setProjectionUniforms(gl, renderProgram.program, defaultProjectionData);
+        this.setParticleRenderUniforms(gl, renderProgram);
+        this.bindAndDrawParticles(gl, renderProgram);
         
         gl.disable(gl.BLEND);
+    }
+    
+    renderMapbox(gl, matrix) {
+        if (!this.sourceLoaded || !this.readyForDisplay) {
+            return;
+        }
+
+        this.updateParticles(gl);
+        this.drawParticlesMapbox(gl, matrix);
+
+        // Request next frame
+        this.map.triggerRepaint();
+    }
+    
+    renderMapLibre(gl, args) {
+        if (!this.sourceLoaded || !this.readyForDisplay) {
+            return;
+        }
+
+        this.updateParticles(gl);
+        const renderProgram = this.getRenderProgram(gl, args.shaderData);
+        this.drawParticlesMapLibre(gl, renderProgram, args.defaultProjectionData);
         
         // Request next frame
         this.map.triggerRepaint();
@@ -794,6 +867,14 @@ export default class ParticleMotion extends Evented {
             }
             gl.deleteProgram(this.renderProgram.program);
         }
+        for (const program of this.renderShaderMap.values()) {
+            const shaders = gl.getAttachedShaders(program.program);
+            if (shaders) {
+                shaders.forEach(shader => gl.deleteShader(shader));
+            }
+            gl.deleteProgram(program.program);
+        }
+        this.renderShaderMap.clear();
 
         // Delete buffers
         if (this.particleBufferA) gl.deleteBuffer(this.particleBufferA);
