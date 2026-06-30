@@ -18,9 +18,13 @@ Custom Mapbox GL JS / MapLibre GL JS layers for rendering particle motion (e.g.,
 
 [Weather map time slider demo (source: react-demo/real-time-example)](https://www.weather-map-time-slider-demo.mapbox-exif-layer.com)
 
+[Maplibre GL JS globe projection demo (source: maplibre-gl-demo/maplibre-gl-demo)](https://www.mapbox-exif-layer.com/maplibre-gl-js-globe-projection-demo/index.html)
+
 [Demo video — Southern California wind particles (earlier demo)](https://www.youtube.com/watch?v=HLu0Ylhu5x4)
 
 [Demo video — US continental wind particle animation (v1.1.0)](https://www.youtube.com/watch?v=Zo6MDJT718Y)
+
+[Demo video - Maplibre GL JS globe projection](https://www.youtube.com/watch?v=mYro7l2piB0)
 
 [Technique Explanation](https://medium.com/@zifanw9/a-low-cost-custom-wind-particle-motion-layer-in-mapbox-gl-js-9a51978e3ffb)
 

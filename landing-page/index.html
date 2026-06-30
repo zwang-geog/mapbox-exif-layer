@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>mapbox-exif-layer — Wind particles &amp; smooth weather rasters for Mapbox GL JS</title>
-  <meta name="description" content="Open-source Mapbox GL JS custom layers for GPU wind particle animation and smooth weather rasters from EXIF-enabled JPEG images. Live demos, npm package, and documentation." />
+  <title>mapbox-exif-layer — Wind particles &amp; smooth weather rasters for Mapbox &amp; MapLibre GL JS</title>
+  <meta name="description" content="Open-source custom layers for Mapbox GL JS and MapLibre GL JS — GPU wind particle animation and smooth weather rasters from EXIF-enabled JPEG images. Globe projection on MapLibre (v1.2.0+). Live demos, npm package, and documentation." />
   <link rel="stylesheet" href="styles.css" />
   <script src="https://cdn.jsdelivr.net/npm/marked@15.0.12/marked.min.js"></script>
 </head>
@@ -23,11 +23,12 @@
 
   <section class="hero">
     <div class="hero-inner">
-      <p class="eyebrow">Mapbox GL JS custom layers</p>
+      <p class="eyebrow">Mapbox GL JS &amp; MapLibre GL JS custom layers</p>
       <h1>Wind particles &amp; smooth weather rasters from a single EXIF JPEG</h1>
       <p class="lead">
         GPU-accelerated particle motion for wind, smooth raster layers for temperature,
-        humidity, and precipitation — no tile server required.
+        humidity, and precipitation — no tile server required. Works with Mapbox GL JS
+        and MapLibre GL JS.
       </p>
       <div class="hero-actions">
         <a class="btn btn-primary" href="https://www.npmjs.com/package/mapbox-exif-layer" target="_blank" rel="noopener">npm install</a>
@@ -56,14 +57,16 @@
         <div class="video-caption">
           <span class="demo-tag">Featured · v1.1.0</span>
           <h3>US continental wind particle animation</h3>
-          <p>National-scale wind display with proper handling of null / no-data grid cells.</p>
+          <p>National-scale wind display on Mapbox GL JS with proper handling of null / no-data grid cells.</p>
           <span class="demo-link">Watch on YouTube →</span>
         </div>
       </a>
 
       <p class="video-secondary">
         Also see:
-        <a href="https://www.youtube.com/watch?v=HLu0Ylhu5x4" target="_blank" rel="noopener">Southern California wind particles (earlier demo)</a>
+        <a href="https://www.youtube.com/watch?v=mYro7l2piB0" target="_blank" rel="noopener">MapLibre GL JS globe (v1.2.0)</a>
+        ·
+        <a href="https://www.youtube.com/watch?v=HLu0Ylhu5x4" target="_blank" rel="noopener">Southern California (earlier demo)</a>
       </p>
     </div>
   </section>
@@ -72,14 +75,20 @@
     <div class="section-inner">
       <h2>Live demos</h2>
       <div class="demo-grid">
+        <a class="demo-card" href="https://www.mapbox-exif-layer.com/maplibre-gl-js-globe-projection-demo/">
+          <span class="demo-tag">MapLibre · Globe</span>
+          <h3>MapLibre GL JS globe demo</h3>
+          <p>Interactive US wind particles and temperature raster on MapLibre’s globe projection (v1.2.0+).</p>
+          <span class="demo-link">Open demo →</span>
+        </a>
         <a class="demo-card" href="https://www.us-wind-particle-map-demo.mapbox-exif-layer.com" target="_blank" rel="noopener">
-          <span class="demo-tag">CONUS</span>
+          <span class="demo-tag">Mapbox · CONUS</span>
           <h3>US wind &amp; temperature</h3>
           <p>Contiguous United States wind particle animation and temperature smooth raster. Toggle each layer on and off.</p>
           <span class="demo-link">Open demo →</span>
         </a>
         <a class="demo-card" href="https://www.weather-map-time-slider-demo.mapbox-exif-layer.com" target="_blank" rel="noopener">
-          <span class="demo-tag">Southern California</span>
+          <span class="demo-tag">Mapbox · Southern California</span>
           <h3>Weather map time slider</h3>
           <p>NOAA NAM NEST forecast over Southern California — wind, temperature, humidity, precipitation with timestep controls.</p>
           <span class="demo-link">Open demo →</span>
