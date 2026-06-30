@@ -1,8 +1,8 @@
 
 import { useRef, useEffect, useState } from 'react'
-import mapboxgl from 'mapbox-gl'
+import maplibregl from 'maplibre-gl'
 import { ParticleMotion, SmoothRaster } from 'mapbox-exif-layer'
-import 'mapbox-gl/dist/mapbox-gl.css';
+import 'maplibre-gl/dist/maplibre-gl.css';
 
 import './App.css'
 
@@ -82,7 +82,8 @@ function App() {
     source: '/wind_1.jpeg',
     color: WIND_COLOR,
     bounds: BOUNDS,
-    readyForDisplay: true
+    readyForDisplay: true,
+    mapRuntime: 'maplibre',  // Version 1.3.0+
   }));
 
   const temperatureLayer = useRef(new SmoothRaster({
@@ -91,34 +92,33 @@ function App() {
     color: TEMPERATURE_COLOR,
     bounds: BOUNDS,
     readyForDisplay: false,
+    mapRuntime: 'maplibre',  // Version 1.3.0+
     opacity: 0.6
   }));
 
   useEffect(() => {
-    const accessToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
-    if (!accessToken) {
-      console.error('Missing VITE_MAPBOX_ACCESS_TOKEN. Copy .env.example to .env and set your Mapbox token.');
-      return;
-    }
-
-    mapboxgl.accessToken = accessToken;
-    mapRef.current = new mapboxgl.Map({
+    mapRef.current = new maplibregl.Map({
       container: mapContainerRef.current,
-      style: 'mapbox://styles/mapbox/dark-v11',
+      style: import.meta.env.VITE_MAP_STYLE ?? 'https://tiles.openfreemap.org/styles/dark',
       zoom: 7,
-      center: [-119.699944, 34.432546],
-      projection: 'mercator'
+      center: [-119.699944, 34.432546]
     });
 
     mapRef.current.on('load', () => {
-      mapRef.current.addLayer(temperatureLayer.current, 'road-label-simple');
-      mapRef.current.addLayer(windParticleLayer.current, 'road-label-simple');
+      mapRef.current.addLayer(temperatureLayer.current);
+      mapRef.current.addLayer(windParticleLayer.current);
 
-      // Let mapbox layout property to control temperature layer visibility
+      // Let map layout property to control temperature layer visibility
       // since temperature layer is initially off by default
       mapRef.current.setLayoutProperty('temperature', 'visibility', 'none');
       temperatureLayer.current.readyForDisplay = true;
       setMapLoaded(true);
+    });
+
+    mapRef.current.on('style.load', () => {
+      mapRef.current.setProjection({
+          type: 'globe', // Set projection to globe
+      });
     });
 
     return () => {

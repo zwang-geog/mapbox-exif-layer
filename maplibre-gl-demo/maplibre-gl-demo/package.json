@@ -1,5 +1,5 @@
 {
-  "name": "react-demo",
+  "name": "maplibre-gl-demo",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -11,9 +11,9 @@
   },
   "dependencies": {
     "mapbox-exif-layer": "file:../..",
-    "mapbox-gl": "^3.10.0",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "maplibre-gl": "^5.6.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7"
   },
   "devDependencies": {
     "@eslint/js": "^9.21.0",

@@ -1,24 +1,22 @@
 import {Evented} from 'mapbox-gl';
 import ExifReader from 'exifreader';
+import { setProjectionUniforms, createGlobeMesh, createIndexBuffer, buildMapLibreVertexShader } from './mapLibreGlGlobeHelper.js';
 
-const vertexShader = `
+const vertexShaderInner = `
     precision mediump float;
     
-    attribute vec2 a_pos;
-    uniform mat4 u_matrix;
+    in vec2 a_pos;
     uniform vec4 u_bounds;  // [minX, maxY, maxX, minY]
     
-    varying vec2 v_tex_pos;
-    
-    const float PI = 3.141592653589793;
+    out vec2 v_tex_pos;
     
     vec2 latLngToMercator(vec2 lnglat) {
         // Convert lng/lat to Web Mercator coordinates in [0, 1] range
         float x = (lnglat.x + 180.0) / 360.0;  // Convert longitude to [0,1]
         
         // Convert latitude to y coordinate using Web Mercator projection
-        float latRad = lnglat.y * PI / 180.0;
-        float y = 0.5 - (log(tan(PI / 4.0 + latRad / 2.0)) / (2.0 * PI));
+        float latRad = lnglat.y * 0.017453292519943295; // radians (pi/180)
+        float y = 0.5 - (log(tan(0.7853981633974483 + latRad / 2.0)) / 6.283185307179586); // pi/4, 2*pi
         
         // y is already in [0,1] range
         return vec2(x, y);
@@ -35,12 +33,14 @@ const vertexShader = `
         // Pass texture coordinates
         v_tex_pos = vec2(a_pos.x, 1.0 - a_pos.y);
         
-        // Apply matrix transformation
-        gl_Position = u_matrix * vec4(mercator, 0, 1);
-    }
-`;
+        {{PROJECTION}}
+    }`;
 
-const fragmentShader = `
+const vertexShader = `#version 300 es
+    uniform mat4 u_matrix;
+    ${vertexShaderInner.replace('{{PROJECTION}}', 'gl_Position = u_matrix * vec4(mercator, 0, 1);')}`;
+
+const fragmentShader = `#version 300 es
     precision mediump float;
     
     uniform sampler2D u_image;
@@ -48,11 +48,12 @@ const fragmentShader = `
     uniform float u_opacity;
     uniform vec2 u_value_range;  // [min, max] of original values
     
-    varying vec2 v_tex_pos;
+    in vec2 v_tex_pos;
+    out vec4 fragColor;
     
     void main() {
         // Get the R value from the source image
-        vec4 pixel = texture2D(u_image, v_tex_pos);
+        vec4 pixel = texture(u_image, v_tex_pos);
 
         // Hide no-data cells (single-band pipeline: B=255 marks NA)
         if (pixel.b > 0.6) {
@@ -62,12 +63,11 @@ const fragmentShader = `
         float normalized = pixel.r;
         
         // Use value as index into colormap
-        vec4 color = texture2D(u_colormap, vec2(normalized, 0.5));
+        vec4 color = texture(u_colormap, vec2(normalized, 0.5));
         
         // Apply global opacity
-        gl_FragColor = vec4(color.rgb, color.a * u_opacity);
-    }
-`;
+        fragColor = vec4(color.rgb, color.a * u_opacity);
+    }`;
 
 function createProgram(gl, vertexSource, fragmentSource) {
     const program = gl.createProgram();
@@ -175,7 +175,7 @@ function createColormap(gl, colors, valueRange) {
 }
 
 export default class SmoothRaster extends Evented {
-    constructor({id, source, color, bounds, opacity = 1.0, readyForDisplay = false, cacheOption = 'no-cache', slot}) {
+    constructor({id, source, color, bounds, opacity = 1.0, readyForDisplay = false, cacheOption = 'no-cache', slot, mapRuntime = 'mapbox'}) {
         super();
         
         this.id = id;
@@ -194,25 +194,46 @@ export default class SmoothRaster extends Evented {
         this.sourceLoaded = false;
         this.readyForDisplay = readyForDisplay;
         this.cacheOption = cacheOption;  // Store the cache option
+
+        // 'mapbox' (default) or 'maplibre' — selects which render implementation is bound below
+        this.mapRuntime = mapRuntime;
+        // Cached MapLibre render programs keyed by shaderData.variantName (globe / mercator transition)
+        this.renderShaderMap = new Map();
+
+        this.render = mapRuntime === 'maplibre' ? this.renderMapLibre : this.renderMapbox;
     }
 
     onAdd(map, gl) {
         this.map = map;
         this.gl = gl;
 
-        // Create program
-        this.program = createProgram(gl, vertexShader, fragmentShader);
+        // Create program (Mapbox only; MapLibre builds per projection variant on demand)
+        if (this.mapRuntime === 'mapbox') {
+            this.program = createProgram(gl, vertexShader, fragmentShader);
+        }
 
-        // Create vertex buffer for a full-screen quad
-        const vertices = new Float32Array([
-            0, 0,
-            1, 0,
-            0, 1,
-            0, 1,
-            1, 0,
-            1, 1
-        ]);
-        this.vertexBuffer = createBuffer(gl, vertices);
+        this.indexBuffer = null;
+        this.indexCount = 0;
+
+        if (this.mapRuntime === 'maplibre') {
+            // Subdivide by bounds lon/lat span so the mesh follows the globe surface
+            const mesh = createGlobeMesh(this.bounds);
+            this.vertexBuffer = createBuffer(gl, mesh.vertices);
+            this.indexBuffer = createIndexBuffer(gl, mesh.indices);
+            this.indexCount = mesh.indexCount;
+            this.globeSubdivisions = {nCols: mesh.nCols, nRows: mesh.nRows};
+        } else {
+            // Single quad for Mapbox mercator
+            const vertices = new Float32Array([
+                0, 0,
+                1, 0,
+                0, 1,
+                0, 1,
+                1, 0,
+                1, 1
+            ]);
+            this.vertexBuffer = createBuffer(gl, vertices);
+        }
 
         // Load source image
         this.setSource(this.source);
@@ -307,6 +328,7 @@ export default class SmoothRaster extends Evented {
 
         // Delete buffer
         if (this.vertexBuffer) gl.deleteBuffer(this.vertexBuffer);
+        if (this.indexBuffer) gl.deleteBuffer(this.indexBuffer);
 
         // Delete shaders and program
         if (this.program) {
@@ -316,21 +338,72 @@ export default class SmoothRaster extends Evented {
             }
             gl.deleteProgram(this.program.program);
         }
+        for (const program of this.renderShaderMap.values()) {
+            const shaders = gl.getAttachedShaders(program.program);
+            if (shaders) {
+                shaders.forEach(shader => gl.deleteShader(shader));
+            }
+            gl.deleteProgram(program.program);
+        }
+        this.renderShaderMap.clear();
 
         // Clear references
         this.sourceTexture = null;
         this.colormapTexture = null;
         this.vertexBuffer = null;
+        this.indexBuffer = null;
         this.program = null;
         this.gl = null;
         this.map = null;
         this.sourceLoaded = false;
     }
 
-    render(gl, matrix) {
+    getRenderProgram(gl, shaderData) {
+        // Pick a shader based on the current projection variant (mercator / globe / transition)
+        if (this.renderShaderMap.has(shaderData.variantName)) {
+            return this.renderShaderMap.get(shaderData.variantName);
+        }
+
+        const vertexSource = buildMapLibreVertexShader(shaderData, vertexShaderInner);
+        const program = createProgram(gl, vertexSource, fragmentShader);
+        this.renderShaderMap.set(shaderData.variantName, program);
+        return program;
+    }
+
+    setRasterUniforms(gl, program) {
+        gl.uniform4fv(program.u_bounds, this.bounds);
+        gl.uniform1f(program.u_opacity, this.opacity);
+        gl.uniform2fv(program.u_value_range, this.valueRange);
+    }
+
+    bindAndDrawMesh(gl, program) {
+        // Bind textures
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, this.sourceTexture);
+        gl.uniform1i(program.u_image, 0);
+
+        gl.activeTexture(gl.TEXTURE1);
+        gl.bindTexture(gl.TEXTURE_2D, this.colormapTexture);
+        gl.uniform1i(program.u_colormap, 1);
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
+        gl.enableVertexAttribArray(program.a_pos);
+        gl.vertexAttribPointer(program.a_pos, 2, gl.FLOAT, false, 0, 0);
+
+        if (this.indexBuffer) {
+            // MapLibre globe: subdivided mesh
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
+            gl.drawElements(gl.TRIANGLES, this.indexCount, gl.UNSIGNED_SHORT, 0);
+        } else {
+            // Mapbox mercator: single quad
+            gl.drawArrays(gl.TRIANGLES, 0, 6);
+        }
+    }
+
+    renderMapbox(gl, matrix) {
         // Only render if source is loaded
         if (!this.sourceLoaded || !this.readyForDisplay) return;
-        
+
         gl.useProgram(this.program.program);
 
         // Set up blending for transparency
@@ -340,24 +413,28 @@ export default class SmoothRaster extends Evented {
 
         // Set uniforms
         gl.uniformMatrix4fv(this.program.u_matrix, false, matrix);
-        gl.uniform4fv(this.program.u_bounds, this.bounds);
-        gl.uniform1f(this.program.u_opacity, this.opacity);
-        gl.uniform2fv(this.program.u_value_range, this.valueRange);
+        this.setRasterUniforms(gl, this.program);
+        this.bindAndDrawMesh(gl, this.program);
 
-        // Bind textures
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, this.sourceTexture);
-        gl.uniform1i(this.program.u_image, 0);
+        gl.disable(gl.BLEND);
+    }
 
-        gl.activeTexture(gl.TEXTURE1);
-        gl.bindTexture(gl.TEXTURE_2D, this.colormapTexture);
-        gl.uniform1i(this.program.u_colormap, 1);
+    renderMapLibre(gl, args) {
+        // Only render if source is loaded
+        if (!this.sourceLoaded || !this.readyForDisplay) return;
 
-        // Draw quad
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
-        gl.enableVertexAttribArray(this.program.a_pos);
-        gl.vertexAttribPointer(this.program.a_pos, 2, gl.FLOAT, false, 0, 0);
-        gl.drawArrays(gl.TRIANGLES, 0, 6);
+        const program = this.getRenderProgram(gl, args.shaderData);
+
+        gl.useProgram(program.program);
+
+        // Set up blending for transparency
+        gl.enable(gl.BLEND);
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+
+        // MapLibre projection uniforms for projectTile() in the vertex shader
+        setProjectionUniforms(gl, program.program, args.defaultProjectionData);
+        this.setRasterUniforms(gl, program);
+        this.bindAndDrawMesh(gl, program);
 
         gl.disable(gl.BLEND);
     }

@@ -9,6 +9,7 @@ declare module 'mapbox-exif-layer' {
       readyForDisplay?: boolean;
       cacheOption?: 'no-cache' | 'no-store' | 'reload' | 'default' | 'force-cache';
       slot?: string;
+      mapRuntime?: 'mapbox' | 'maplibre';
     });
     
     setSource(source: string, color?: Array<[number, number[]]>): void;
@@ -33,8 +34,9 @@ declare module 'mapbox-exif-layer' {
       unit?: 'mph' | 'kph' | 'mps';
       cacheOption?: 'no-cache' | 'no-store' | 'reload' | 'default' | 'force-cache';
       slot?: string;
+      mapRuntime?: 'mapbox' | 'maplibre';
     });
-    
+
     setSource(source: string, percentReset?: number): void;
   }
 }

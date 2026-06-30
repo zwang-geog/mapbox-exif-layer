@@ -2,15 +2,16 @@
 
 [![npm version](https://img.shields.io/npm/v/mapbox-exif-layer)](https://www.npmjs.com/package/mapbox-exif-layer)
 
-Custom Mapbox GL JS layers for rendering particle motion (e.g., wind) or smooth raster (e.g., temperature, relative humidity, precipitation) based on EXIF-enabled JPEG images
+Custom Mapbox GL JS / MapLibre GL JS layers for rendering particle motion (e.g., wind) or smooth raster (e.g., temperature, relative humidity, precipitation) based on EXIF-enabled JPEG images
 
 **Feature Highlights**
-* A mapbox built-in [custom layer](https://docs.mapbox.com/mapbox-gl-js/api/properties/#customlayerinterface) instead of some canvas overlay so it is natively integrated with mapbox 
+* A built-in [custom layer](https://docs.mapbox.com/mapbox-gl-js/api/properties/#customlayerinterface) (Mapbox GL JS or MapLibre GL JS) instead of a canvas overlay, so layers are natively integrated with the map
+* **New in v1.2.0+: MapLibre GL JS with globe projection** — set `mapRuntime: 'maplibre'` on `ParticleMotion` or `SmoothRaster` and use MapLibre's [globe projection](https://maplibre.org/maplibre-gl-js/docs/examples/add-a-simple-custom-layer-on-a-globe/) (`map.setProjection({ type: 'globe' })`); see [`maplibre-gl-demo`](maplibre-gl-demo/maplibre-gl-demo/src/App.jsx) for a working example. Mapbox GL JS remains as the default mapRuntime and only supports mercator.
 * The particle position and age are stored as buffer, while the computation of new particle position is done in a vertex shader dedicated for updates, and particle motion is powered by transform feedback (overall, GPU-based instead of CPU-based)
 * Single image with EXIF information as source (as simple as uploading the image to a public accessible AWS S3 bucket), no need to setup any tile server 
 * Works for browsers on both desktop/laptop and iPhone/iPad
 * Wind particles can have varying colors based on speed, and particle movement respect the relative u- and v-component velocity rather than moving at the same rate
-* Well-suited for displaying local or regional forecast results
+* Well-suited for displaying local, regional, or national weather forecast results
 * Method for updating the source url is available, so setting forecast for different timestamps can be done easily
 
 [US wind & temperature demo (source: react-demo/react-demo)](https://www.us-wind-particle-map-demo.mapbox-exif-layer.com)
@@ -23,7 +24,7 @@ Custom Mapbox GL JS layers for rendering particle motion (e.g., wind) or smooth 
 
 [Technique Explanation](https://medium.com/@zifanw9/a-low-cost-custom-wind-particle-motion-layer-in-mapbox-gl-js-9a51978e3ffb)
 
-## Important Update — Breaking Change (v1.1.0)
+## Important Update — Breaking Change (>= v1.1.0)
 
 **Package version ≥ 1.1.0 is required** to correctly display raster data that contains NA/missing cells. Releases **1.0.3 and below** do not read the B band and will not mask NA values, which can produce incorrect colors or stray wind particles.
 
@@ -65,7 +66,7 @@ python grib2_to_image.py "$REPROJECTED_GRIB" "${HOUR}" "jpeg_wind.json" "jpeg"  
 
 **Usage Reminder**
 1. The shader programs uses a formula to convert mph to lat and long per hour (applicable to ParticleMotion layer only) for determining particle displacement, and the data that I use is mph. Before I package the original code, I add an `unit` parameter in the constructor which you can set it to "kph" (km/h) or "mps" (m/s), and the package will performs an unit conversion on the values parsed from the EXIF info. I am unsure how such an addition will work.
-2. When initializing the map canvas, projection needs to be explicitly set to 'mercator' because the custom layers available in this package only works for mercator projection (many Mapbox styles assume a globe projection).
+2. The use of **Mapbox GL JS:** requires setting projection to `'mercator'` when initializing the map — the default `mapRuntime: 'mapbox'` does not support globe. The use of **MapLibre GL JS:** requires setting `mapRuntime: 'maplibre'` on each layer - MapLibre's globe projection is supported in v1.2.0+ (see [`maplibre-gl-demo`](maplibre-gl-demo/maplibre-gl-demo/src/App.jsx)).
 
 ## Installation
 
@@ -87,7 +88,7 @@ const map = new mapboxgl.Map({
   style: 'mapbox://styles/mapbox/dark-v11',
   zoom: 7,
   center: [-119.699944,34.432546],
-  projection: 'mercator'  // Projection must be explicitly set to mercator (not globe which is the default for style such as dark-v11)
+  projection: 'mercator'  // For mapbox-gl-js only: projection must always be explicitly set to mercator (not globe which is the default for many mapbox styles)
 });
 
 // Defining particle motion layer for wind
@@ -243,6 +244,7 @@ A particle-based visualization layer that creates animated particles, suitable f
   - `'mps'`: Meters per second
 - `cacheOption` (string): [Cache option](https://developer.mozilla.org/en-US/docs/Web/API/Request/cache) to use when fetching the source image. It can be one of no-cache (default in 1.0.3), no-store (default in 1.0.2), reload, default, or force-cache.
 - `slot` (string): Optional [slot](https://docs.mapbox.com/style-spec/reference/slots/) identifier for the layer (used by Mapbox GL JS for [layer ordering](https://docs.mapbox.com/mapbox-gl-js/api/map/#addlayer-parameters-layer-slot)); typical values may include "top", "middle" (recommended), "bottom".
+- `mapRuntime` (string): `'mapbox'` (default) or `'maplibre'`. This parameter must be explicitly set to `'maplibre'` if maplibre-gl-js SDK is used. Only `'maplibre'` with [MapLibre GL JS](https://maplibre.org/projects/gl-js/) supports globe projection.
 
 #### Methods
 
@@ -262,6 +264,7 @@ A raster visualization layer that provides a smooth display of the data.
 - `readyForDisplay` (bool): Preventing the layer from rendering when the layer is added to the map, if necessary (default: false)
 - `cacheOption` (string): [Cache option](https://developer.mozilla.org/en-US/docs/Web/API/Request/cache) to use when fetching the source image. It can be one of no-cache (default in 1.0.3), no-store (default in 1.0.2), reload, default, or force-cache.
 - `slot` (string): Optional [slot](https://docs.mapbox.com/style-spec/reference/slots/) identifier for the layer (used by Mapbox GL JS for [layer ordering](https://docs.mapbox.com/mapbox-gl-js/api/map/#addlayer-parameters-layer-slot)); typical values may include "top", "middle" (recommended), "bottom".
+- `mapRuntime` (string): `'mapbox'` (default) or `'maplibre'`. This parameter must be explicitly set to `'maplibre'` if maplibre-gl-js SDK is used. Only `'maplibre'` with [MapLibre GL JS](https://maplibre.org/projects/gl-js/) supports globe projection.
 
 #### Methods
 
