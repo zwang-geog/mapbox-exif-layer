@@ -478,7 +478,6 @@ export default class ParticleMotion extends Evented {
         this.mapRuntime = mapRuntime;
         // Cached MapLibre render programs keyed by shaderData.variantName (globe / mercator transition)
         this.renderShaderMap = new Map();
-        this.projection = null;
 
         this.render = mapRuntime === 'maplibre' ? this.renderMapLibre : this.renderMapbox;
     }
@@ -486,8 +485,6 @@ export default class ParticleMotion extends Evented {
     onAdd(map, gl) {
         this.map = map;
         this.gl = gl;
-
-        this.projection = map.getProjection();
 
         // Create programs with appropriate fragment shaders
         this.updateProgram = createProgram(gl, vertexShader, updateFragmentShader);
