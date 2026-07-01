@@ -18,6 +18,7 @@
   },
   "keywords": [
     "mapbox-gl-js",
+    "maplibre-gl-js",
     "raster",
     "wind",
     "velocity",
@@ -42,6 +43,7 @@
     "@rollup/plugin-commonjs": "^25.0.0",
     "@rollup/plugin-node-resolve": "^15.0.0",
     "@rollup/plugin-terser": "^0.4.4",
+    "geotiff": "^3.0.5",
     "rollup": "^4.0.0",
     "rollup-plugin-dts": "^6.2.3"
   },

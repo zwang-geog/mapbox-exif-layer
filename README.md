@@ -55,6 +55,8 @@ For rendering smooth raster, the band of the attribute to map needs to have its 
 
 For rendering wind as particles, the u- and v-component velocity need to be converted to an unit in mph (m/s or km/h might also be possible, but not tested; see Usage Reminder for details), normalized to an integer between 0-255, and stored as R-band and G-band of a JPEG image, respectively; **for NA cells of wind, please encode them as 0 for B-band while encoding non-NA cells as 255**. Additionally, the min and max of u- and v-component velocity (without normalization), as well as the min and max of speed in mph (sqrt(u * u, v * v)) need to be written to EXIF image description in the format of `min-u-velocity,max-u-velocity;min-v-velocity,max-v-velocity;min-speed,max-speed;`
 
+**Optional GeoTIFF source (float32, EPSG:4326):** for higher precision without JPEG encoding, both layers accept GeoTIFF URLs (`.tif` / `.tiff` or `sourceType: 'geotiff'`). `SmoothRaster` reads one scalar band (`scalarBand`, default first band); `ParticleMotion` reads u/v from configurable bands (`uBand`/`vBand`, default first two). GDAL NoData values are decoded to `NaN` (no mask band required). Install the optional peer dependency `geotiff`. See [`docs/geotiff-source.md`](docs/geotiff-source.md).
+
 Under pipeline folder of this repo, there is a Python script with associated sample json files (based on NOAA HIRESW forecast) for converting grib2 to EXIF-enabled JPEG images. Let us say we want to get NOAA HIRESW forecast for wind in southern California, we can write a bash script that utilizes following commands ([more public available data](https://nomads.ncep.noaa.gov/)):
 ```bash
 DATE=$(date -u +%Y%m%d)
@@ -91,7 +93,7 @@ npm install maplibre-gl
 Then install this package:
 
 ```bash
-npm install mapbox-exif-layer
+npm install geotiff
 ```
 
 Then import the layer classes in your JavaScript code:
@@ -265,6 +267,9 @@ A particle-based visualization layer that creates animated particles, suitable f
 - `cacheOption` (string): [Cache option](https://developer.mozilla.org/en-US/docs/Web/API/Request/cache) to use when fetching the source image. It can be one of no-cache (default in 1.0.3), no-store (default in 1.0.2), reload, default, or force-cache.
 - `slot` (string): Optional [slot](https://docs.mapbox.com/style-spec/reference/slots/) identifier for the layer (used by Mapbox GL JS for [layer ordering](https://docs.mapbox.com/mapbox-gl-js/api/map/#addlayer-parameters-layer-slot)); typical values may include "top", "middle" (recommended), "bottom".
 - `mapRuntime` (string): `'mapbox'` (default) or `'maplibre'`. This parameter must be explicitly set to `'maplibre'` if maplibre-gl-js SDK is used. Only `'maplibre'` with [MapLibre GL JS](https://maplibre.org/projects/gl-js/) supports globe projection.
+- `sourceType` (string): `'auto'` (default), `'jpeg'`, or `'geotiff'`. GeoTIFF requires optional peer [`geotiff`](https://www.npmjs.com/package/geotiff); see [`docs/geotiff-source.md`](docs/geotiff-source.md).
+- `uBand` (number): GeoTIFF sample index for the u component (default: `0`, first band).
+- `vBand` (number): GeoTIFF sample index for the v component (default: `1`, second band).
 
 #### Methods
 
@@ -285,6 +290,8 @@ A raster visualization layer that provides a smooth display of the data.
 - `cacheOption` (string): [Cache option](https://developer.mozilla.org/en-US/docs/Web/API/Request/cache) to use when fetching the source image. It can be one of no-cache (default in 1.0.3), no-store (default in 1.0.2), reload, default, or force-cache.
 - `slot` (string): Optional [slot](https://docs.mapbox.com/style-spec/reference/slots/) identifier for the layer (used by Mapbox GL JS for [layer ordering](https://docs.mapbox.com/mapbox-gl-js/api/map/#addlayer-parameters-layer-slot)); typical values may include "top", "middle" (recommended), "bottom".
 - `mapRuntime` (string): `'mapbox'` (default) or `'maplibre'`. This parameter must be explicitly set to `'maplibre'` if maplibre-gl-js SDK is used. Only `'maplibre'` with [MapLibre GL JS](https://maplibre.org/projects/gl-js/) supports globe projection.
+- `sourceType` (string): `'auto'` (default), `'jpeg'`, or `'geotiff'`. GeoTIFF requires optional peer [`geotiff`](https://www.npmjs.com/package/geotiff); see [`docs/geotiff-source.md`](docs/geotiff-source.md).
+- `scalarBand` (number): GeoTIFF sample index for scalar data (default: `0`, first band).
 
 #### Methods
 
