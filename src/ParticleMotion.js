@@ -442,12 +442,10 @@ function createColormap(gl, colors, valueRange) {
     return createTexture(gl, gl.LINEAR, data, 256, 1);
 }
 
-export default class ParticleMotion extends Evented {
+export default class ParticleMotion {
     constructor({id, source, color, bounds, particleCount = 5000, readyForDisplay = false, ageThreshold = 500, maxAge = 1000,
         velocityFactor = 0.05, fadeOpacity = 0.9, updateInterval = 50, pointSize = 5.0, trailLength = 3, trailSizeDecay = 0.8, 
         unit = 'mph', cacheOption = 'no-cache', slot, mapRuntime = 'mapbox', sourceType = 'auto', uBand = 0, vBand = 1}) {
-        super();
-        
         this.id = id;
         this.type = 'custom';
         this.renderingMode = '2d';

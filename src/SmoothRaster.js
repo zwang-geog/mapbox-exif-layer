@@ -171,10 +171,8 @@ function createColormap(gl, colors, valueRange) {
     return createTexture(gl, gl.NEAREST, data, 256, 1);
 }
 
-export default class SmoothRaster extends Evented {
+export default class SmoothRaster {
     constructor({id, source, color, bounds, opacity = 1.0, readyForDisplay = false, cacheOption = 'no-cache', slot, mapRuntime = 'mapbox', sourceType = 'auto', scalarBand = 0}) {
-        super();
-        
         this.id = id;
         this.type = 'custom';
         this.renderingMode = '2d';

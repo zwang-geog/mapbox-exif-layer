@@ -28,7 +28,7 @@ export default [
       sourcemap: true
     }
   ],
-  external: ['exifreader'],
+  external: ['exifreader', 'geotiff'],
   plugins: [
     resolve(),
     commonjs(),
