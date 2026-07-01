@@ -1,4 +1,3 @@
-import {Evented} from 'mapbox-gl';
 import ExifReader from 'exifreader';
 import { setProjectionUniforms, createGlobeMesh, createIndexBuffer, buildMapLibreVertexShader } from './mapLibreGlGlobeHelper.js';
 import { valueRangeFromColorStops } from './colorStops.js';

@@ -76,50 +76,21 @@ python grib2_to_image.py "$REPROJECTED_GRIB" "${HOUR}" "jpeg_wind.json" "jpeg"  
 
 ## Installation
 
-Install this package and **one** map renderer — [Mapbox GL JS](https://docs.mapbox.com/mapbox-gl-js/) or [MapLibre GL JS](https://maplibre.org/maplibre-gl-js/docs/).
+This package does not include a map SDK. Install **one** of the following, depending on which runtime you use:
 
-**Mapbox GL JS**
-
-```bash
-npm install mapbox-exif-layer mapbox-gl
-```
-
-**MapLibre GL JS**
+**Mapbox GL JS** (default `mapRuntime: 'mapbox'`):
 
 ```bash
-npm install mapbox-exif-layer maplibre-gl
+npm install mapbox-gl
 ```
 
-This library imports `Evented` from `mapbox-gl`. In MapLibre apps, add a small shim and point your bundler at it (Vite example):
+**MapLibre GL JS** (set `mapRuntime: 'maplibre'` on each layer):
 
-```javascript
-// mapbox-gl-shim.js
-import maplibregl from 'maplibre-gl';
-
-export const Evented = maplibregl.Evented;
-export default maplibregl;
+```bash
+npm install maplibre-gl
 ```
 
-```javascript
-// vite.config.js
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { defineConfig } from 'vite';
-
-const root = path.dirname(fileURLToPath(import.meta.url));
-
-export default defineConfig({
-  resolve: {
-    alias: {
-      'mapbox-gl': path.resolve(root, 'src/mapbox-gl-shim.js'),
-    },
-  },
-});
-```
-
-See [`maplibre-gl-demo`](maplibre-gl-demo/maplibre-gl-demo/vite.config.js) for a working setup. Set `mapRuntime: 'maplibre'` on each layer when using MapLibre.
-
-**Optional GeoTIFF sources**
+Then install this package:
 
 ```bash
 npm install geotiff
