@@ -1,6 +1,9 @@
 import {Evented} from 'mapbox-gl';
 import ExifReader from 'exifreader';
 import { setProjectionUniforms, createGlobeMesh, createIndexBuffer, buildMapLibreVertexShader } from './mapLibreGlGlobeHelper.js';
+import { valueRangeFromColorStops } from './colorStops.js';
+import { createTexture, createR32FTexture } from './textureUtils.js';
+import { loadGeoTiffScalar, assertTextureDimensions, isSourceFormatGeotiff } from './geoTiffSource.js';
 
 const vertexShaderInner = `
     precision mediump float;
@@ -47,20 +50,31 @@ const fragmentShader = `#version 300 es
     uniform sampler2D u_colormap;
     uniform float u_opacity;
     uniform vec2 u_value_range;  // [min, max] of original values
+    uniform bool u_physical_values;
     
     in vec2 v_tex_pos;
     out vec4 fragColor;
     
     void main() {
-        // Get the R value from the source image
         vec4 pixel = texture(u_image, v_tex_pos);
+        float normalized;
 
-        // Hide no-data cells (single-band pipeline: B=255 marks NA)
-        if (pixel.b > 0.6) {
-            discard;
+        if (u_physical_values) {
+            if (isnan(pixel.r)) {
+                discard;
+            }
+            normalized = clamp(
+                (pixel.r - u_value_range[0]) / (u_value_range[1] - u_value_range[0]),
+                0.0,
+                1.0
+            );
+        } else {
+            // Hide no-data cells (single-band pipeline: B=255 marks NA)
+            if (pixel.b > 0.6) {
+                discard;
+            }
+            normalized = pixel.r;
         }
-
-        float normalized = pixel.r;
         
         // Use value as index into colormap
         vec4 color = texture(u_colormap, vec2(normalized, 0.5));
@@ -107,22 +121,6 @@ function createShader(gl, type, source) {
         throw new Error(gl.getShaderInfoLog(shader));
     }
     return shader;
-}
-
-function createTexture(gl, filter, data, width, height) {
-    const texture = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, texture);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, filter);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, filter);
-    
-    if (data instanceof Uint8Array) {
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, data);
-    } else {
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, data);
-    }
-    return texture;
 }
 
 function createBuffer(gl, data) {
@@ -175,7 +173,7 @@ function createColormap(gl, colors, valueRange) {
 }
 
 export default class SmoothRaster extends Evented {
-    constructor({id, source, color, bounds, opacity = 1.0, readyForDisplay = false, cacheOption = 'no-cache', slot, mapRuntime = 'mapbox'}) {
+    constructor({id, source, color, bounds, opacity = 1.0, readyForDisplay = false, cacheOption = 'no-cache', slot, mapRuntime = 'mapbox', sourceType = 'auto', scalarBand = 0}) {
         super();
         
         this.id = id;
@@ -187,6 +185,9 @@ export default class SmoothRaster extends Evented {
         }
         
         this.source = source;
+        this.sourceType = sourceType;
+        this.scalarBand = scalarBand;
+        this.physicalValues = false;
         this.color = color;
         this.opacity = opacity;
         this.bounds = bounds;
@@ -248,6 +249,51 @@ export default class SmoothRaster extends Evented {
             this.color = color;
         }
 
+        if (isSourceFormatGeotiff(source, this.sourceType)) {
+            this.loadGeoTiffSource(source);
+            return;
+        }
+
+        this.physicalValues = false;
+        this.loadJpegSource(source);
+    }
+
+    loadGeoTiffSource(source) {
+        fetch(source, {cache: this.cacheOption})
+            .then((response) => {
+                if (!response.ok) {
+                    throw new Error(`SmoothRaster: failed to fetch GeoTIFF (${response.status})`);
+                }
+                return response.arrayBuffer();
+            })
+            .then(async (arrayBuffer) => {
+                const result = await loadGeoTiffScalar(arrayBuffer, {scalarBand: this.scalarBand});
+                if (!this.gl) {
+                    return;
+                }
+
+                assertTextureDimensions(result.width, result.height, this.gl);
+
+                if (this.sourceTexture) {
+                    this.gl.deleteTexture(this.sourceTexture);
+                }
+
+                this.physicalValues = true;
+                this.valueRange = valueRangeFromColorStops(this.color);
+                this.sourceTexture = createR32FTexture(this.gl, result.data, result.width, result.height);
+                this.colormapTexture = createColormap(this.gl, this.color, this.valueRange);
+                this.sourceLoaded = true;
+
+                if (this.map) {
+                    this.map.triggerRepaint();
+                }
+            })
+            .catch((error) => {
+                console.error('SmoothRaster: Error loading GeoTIFF source:', error);
+            });
+    }
+
+    loadJpegSource(source) {
         const image = new Image();
         image.crossOrigin = "anonymous";
         
@@ -288,6 +334,9 @@ export default class SmoothRaster extends Evented {
                         image.onload = () => {
                             URL.revokeObjectURL(objectURL);
                             if (this.gl) {
+                                if (this.sourceTexture) {
+                                    this.gl.deleteTexture(this.sourceTexture);
+                                }
                                 this.sourceTexture = createTexture(this.gl, this.gl.LINEAR, image);
                                 if (this.valueRange) {
                                     this.colormapTexture = createColormap(this.gl, this.color, this.valueRange);
@@ -374,6 +423,7 @@ export default class SmoothRaster extends Evented {
         gl.uniform4fv(program.u_bounds, this.bounds);
         gl.uniform1f(program.u_opacity, this.opacity);
         gl.uniform2fv(program.u_value_range, this.valueRange);
+        gl.uniform1i(program.u_physical_values, this.physicalValues ? 1 : 0);  // 1 correspond to geotif that has unnormalized/raw values
     }
 
     bindAndDrawMesh(gl, program) {

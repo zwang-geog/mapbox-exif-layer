@@ -10,6 +10,10 @@ declare module 'mapbox-exif-layer' {
       cacheOption?: 'no-cache' | 'no-store' | 'reload' | 'default' | 'force-cache';
       slot?: string;
       mapRuntime?: 'mapbox' | 'maplibre';
+      /** 'auto' detects .tif/.tiff URLs; GeoTIFF requires optional peer `geotiff` */
+      sourceType?: 'auto' | 'jpeg' | 'geotiff';
+      /** GeoTIFF sample index for scalar data (0 = first band). Default 0. */
+      scalarBand?: number;
     });
     
     setSource(source: string, color?: Array<[number, number[]]>): void;
@@ -35,6 +39,12 @@ declare module 'mapbox-exif-layer' {
       cacheOption?: 'no-cache' | 'no-store' | 'reload' | 'default' | 'force-cache';
       slot?: string;
       mapRuntime?: 'mapbox' | 'maplibre';
+      /** 'auto' detects .tif/.tiff URLs; GeoTIFF requires optional peer `geotiff` */
+      sourceType?: 'auto' | 'jpeg' | 'geotiff';
+      /** GeoTIFF sample index for u component (0 = first band). Default 0. */
+      uBand?: number;
+      /** GeoTIFF sample index for v component (0 = first band). Default 1. */
+      vBand?: number;
     });
 
     setSource(source: string, percentReset?: number): void;

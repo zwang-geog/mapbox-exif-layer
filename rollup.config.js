@@ -29,7 +29,7 @@ export default [
       sourcemap: true
     }
   ],
-  external: ['mapbox-gl', 'exifreader'],
+  external: ['mapbox-gl', 'exifreader', 'geotiff'],
   plugins: [
     resolve(),
     commonjs(),

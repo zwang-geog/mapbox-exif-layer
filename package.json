@@ -18,6 +18,7 @@
   },
   "keywords": [
     "mapbox-gl-js",
+    "maplibre-gl-js",
     "raster",
     "wind",
     "velocity",
@@ -27,12 +28,26 @@
   "author": "Zifan Wang",
   "license": "MIT",
   "peerDependencies": {
-    "mapbox-gl": "^3.8.0"
+    "geotiff": "^2.1.0 || ^3.0.0",
+    "mapbox-gl": "^3.8.0",
+    "maplibre-gl": "^4.0.0 || ^5.0.0"
+  },
+  "peerDependenciesMeta": {
+    "geotiff": {
+      "optional": true
+    },
+    "mapbox-gl": {
+      "optional": true
+    },
+    "maplibre-gl": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^25.0.0",
     "@rollup/plugin-node-resolve": "^15.0.0",
     "@rollup/plugin-terser": "^0.4.4",
+    "geotiff": "^3.0.5",
     "rollup": "^4.0.0",
     "rollup-plugin-dts": "^6.2.3"
   },

@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## Unreleased
+
+- Added optional GeoTIFF source support (float32, EPSG:4326): configurable bands (`scalarBand`, `uBand`/`vBand`), GDAL NoData → NaN, uploads `R32F` / `RG32F`. Scalar and wind colormap scale from color-stop min/max (clamped), not data min/max. Requires optional peer dependency `geotiff` (^2.1.0 or ^3.0.0).
+- Document `maplibre-gl` as an optional peer dependency alongside `mapbox-gl` (install one map renderer).
+
 ## v1.2.0
 
 - Added MapLibre GL JS 5.0.0+ custom layer support, adapted with MapLibre GL JS's globe projection
