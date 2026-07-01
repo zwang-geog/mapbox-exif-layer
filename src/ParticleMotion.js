@@ -1,4 +1,3 @@
-import {Evented} from 'mapbox-gl';
 import ExifReader from 'exifreader';
 import { setProjectionUniforms, buildMapLibreVertexShader } from './mapLibreGlGlobeHelper.js';
 
@@ -432,12 +431,10 @@ function mpsToMph(mps) {
     return mps * 2.23694;
 }
 
-export default class ParticleMotion extends Evented {
+export default class ParticleMotion {
     constructor({id, source, color, bounds, particleCount = 5000, readyForDisplay = false, ageThreshold = 500, maxAge = 1000,
         velocityFactor = 0.05, fadeOpacity = 0.9, updateInterval = 50, pointSize = 5.0, trailLength = 3, trailSizeDecay = 0.8, 
         unit = 'mph', cacheOption = 'no-cache', slot, mapRuntime = 'mapbox'}) {
-        super();
-        
         this.id = id;
         this.type = 'custom';
         this.renderingMode = '2d';

@@ -74,6 +74,22 @@ python grib2_to_image.py "$REPROJECTED_GRIB" "${HOUR}" "jpeg_wind.json" "jpeg"  
 
 ## Installation
 
+This package does not include a map SDK. Install **one** of the following, depending on which runtime you use:
+
+**Mapbox GL JS** (default `mapRuntime: 'mapbox'`):
+
+```bash
+npm install mapbox-gl
+```
+
+**MapLibre GL JS** (set `mapRuntime: 'maplibre'` on each layer):
+
+```bash
+npm install maplibre-gl
+```
+
+Then install this package:
+
 ```bash
 npm install mapbox-exif-layer
 ```

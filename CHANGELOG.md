@@ -2,6 +2,10 @@
 
 All notable changes to this project are documented in this file.
 
+## v1.2.1
+
+- Removed dependency on `mapbox-gl` (dropped `Evented` inheritance); install either `mapbox-gl` or `maplibre-gl` as a peer
+
 ## v1.2.0
 
 - Added MapLibre GL JS 5.0.0+ custom layer support, adapted with MapLibre GL JS's globe projection

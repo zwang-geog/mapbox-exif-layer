@@ -23,13 +23,12 @@ export default [
       format: 'umd',
       name: 'MapboxExifLayer',
       globals: {
-        'mapbox-gl': 'mapboxgl',
         'exifreader': 'ExifReader'
       },
       sourcemap: true
     }
   ],
-  external: ['mapbox-gl', 'exifreader'],
+  external: ['exifreader'],
   plugins: [
     resolve(),
     commonjs(),

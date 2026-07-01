@@ -1,6 +1,6 @@
 {
   "name": "mapbox-exif-layer",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Custom Mapbox GL JS layers for rendering particle motion (e.g., wind) or smooth raster (e.g., temperature) based on EXIF-enabled JPEG images",
   "type": "module",
   "main": "dist/index.js",
@@ -27,7 +27,16 @@
   "author": "Zifan Wang",
   "license": "MIT",
   "peerDependencies": {
-    "mapbox-gl": "^3.8.0"
+    "mapbox-gl": "^3.8.0",
+    "maplibre-gl": "^4.0.0 || ^5.0.0"
+  },
+  "peerDependenciesMeta": {
+    "mapbox-gl": {
+      "optional": true
+    },
+    "maplibre-gl": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^25.0.0",
