@@ -4,7 +4,8 @@ declare module 'mapbox-exif-layer' {
       id: string;
       source: string;
       color: Array<[number, number[]]>;
-      bounds: [number, number, number, number];
+      /** Required for JPEG; optional for GeoTIFF (read from file). */
+      bounds?: [number, number, number, number];
       opacity?: number;
       readyForDisplay?: boolean;
       cacheOption?: 'no-cache' | 'no-store' | 'reload' | 'default' | 'force-cache';
@@ -24,7 +25,8 @@ declare module 'mapbox-exif-layer' {
       id: string;
       source: string;
       color: Array<[number, number[]]>;
-      bounds: [number, number, number, number];
+      /** Required for JPEG; optional for GeoTIFF (read from file). */
+      bounds?: [number, number, number, number];
       particleCount?: number;
       readyForDisplay?: boolean;
       velocityFactor?: number;

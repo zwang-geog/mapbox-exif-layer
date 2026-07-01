@@ -1,5 +1,5 @@
 import ExifReader from 'exifreader';
-import { setProjectionUniforms, createGlobeMesh, createIndexBuffer, buildMapLibreVertexShader } from './mapLibreGlGlobeHelper.js';
+import { setProjectionUniforms, createGlobeMesh, createIndexBuffer, buildMapLibreVertexShader, computeGlobeSubdivisions } from './mapLibreGlGlobeHelper.js';
 import { valueRangeFromColorStops } from './colorStops.js';
 import { createTexture, createR32FTexture } from './textureUtils.js';
 import { loadGeoTiffScalar, assertTextureDimensions, isSourceFormatGeotiff } from './geoTiffSource.js';
@@ -187,7 +187,8 @@ export default class SmoothRaster {
         this.physicalValues = false;
         this.color = color;
         this.opacity = opacity;
-        this.bounds = bounds;
+        this.layerBounds = bounds; // User-supplied extent for JPEG; restored when switching back from GeoTIFF
+        this.bounds = bounds;      // Active extent used by shaders (from layerBounds or GeoTIFF file)
         
         this.sourceLoaded = false;
         this.readyForDisplay = readyForDisplay;
@@ -210,17 +211,12 @@ export default class SmoothRaster {
             this.program = createProgram(gl, vertexShader, fragmentShader);
         }
 
+        this.vertexBuffer = null;
         this.indexBuffer = null;
         this.indexCount = 0;
+        this.globeSubdivisions = null;
 
-        if (this.mapRuntime === 'maplibre') {
-            // Subdivide by bounds lon/lat span so the mesh follows the globe surface
-            const mesh = createGlobeMesh(this.bounds);
-            this.vertexBuffer = createBuffer(gl, mesh.vertices);
-            this.indexBuffer = createIndexBuffer(gl, mesh.indices);
-            this.indexCount = mesh.indexCount;
-            this.globeSubdivisions = {nCols: mesh.nCols, nRows: mesh.nRows};
-        } else {
+        if (this.mapRuntime === 'mapbox') {
             // Single quad for Mapbox mercator
             const vertices = new Float32Array([
                 0, 0,
@@ -233,8 +229,55 @@ export default class SmoothRaster {
             this.vertexBuffer = createBuffer(gl, vertices);
         }
 
-        // Load source image
+        // Load source image (MapLibre globe mesh is built when bounds are known)
         this.setSource(this.source);
+    }
+
+    // Update geographic extent and rebuild the MapLibre globe mesh when subdivision changes.
+    applySourceBounds(bounds) {
+        if (!bounds) {
+            return;
+        }
+        this.bounds = bounds;
+        this.ensureGlobeMesh(bounds);
+    }
+
+    ensureGlobeMesh(bounds) {
+        if (this.mapRuntime !== 'maplibre' || !this.gl) {
+            return;
+        }
+
+        const {nCols, nRows} = computeGlobeSubdivisions(bounds);
+        if (
+            this.globeSubdivisions &&
+            this.globeSubdivisions.nCols === nCols &&
+            this.globeSubdivisions.nRows === nRows
+        ) {
+            return;
+        }
+        
+        // Subdivide by bounds lon/lat span so the mesh follows the globe surface
+        const mesh = createGlobeMesh(bounds);
+        const gl = this.gl;
+
+        if (this.vertexBuffer) {
+            gl.deleteBuffer(this.vertexBuffer);
+        }
+        if (this.indexBuffer) {
+            gl.deleteBuffer(this.indexBuffer);
+        }
+
+        this.vertexBuffer = createBuffer(gl, mesh.vertices);
+        this.indexBuffer = createIndexBuffer(gl, mesh.indices);
+        this.indexCount = mesh.indexCount;
+        this.globeSubdivisions = {nCols: mesh.nCols, nRows: mesh.nRows};
+    }
+
+    finalizeSourceLoad() {
+        this.sourceLoaded = true;
+        if (this.map) {
+            this.map.triggerRepaint();
+        }
     }
 
     setSource(source, color = null) {
@@ -271,6 +314,8 @@ export default class SmoothRaster {
 
                 assertTextureDimensions(result.width, result.height, this.gl);
 
+                this.applySourceBounds(result.bounds);
+
                 if (this.sourceTexture) {
                     this.gl.deleteTexture(this.sourceTexture);
                 }
@@ -279,11 +324,7 @@ export default class SmoothRaster {
                 this.valueRange = valueRangeFromColorStops(this.color);
                 this.sourceTexture = createR32FTexture(this.gl, result.data, result.width, result.height);
                 this.colormapTexture = createColormap(this.gl, this.color, this.valueRange);
-                this.sourceLoaded = true;
-
-                if (this.map) {
-                    this.map.triggerRepaint();
-                }
+                this.finalizeSourceLoad();
             })
             .catch((error) => {
                 console.error('SmoothRaster: Error loading GeoTIFF source:', error);
@@ -331,6 +372,8 @@ export default class SmoothRaster {
                         image.onload = () => {
                             URL.revokeObjectURL(objectURL);
                             if (this.gl) {
+                                this.applySourceBounds(this.layerBounds);
+
                                 if (this.sourceTexture) {
                                     this.gl.deleteTexture(this.sourceTexture);
                                 }
@@ -338,10 +381,7 @@ export default class SmoothRaster {
                                 if (this.valueRange) {
                                     this.colormapTexture = createColormap(this.gl, this.color, this.valueRange);
                                 }
-                                this.sourceLoaded = true;
-                                if (this.map) {
-                                    this.map.triggerRepaint();
-                                }
+                                this.finalizeSourceLoad();
                             }
                         };
 

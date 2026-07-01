@@ -442,6 +442,13 @@ function createColormap(gl, colors, valueRange) {
     return createTexture(gl, gl.LINEAR, data, 256, 1);
 }
 
+function boundsEqual(a, b, epsilon = 1e-7) {
+    if (!a || !b || a.length !== b.length) {
+        return false;
+    }
+    return a.every((value, index) => Math.abs(value - b[index]) <= epsilon);
+}
+
 export default class ParticleMotion {
     constructor({id, source, color, bounds, particleCount = 5000, readyForDisplay = false, ageThreshold = 500, maxAge = 1000,
         velocityFactor = 0.05, fadeOpacity = 0.9, updateInterval = 50, pointSize = 5.0, trailLength = 3, trailSizeDecay = 0.8, 
@@ -460,7 +467,8 @@ export default class ParticleMotion {
         this.vBand = vBand;
         this.physicalVelocity = false;
         this.color = color;
-        this.bounds = bounds;
+        this.layerBounds = bounds; // User-supplied extent for JPEG; restored when switching back from GeoTIFF
+        this.bounds = bounds;      // Active extent used by shaders (from layerBounds or GeoTIFF file)
         this.particleCount = particleCount;
         
         this.sourceLoaded = false;
@@ -560,6 +568,34 @@ export default class ParticleMotion {
         this.setSource(this.source, 0.0);
     }
 
+    // Update geographic extent; re-seed all particles when the extent changes.
+    applySourceBounds(bounds) {
+        if (!bounds) {
+            return false;
+        }
+
+        if (!this.bounds) {
+            this.bounds = bounds;
+            return false;
+        }
+
+        const extentChanged = !boundsEqual(this.bounds, bounds);
+        if (extentChanged) {
+            this.bounds = bounds;
+            this.shouldResetParticles = true;
+            this.percentParticleWhenSetSource = 1.0;
+        }
+
+        return extentChanged;
+    }
+
+    finalizeSourceLoad() {
+        this.sourceLoaded = true;
+        if (this.map) {
+            this.map.triggerRepaint();
+        }
+    }
+
     setSource(source, percentParticleWhenSetSource = 0.5) {
         if (this.source != source) {
             this.source = source;
@@ -594,6 +630,8 @@ export default class ParticleMotion {
 
                 assertTextureDimensions(result.width, result.height, this.gl);
 
+                const extentChanged = this.applySourceBounds(result.bounds);
+
                 if (this.sourceTexture) {
                     this.gl.deleteTexture(this.sourceTexture);
                 }
@@ -604,16 +642,13 @@ export default class ParticleMotion {
                 this.valueRange_v = [0, 1];
                 this.sourceTexture = createRg32FTexture(this.gl, result.data, result.width, result.height);
                 this.colormapTexture = createColormap(this.gl, this.color, this.speedRange);
-                this.sourceLoaded = true;
 
-                if (percentParticleWhenSetSource > 0.0) {
+                if (!extentChanged && percentParticleWhenSetSource > 0.0) {
                     this.percentParticleWhenSetSource = percentParticleWhenSetSource;
                     this.shouldResetParticles = true;
                 }
 
-                if (this.map) {
-                    this.map.triggerRepaint();
-                }
+                this.finalizeSourceLoad();
             })
             .catch((error) => {
                 console.warn('ParticleMotion: Error loading GeoTIFF source:', error);
@@ -638,19 +673,23 @@ export default class ParticleMotion {
 
                 image.onload = () => {
                     URL.revokeObjectURL(objectURL);
-                    if (this.gl && this.sourceTexture) {
+                    if (!this.gl) {
+                        return;
+                    }
+
+                    const extentChanged = this.applySourceBounds(this.layerBounds);
+
+                    if (this.sourceTexture) {
                         this.gl.deleteTexture(this.sourceTexture);
                     }
                     this.sourceTexture = createTexture(this.gl, this.gl.LINEAR, image);
-                    this.sourceLoaded = true;
-                    
-                    // Only apply percentParticleWhenSetSource if this is not the first source set
-                    if (percentParticleWhenSetSource > 0.0) {
+
+                    if (!extentChanged && percentParticleWhenSetSource > 0.0) {
                         this.percentParticleWhenSetSource = percentParticleWhenSetSource;
                         this.shouldResetParticles = true;
                     }
-                    
-                    this.map.triggerRepaint();
+
+                    this.finalizeSourceLoad();
                 };
 
                 image.onerror = (err) => {

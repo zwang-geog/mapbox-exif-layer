@@ -14,7 +14,7 @@ npm install geotiff
   ```
 - **Sample type:** float32 (GDAL `Float32` / `-ot Float32`)
 - **NoData:** set with `-dstnodata` or GDAL metadata; decoded pixels become `NaN` in the GPU texture
-- **Layer `bounds`:** still supplied on the layer (must match the GeoTIFF geographic extent)
+- **Layer `bounds`:** optional for GeoTIFF (read from the file on load); required for JPEG
 
 ## Band layout
 
