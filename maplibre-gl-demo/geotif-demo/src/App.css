@@ -1,0 +1,70 @@
+#root {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+}
+
+#map-container {
+  height: 100%;
+  width: 100%;
+  /* temporarily set the background color so we can tell where the map container is positioned */
+  background-color: lightgrey;
+}
+
+.sidebar {
+  background-color: rgb(35 55 75 / 90%);
+  color: #fff;
+  padding: 6px 12px;
+  font-family: monospace;
+  z-index: 1;
+  position: absolute;
+  top: 0;
+  left: 0;
+  margin: 12px;
+  border-radius: 4px;
+}
+
+.reset-button {
+  position: absolute;
+  top: 50px;
+  z-index: 1;
+  left: 12px;
+  padding: 4px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.layer-controls {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 1;
+  display: flex;
+  gap: 8px;
+}
+
+.layer-toggle {
+  padding: 8px 14px;
+  border: none;
+  border-radius: 4px;
+  background-color: rgb(35 55 75 / 90%);
+  color: #fff;
+  font-family: monospace;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.layer-toggle:hover:not(:disabled) {
+  background-color: rgb(45 65 85 / 95%);
+}
+
+.layer-toggle.active {
+  background-color: rgb(60 100 140 / 95%);
+}
+
+.layer-toggle:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

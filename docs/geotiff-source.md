@@ -6,92 +6,109 @@ GeoTIFF is an optional high-precision alternative to EXIF JPEG. Install the peer
 npm install geotiff
 ```
 
-## Requirements
+## Source data requirements
 
-- **CRS:** EPSG:4326 (WGS 84). Reproject before use:
+- **CRS:** EPSG:4326 (WGS 84). Reproject and convert to GeoTIFF with tools such as [gdalwarp](https://gdal.org/en/stable/programs/gdalwarp.html) before use.
+
   ```bash
-  gdalwarp -t_srs EPSG:4326 -dstnodata -9999 input.tif output_4326.tif
+  gdalwarp -t_srs EPSG:4326 -dstnodata -9999 -ot Float32 -overwrite \
+    -te -125 24 -65 50 \
+    -b 1 -b 2 \
+    input.grib2 output.tif
   ```
-- **Sample type:** float32 (GDAL `Float32` / `-ot Float32`)
-- **NoData:** set with `-dstnodata` or GDAL metadata; decoded pixels become `NaN` in the GPU texture
-- **Layer `bounds`:** optional for GeoTIFF (read from the file on load); required for JPEG
+
+  Useful flags in above example:
+
+  | Flag | Purpose |
+  |------|---------|
+  | `-t_srs EPSG:4326` | Reproject to WGS 84 (required by this package) |
+  | `-dstnodata` *value* | Standardize the output no-data value (e.g. `-dstnodata -9999`). Not required to be `-9999`; use any sentinel your pipeline agrees on. Recommended so the written GeoTIFF has one consistent no-data value even when the source uses something else |
+  | `-ot Float32` | Output sample type. This package assumes float32 on the GPU; other types (e.g. `Float64`) are converted, which can lose precision |
+  | `-te xmin ymin xmax ymax` | Optional crop to a geographic extent (west, south, east, north in degrees once reprojected). Omit if the full input raster should be rendered |
+  | `-b` | When the input has more bands than needed, subset with `-b` to keep the output file as small as possible. GDAL band indices are **1-based**. |
+  | `-overwrite` | Replace `output.tif` if it already exists; omit this flag to fail when the output path is taken |
+
+See the [gdalwarp documentation](https://gdal.org/en/stable/programs/gdalwarp.html) for resampling (`-r`), output resolution (`-tr`, `-outsize`), and other options. GeoTIFF output is **uncompressed by default**; add `-co COMPRESS=LZW` (or `DEFLATE`, `ZSTD`, etc.) if you need a smaller file.
+
+**gdalwarp** vs [gdal_translate](https://gdal.org/en/stable/programs/gdal_translate.html): `gdalwarp` **resamples and reprojects** — it rebuilds the pixel grid for a new CRS, extent, or resolution. Use it for GRIB2→GeoTIFF, any input not already in EPSG:4326, geographic cropping with `-te`, or whenever pixel values must be warped. [gdal_translate](https://gdal.org/en/stable/programs/gdal_translate.html) **copies bands without resampling** — same georeferencing and grid (unless you subset by pixel window). Use it when the raster is already EPSG:4326 and you only need to change sample type (`-ot`), subset bands (`-b`), set no-data (`-dstnodata`), add compression (`-co`), or extract a subwindow (`-srcwin`). `-a_srs` on `gdal_translate` writes CRS metadata only; it does **not** reproject pixels — use `gdalwarp` for that.
+
+Additional `gdal_translate` examples:
+
+*Raw raster is already in EPSG:4326 but want to convert sample type and standardize no-data:*
+```bash
+gdal_translate -ot Float32 -dstnodata -9999 input_4326.tif output.tif
+```
+
+*Optionally compress after `gdalwarp` (often better than `-co` on the warp step itself):*
+```bash
+gdal_translate warped.tif warped_compressed.tif -co COMPRESS=LZW
+```
 
 ## Band layout
 
-Band indices are **0-based** sample indices (same as `geotiff` `readRasters` `samples`).
+When using this package with GeoTIFF, you have the flexibility to define which bands from the file to render. Set `scalarBand` on `SmoothRaster` or `uBand` / `vBand` on `ParticleMotion` to point at the sample indices you need (e.g. when wind U- and V-velocities are not the first two bands, or when a multi-band file holds several variables).
 
-| Layer | Option(s) | Default | GPU upload |
-|-------|-----------|---------|------------|
-| `SmoothRaster` | `scalarBand` | `0` (first band) | `R32F` |
-| `ParticleMotion` | `uBand`, `vBand` | `0`, `1` | `RG32F` |
+Band indices in this package are **0-based** sample indices (same as `geotiff` `readRasters` `samples`).
 
-Wind values should use the same unit as the layer `unit` option (`mph`, `kph`, or `mps`).
+| Layer | Option(s) | Default |
+|-------|-----------|---------|
+| `SmoothRaster` | `scalarBand` | `0` (first band) |
+| `ParticleMotion` | `uBand`, `vBand` | `0`, `1` |
 
-## Colormap scale (GeoTIFF)
+Wind u- and v- velocities cell values should use the same unit as the layer `unit` option (`mph`, `kph`, or `mps`).
 
-GeoTIFF values are stored in the GPU texture in **physical units**. Normalization for both layers uses the **min and max of your `color` stops**, not a scan of the raster. Values below or above that range clamp to the ends of the colormap.
-
-- **`SmoothRaster`:** scalar value → colormap index
-- **`ParticleMotion`:** wind speed `hypot(u, v)` → colormap index (after `unit` conversion to mph)
-
-Use the same `color` array across timesteps so animation stays comparable.
-
-## Examples
+## Example constructors
 
 ```javascript
 new ParticleMotion({
-  source: '/data/wind.tif',
-  sourceType: 'geotiff',
-  uBand: 1,
-  vBand: 0,
-  // ...
-});
-```
-
-## Usage
-
-Sources ending in `.tif` / `.tiff` are detected automatically, or set `sourceType: 'geotiff'` explicitly:
-
-```javascript
-import { ParticleMotion, SmoothRaster } from 'mapbox-exif-layer';
-
-const windLayer = new ParticleMotion({
-  id: 'wind',
-  source: '/data/wind_uv.tif',
-  sourceType: 'geotiff',
-  color: WIND_COLOR,
-  bounds: [-125, 50, -65, 24],
-  unit: 'mph',
-  mapRuntime: 'maplibre',
+  source: '/data/wind.tif', // The package automatically detects sourceType by checking file extension with .tif or .tiff
+  uBand: 0,  // wind u-component velocity reads from the first band by default; only have to modify uBand if the data stores u-component velocity not in the first band
+  vBand: 1, // wind v-component velocity reads from the second band by default; only have to modify vBand if the data stores v-component velocity not in the second band
+  // Other common layer settings at layer initialization
+  id: 'wind-particle',
+  color: [[0, [0, 195, 255]],
+        [2, [0, 228, 248]],
+        [4, [26, 255, 221]],
+        [6, [53, 255, 194]],
+        [8, [80, 255, 167]],
+        [10, [109, 255, 138]],
+        [12, [137, 255, 110]],
+        [14, [165, 255, 82]],
+        [16, [193, 255, 54]],
+        [18, [219, 255, 27]],
+        [20, [249, 243, 1]],
+        [22, [255, 212, 0]],
+        [24, [255, 182, 0]],
+        [26, [255, 151, 0]],
+        [28, [255, 120, 0]],
+        [30, [255, 89, 0]],
+        [32, [255, 55, 0]],
+        [34, [255, 21, 0]],
+        [36, [220, 0, 0]],
+        [38, [182, 0, 0]],
+        [40, [144, 0, 0]],
+        [42, [128, 0, 0]]],   // [ [Wind speed, [R, G, B]] ...]
+  // bounds parameter is not mandatory for GeoTIFF data source since it is retrieved from the file directly, but can still be specified so that in the future the source can be correctly updated to a EXIF-enabled JPEG source via setSource method
+  unit: "mph",  // The unit corresponding to the wind velocity stored in the uBand and vBand, and also the wind speed unit in color parameter
+  mapRuntime: 'maplibre',  // The default runtime is mapbox, this example sets the runtime to maplibre,
+  readyForDisplay: true  // Only set this parameter to true if you want this layer to show up when the map is initially loaded. Otherwise (you have many layers but this layer is not to be shown up without toggeling), you do not need to specify this parameter
 });
 
 const tempLayer = new SmoothRaster({
+  source: '/data/temperature.tif', // The package automatically detects sourceType by checking file extension with .tif or .tiff
+  scalarBand: 0, // temperature value reads from the first band by default; if the desired values are stored in a different band, setting this parameter accordingly
   id: 'temperature',
-  source: '/data/temperature.tif',
-  sourceType: 'geotiff',
   color: TEMPERATURE_COLOR,
-  bounds: [-125, 50, -65, 24],
+  opacity: 0.6,
+  // bounds parameter is not mandatory for GeoTIFF data source since it is retrieved from the file directly, but can still be specified so that in the future the source can be correctly updated to a EXIF-enabled JPEG source via setSource method
+  mapRuntime: 'maplibre',  // The default runtime is mapbox, this example sets the runtime to maplibre,
+  readyForDisplay: true  // Only set this parameter to true if you want this layer to show up when the map is initially loaded. Otherwise (you have many layers but this layer is not to be shown up without toggeling), you do not need to specify this parameter
 });
-```
-
-## Create wind GeoTIFF from GRIB (example)
-
-```bash
-gdalwarp -t_srs EPSG:4326 -dstnodata -9999 -overwrite \
-  -te -125 24 -65 50 reprojected.grib2 wind_uv.tif
-
-# Ensure band 1 = U, band 2 = V (order from gdal_translate -b flags if needed)
-```
-
-## Create scalar GeoTIFF (example)
-
-```bash
-gdal_translate -ot Float32 -a_srs EPSG:4326 temperature.tif temperature_4326.tif
-gdal_edit.py -a_nodata -9999 temperature_4326.tif
 ```
 
 ## Notes
 
-- Max grid size is limited by `gl.MAX_TEXTURE_SIZE` (often 4096 or 8192). Downsample larger rasters with `gdalwarp -tr` or `-outsize`.
+- **Texture size limit:** The raster is uploaded as **one 2D GPU texture** (`width` × `height`). WebGL limits each side independently: both width and height must be ≤ `gl.MAX_TEXTURE_SIZE` (often 4096 or 8192 on desktop GPUs). This is not a cap on cell number (width × height). The package throws if either side is too large. However, typical native grids in weather forecast usually have both sides within a 4096 limit, so throw situation should be uncommon:
+  - **GFS 0.25° global:** 1440 × 721
+  - **NAM NEST CONUS:** 2269 × 976
 - Float32 textures use **nearest** filtering on the GPU; smooth display still comes from mesh interpolation (`SmoothRaster`) and particle integration (`ParticleMotion`).
-- JPEG / EXIF sources are unchanged; GeoTIFF is opt-in via file extension or `sourceType`.
