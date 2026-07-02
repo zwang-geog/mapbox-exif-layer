@@ -1,7 +1,7 @@
 {
   "name": "mapbox-exif-layer",
   "version": "1.2.1",
-  "description": "Custom Mapbox GL JS layers for rendering particle motion (e.g., wind) or smooth raster (e.g., temperature) based on EXIF-enabled JPEG images",
+  "description": "Custom Mapbox GL JS / MapLibre GL JS layers for particle motion (e.g., wind) and smooth raster (e.g., temperature) from EXIF-enabled JPEG images or GeoTIFF files",
   "type": "module",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
