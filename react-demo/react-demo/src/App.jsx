@@ -82,7 +82,8 @@ function App() {
     source: '/wind_1.jpeg',
     color: WIND_COLOR,
     bounds: BOUNDS,
-    readyForDisplay: true
+    readyForDisplay: true,
+    particleCount: 10000  // 2x than default
   }));
 
   const temperatureLayer = useRef(new SmoothRaster({

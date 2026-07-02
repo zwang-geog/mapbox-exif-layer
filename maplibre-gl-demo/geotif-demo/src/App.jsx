@@ -88,6 +88,7 @@ function App() {
     bounds: BOUNDS,
     readyForDisplay: true,
     mapRuntime: 'maplibre',  // Version 1.3.0+
+    particleCount: 10000  // 2x than default
   }));
 
   const temperatureLayer = useRef(new SmoothRaster({

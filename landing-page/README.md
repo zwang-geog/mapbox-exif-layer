@@ -10,7 +10,7 @@ Static homepage for [mapbox-exif-layer](https://github.com/zwang-geog/mapbox-exi
 4. **Publish directory:** `.`
 5. Add custom domain (e.g. `mapbox-exif-layer.com`)
 
-Documentation is loaded at runtime from the GitHub README on `main`.
+Full API reference and usage examples live on [GitHub README](https://github.com/zwang-geog/mapbox-exif-layer/blob/main/README.md).
 
 ## Local preview
 

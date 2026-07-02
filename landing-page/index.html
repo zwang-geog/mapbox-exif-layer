@@ -4,9 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>mapbox-exif-layer — Wind particles &amp; smooth weather rasters for Mapbox &amp; MapLibre GL JS</title>
-  <meta name="description" content="Open-source custom layers for Mapbox GL JS and MapLibre GL JS — GPU wind particle animation and smooth weather rasters from EXIF-enabled JPEG images. Globe projection on MapLibre (v1.2.0+). Live demos, npm package, and documentation." />
+  <meta name="description" content="Open-source custom layers for Mapbox GL JS and MapLibre GL JS — GPU wind particle animation and weather rasters displayed from EXIF-enabled JPEG images or GeoTIFF files. Globe projection on MapLibre. Live demos, npm package, and documentation." />
   <link rel="stylesheet" href="styles.css" />
-  <script src="https://cdn.jsdelivr.net/npm/marked@15.0.12/marked.min.js"></script>
 </head>
 <body>
   <header class="site-header">
@@ -17,24 +16,19 @@
         <a href="https://github.com/zwang-geog/mapbox-exif-layer" target="_blank" rel="noopener">GitHub</a>
         <a href="https://medium.com/@zifanw9/a-low-cost-custom-wind-particle-motion-layer-in-mapbox-gl-js-9a51978e3ffb" target="_blank" rel="noopener">Article</a>
       </nav>
-      <button type="button" class="sidebar-toggle" id="sidebar-toggle" aria-label="Toggle navigation">☰</button>
     </div>
   </header>
 
   <section class="hero">
     <div class="hero-inner">
-      <p class="eyebrow">Mapbox GL JS &amp; MapLibre GL JS custom layers</p>
-      <h1>Wind particles &amp; smooth weather rasters from a single EXIF JPEG</h1>
+      <p class="eyebrow">A Open-source Mapbox GL JS &amp; MapLibre GL JS custom layers package</p>
+      <h1>Wind particles, smooth weather rasters, and direct GeoTIFF file visualization</h1>
       <p class="lead">
-        GPU-accelerated particle motion for wind, smooth raster layers for temperature,
-        humidity, and precipitation — no tile server required. Works with Mapbox GL JS
-        and MapLibre GL JS.
+        GPU-accelerated particle motion for wind: mapping wind is that easy and cost-effective.
       </p>
-      <div class="hero-actions">
-        <a class="btn btn-primary" href="https://www.npmjs.com/package/mapbox-exif-layer" target="_blank" rel="noopener">npm install</a>
-        <a class="btn btn-secondary" href="https://github.com/zwang-geog/mapbox-exif-layer" target="_blank" rel="noopener">API reference (GitHub)</a>
-        <a class="btn btn-secondary" href="https://medium.com/@zifanw9/a-low-cost-custom-wind-particle-motion-layer-in-mapbox-gl-js-9a51978e3ffb" target="_blank" rel="noopener">Technical background</a>
-      </div>
+      <p class="lead">
+        No tile server required. Works with Mapbox GL JS and MapLibre GL JS.
+      </p>
     </div>
   </section>
 
@@ -97,22 +91,178 @@
     </div>
   </section>
 
-  <div class="docs-layout" id="documentation">
-    <aside class="sidebar" id="sidebar">
-      <p class="sidebar-title">Documentation</p>
-      <nav id="sidebar-nav">
-        <a href="#videos">Demo videos</a>
-        <a href="#demos">Live demos</a>
-        <p class="sidebar-loading">Loading docs…</p>
-      </nav>
-    </aside>
+  <section class="layer-types" id="layer-types">
+    <div class="section-inner">
+      <h2>Two layer classes supplied by this package</h2>
+      <div class="layer-grid">
+        <article class="layer-card">
+          <img
+            src="temperature_example.png"
+            alt="Smooth raster temperature layer example over a regional map"
+            loading="lazy"
+            width="640"
+            height="360"
+          />
+          <h3>Smooth raster layer</h3>
+          <p>
+            A.k.a. sample fill in <a href="https://github.com/astrosat/windgl/tree/master" target="_blank" rel="noopener">windgl</a>,
+            colorize in <a href="https://blog.sakitam.com/wind-layer/playgrounds/mapbox-gl/colorize.html" target="_blank" rel="noopener">wind-layer</a> —
+            a different way to render classic raster data in the browser. Each grid cell holds one or more bands (e.g. temperature) and
+            has a fixed size (¼°, 5&nbsp;km, 500&nbsp;m, etc.), so it looks like a box. The usual web approach is to color each cell,
+            serve tiles, and get a blocky layer like QGIS at native resolution. Weather fields are spatially smooth, so we want a softer
+            display. With WebGL varyings and a fragment shader, colors interpolate across space on the client
+            (<a href="https://webglfundamentals.org/webgl/lessons/webgl-fundamentals.html" target="_blank" rel="noopener">WebGL fundamentals</a>)
+            without hand-built downsampling. (Note: to achieve a good smoothing effect, using EXIF JPEG source instead of GeoTIFF is recommended.)
+          </p>
+          <p class="layer-card-actions">
+            <a class="btn btn-secondary layer-api-btn" href="https://github.com/zwang-geog/mapbox-exif-layer/tree/main#smoothraster" target="_blank" rel="noopener">API reference</a>
+          </p>
+        </article>
+        <article class="layer-card">
+          <img
+            src="wind_example.png"
+            alt="Particle motion wind layer example with colored wind streaks"
+            loading="lazy"
+            width="640"
+            height="360"
+          />
+          <h3>Particle motion layer</h3>
+          <p>
+            The companion approach for <strong>vector fields</strong> such as wind, where each cell stores u- and v-component velocity
+            rather than a single scalar. A conventional map might use static arrows. A particle layer releases hundreds of thousands of
+            short-lived points (with tails); each frame, every particle samples local u/v, moves a small step, and is recolored by speed.
+            The result is a flowing animation that makes direction and relative speed easy to read. Updates run on the GPU (transform
+            feedback and a dedicated update vertex shader), integrated as a Mapbox/MapLibre custom layer so pan and zoom stay in sync with
+            the basemap and other layers.
+          </p>
+          <p class="layer-card-actions">
+            <a class="btn btn-secondary layer-api-btn" href="https://github.com/zwang-geog/mapbox-exif-layer/tree/main#particlemotion" target="_blank" rel="noopener">API reference</a>
+          </p>
+        </article>
+      </div>
+    </div>
+  </section>
 
-    <main class="docs-main">
-      <article id="docs-content" class="markdown-body">
-        <p class="docs-loading">Loading documentation from GitHub…</p>
-      </article>
-    </main>
-  </div>
+  <section class="resource-links" id="resources">
+    <div class="section-inner">
+      <h2>Documentation &amp; sample code</h2>
+
+      <a class="btn btn-secondary resource-btn resource-btn-primary" href="https://github.com/zwang-geog/mapbox-exif-layer/tree/main#usage" target="_blank" rel="noopener">Usage quick start</a>
+
+      <p class="resource-group-label">Featured sample code</p>
+      <div class="resource-button-grid">
+        <a class="btn btn-secondary resource-btn" href="https://github.com/zwang-geog/mapbox-exif-layer/blob/main/react-demo/real-time-example/src/App.jsx" target="_blank" rel="noopener">Timeslider</a>
+        <a class="btn btn-secondary resource-btn" href="https://github.com/zwang-geog/mapbox-exif-layer/blob/main/maplibre-gl-demo/geotif-demo/src/App.jsx" target="_blank" rel="noopener">MapLibre globe projection &amp; GeoTIFF</a>
+      </div>
+
+      <p class="resource-group-label">Two supported data sources</p>
+      <div class="resource-button-grid">
+        <a class="btn btn-secondary resource-btn" href="https://github.com/zwang-geog/mapbox-exif-layer/blob/main/docs/geotiff-source.md" target="_blank" rel="noopener">GeoTIFF</a>
+        <a class="btn btn-secondary resource-btn" href="https://github.com/zwang-geog/mapbox-exif-layer/blob/main/docs/jpeg-source.md" target="_blank" rel="noopener">EXIF-enabled JPEG</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="use-cases" id="use-cases">
+    <div class="section-inner">
+      <h2>Frequently asked questions</h2>
+
+      <div class="qa-block">
+        <h3>When should I use <code>mapbox-exif-layer</code>?</h3>
+        <ul>
+          <li>Map wind as a <strong>dynamic particle motion</strong> layer.</li>
+          <li>Map weather (temperature, humidity, precipitation) — or any scalar field — where you want a <strong>smooth, non-blocky</strong> look via client-side linear interpolation (best with EXIF JPEG sources).</li>
+          <li><strong>Visualize a small GeoTIFF</strong> in the browser without setting up a raster tile server.</li>
+        </ul>
+      </div>
+
+      <div class="qa-block">
+        <h3>How does it differ from other wind-mapping solutions?</h3>
+        <ul>
+          <li><strong>Low-cost processing and hosting:</strong> upload an EXIF JPEG or GeoTIFF to a public S3 bucket, your site's static directory, or similar — little infrastructure and ongoing cost.</li>
+          <li><strong>Mobile browser compatible:</strong> built on the Mapbox/MapLibre custom-layer interface; wherever those SDKs run on a phone or tablet browser, these layers can too.</li>
+          <li><strong>Respects actual u/v velocity:</strong> particles move according to local u- and v-component values, not at one uniform speed across the map.</li>
+          <li><strong>Speed-colored particles:</strong> particle color reflects wind speed in the same layer — no separate speed raster to stack on top — so wind overlays cleanly with other weather layers such as temperature.</li>
+          <li><strong>Avoids degenerate particle patterns:</strong> particle age is tracked on the GPU and stale particles are reset across the extent — reducing the “locked-in” cyclonic or atmospheric-river loops that some wind visualizations show when particles never leave large-scale flow features.</li>
+        </ul>
+      </div>
+
+      <div class="qa-block">
+        <h3>What is an EXIF-enabled JPEG in this package?</h3>
+        <p>
+          A JPEG stores at least three 8-bit RGB bands (integers 0–255 per channel). For <strong>wind</strong>
+          (<code>ParticleMotion</code>), u-velocity is min–max normalized to 0–255 in the <strong>R</strong> band and
+          v-velocity in the <strong>G</strong> band; no-data cells use <strong>B&nbsp;=&nbsp;0</strong> (valid cells
+          use B&nbsp;=&nbsp;255). For a <strong>smooth raster</strong> (<code>SmoothRaster</code>), the scalar attribute
+          is normalized to 0–255 in the <strong>R</strong> band; no-data cells use <strong>B&nbsp;=&nbsp;255</strong>
+          (valid cells use B&nbsp;=&nbsp;0). The physical min and max values (before normalization) are written to EXIF
+          <code>ImageDescription</code> on the JPEG. See
+          <a href="https://github.com/zwang-geog/mapbox-exif-layer/blob/main/docs/jpeg-source.md" target="_blank" rel="noopener">docs/jpeg-source.md</a>
+          for the full encoding rules and pipeline example.
+        </p>
+      </div>
+
+      <div class="qa-block">
+        <h3>When should I use EXIF JPEG vs GeoTIFF?</h3>
+        <p>
+          EXIF JPEGs are much smaller than GeoTIFFs. On this site’s NOAA NAM NEST CONUS demo grid (2269×976), wind is
+          <strong>~332&nbsp;KB</strong> as JPEG vs <strong>~8.9&nbsp;MB</strong> as ZSTD-compressed float32 GeoTIFF — a
+          big difference for storage and download when you serve many forecast timesteps.
+        </p>
+        <ul>
+          <li><strong>Prefer EXIF JPEG</strong> when you need many timesteps (multi-hour forecasts), want minimal hosting cost, or want the smoothest <code>SmoothRaster</code> look (linear texture filtering on 8-bit RGBA).</li>
+          <li><strong>Prefer GeoTIFF</strong> (EPSG:4326, Float32, compressed) when you want a GIS-friendly pipeline without custom JPEG encoding, have a smaller study area, or only a few timesteps. Extra float precision is often not visible in everyday visualization.</li>
+        </ul>
+      </div>
+
+      <div class="qa-block">
+        <h3>Can this package be used with Leaflet or OpenLayers?</h3>
+        <p>
+          No. It targets <strong>Mapbox GL JS</strong> and <strong>MapLibre GL JS</strong> only — both WebGL map SDKs
+          with a similar custom-layer API that this package implements. Leaflet and OpenLayers use a different rendering
+          model and are not supported.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="getting-started" id="getting-started">
+    <div class="section-inner">
+      <h2>Getting started</h2>
+      <p class="section-lead">
+        This package does not include a map SDK. Install one map runtime, then add
+        <code>mapbox-exif-layer</code> (and optionally <code>geotiff</code> for <code>.tif</code> sources).
+      </p>
+
+      <div class="install-block">
+        <h3>Mapbox GL JS</h3>
+        <p class="install-note">Default <code>mapRuntime: 'mapbox'</code></p>
+        <pre><code>npm install mapbox-gl</code></pre>
+      </div>
+
+      <div class="install-block">
+        <h3>MapLibre GL JS</h3>
+        <p class="install-note">Set <code>mapRuntime: 'maplibre'</code> on each layer</p>
+        <pre><code>npm install maplibre-gl</code></pre>
+      </div>
+
+      <div class="install-block">
+        <h3>This package</h3>
+        <pre><code>npm install mapbox-exif-layer</code></pre>
+      </div>
+
+      <div class="install-block">
+        <h3>GeoTIFF sources <span class="install-optional">optional</span></h3>
+        <p class="install-note">Only for <code>.tif</code> / <code>.tiff</code> URLs — JPEG-only setups do not need this.</p>
+        <pre><code>npm install geotiff</code></pre>
+      </div>
+
+      <div class="install-block">
+        <h3>Import</h3>
+        <pre><code>import { ParticleMotion, SmoothRaster } from 'mapbox-exif-layer';</code></pre>
+      </div>
+    </div>
+  </section>
 
   <footer class="site-footer">
     <p>
@@ -121,10 +271,8 @@
       <a href="https://www.npmjs.com/package/mapbox-exif-layer" target="_blank" rel="noopener">npm</a>
       ·
       <a href="https://medium.com/@zifanw9/a-low-cost-custom-wind-particle-motion-layer-in-mapbox-gl-js-9a51978e3ffb" target="_blank" rel="noopener">Medium article</a>
-      · MIT License
+      · © Zifan Wang 2026
     </p>
   </footer>
-
-  <script src="app.js"></script>
 </body>
 </html>
