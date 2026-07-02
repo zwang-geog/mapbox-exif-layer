@@ -2,6 +2,10 @@
 
 All notable changes to this project are documented in this file.
 
+## v1.3.0
+
+- Added optional GeoTIFF source support (float32, EPSG:4326): configurable bands (`scalarBand`, `uBand`/`vBand`), GDAL NoData → NaN, uploads `R32F` / `RG32F`. Scalar and wind colormap scale from color-stop min/max (clamped), not data min/max. Requires optional peer dependency `geotiff` (^2.1.0 or ^3.0.0).
+
 ## v1.2.1
 
 - Removed dependency on `mapbox-gl` (dropped `Evented` inheritance); install either `mapbox-gl` or `maplibre-gl` as a peer

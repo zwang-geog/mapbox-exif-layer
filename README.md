@@ -2,13 +2,17 @@
 
 [![npm version](https://img.shields.io/npm/v/mapbox-exif-layer)](https://www.npmjs.com/package/mapbox-exif-layer)
 
-Custom Mapbox GL JS / MapLibre GL JS layers for rendering particle motion (e.g., wind) or smooth raster (e.g., temperature, relative humidity, precipitation) based on EXIF-enabled JPEG images
+Custom Mapbox GL JS / MapLibre GL JS layers for rendering particle motion (e.g., wind) or smooth raster (e.g., temperature, relative humidity, precipitation) from EXIF-enabled JPEG images or GeoTIFF files
+
+
+> **GeoTIFF support.** Despite the package name, `ParticleMotion` and `SmoothRaster` accept GeoTIFF sources (float32, EPSG:4326) in addition to EXIF-enabled JPEG (v1.3.0+). GeoTIFF rasters use physical cell values directly and do not require 0–255 normalization. See [`docs/geotiff-source.md`](docs/geotiff-source.md). JPEG source requirements are documented in [`docs/jpeg-source.md`](docs/jpeg-source.md).
+
 
 **Feature Highlights**
 * A built-in [custom layer](https://docs.mapbox.com/mapbox-gl-js/api/properties/#customlayerinterface) (Mapbox GL JS or MapLibre GL JS) instead of a canvas overlay, so layers are natively integrated with the map
 * **New in v1.2.0+: MapLibre GL JS with globe projection** — set `mapRuntime: 'maplibre'` on `ParticleMotion` or `SmoothRaster` and use MapLibre's [globe projection](https://maplibre.org/maplibre-gl-js/docs/examples/add-a-simple-custom-layer-on-a-globe/) (`map.setProjection({ type: 'globe' })`); see [`maplibre-gl-demo`](maplibre-gl-demo/maplibre-gl-demo/src/App.jsx) for a working example. Mapbox GL JS remains as the default mapRuntime and only supports mercator.
-* The particle position and age are stored as buffer, while the computation of new particle position is done in a vertex shader dedicated for updates, and particle motion is powered by transform feedback (overall, GPU-based instead of CPU-based)
-* Single image with EXIF information as source (as simple as uploading the image to a public accessible AWS S3 bucket), no need to setup any tile server 
+* No tile server setup required: a GeoTIFF file or an EXIF-enabled JPEG image as source (as simple as uploading the file to a publicly accessible AWS S3 bucket)
+* **WebGL GPU-accelerated** wind particles: position and age live in GPU buffers, each frame a dedicated vertex shader advances every particle via transform feedback — no per-frame CPU loop over hundreds of thousands of points
 * Works for browsers on both desktop/laptop and iPhone/iPad
 * Wind particles can have varying colors based on speed, and particle movement respect the relative u- and v-component velocity rather than moving at the same rate
 * Well-suited for displaying local, regional, or national weather forecast results
@@ -28,49 +32,16 @@ Custom Mapbox GL JS / MapLibre GL JS layers for rendering particle motion (e.g.,
 
 [Technique Explanation](https://medium.com/@zifanw9/a-low-cost-custom-wind-particle-motion-layer-in-mapbox-gl-js-9a51978e3ffb)
 
-## Important Update — Breaking Change (>= v1.1.0)
-
-**Package version ≥ 1.1.0 is required** to correctly display raster data that contains NA/missing cells. Releases **1.0.3 and below** do not read the B band and will not mask NA values, which can produce incorrect colors or stray wind particles.
-
-**Use the latest `pipeline/grib2_to_image.py` in this repo (updated after 6/27/2026)** when preparing JPEG sources. Older pipeline scripts do not encode the B-band NA mask.
-
-Starting with v1.1.0, the **B band** marks whether a cell is NA:
-
-| Layer | R band | G band | B band (NA encoding) |
-|-------|--------|--------|----------------------|
-| Smooth raster (e.g. temperature, relative humidity, precipitation) | normalized attribute value | 0 | **255** = NA, **0** = valid |
-| Wind particles | normalized U velocity | normalized V velocity | **0** = NA, **255** = valid |
-
-The encoding is intentionally reversed between the two layer types so that legacy single-band images (B always 0) remain compatible with smooth raster layers.
-
 ## Background and Data Requirement
 
-Smooth raster layer (a.k.a. sample fill in [windgl](https://github.com/astrosat/windgl/tree/master), colorize in [wind-layer](https://blog.sakitam.com/wind-layer/playgrounds/mapbox-gl/colorize.html)) is just a different way to render the classic raster data on the web browser. The raw raster data consist of a grid of cells with each cell has one or more bands storing some kind of values (e.g., temperature), and a cell has a size (1/4 degrees, 5 km, 500 m, etc) making it looks like a box. The conventional way to render such data on the web is to generate a set of images by assigning colors to each cell and serving those images via a tile server; the eventual result is blocky, coarse cells appearing as a layer, just like what you typically see on a desktop GIS software like QGIS. For certain data such as weather data, we would expect strong spatial autocorrelation, and a smooth display of such data will be desired. With WebGL's varyings and fragment shader, automatic interpolation of colors across the space on clientside is possible (see [WebGL fundamentals](https://webglfundamentals.org/webgl/lessons/webgl-fundamentals.html)), and we do not need to worry about doing interpolation or down-scaling of the raster data ourselves to make the layer looks smooth for web visualization.
+**Smooth raster layer** (a.k.a. sample fill in [windgl](https://github.com/astrosat/windgl/tree/master), colorize in [wind-layer](https://blog.sakitam.com/wind-layer/playgrounds/mapbox-gl/colorize.html)) is just a different way to render the classic raster data on the web browser. The raw raster data consist of a grid of cells with each cell has one or more bands storing some kind of values (e.g., temperature), and a cell has a size (1/4 degrees, 5 km, 500 m, etc) making it looks like a box. The conventional way to render such data on the web is to generate a set of images by assigning colors to each cell and serving those images via a tile server; the eventual result is blocky, coarse cells appearing as a layer, just like what you typically see on a desktop GIS software like QGIS. For certain data such as weather data, we would expect strong spatial autocorrelation, and a smooth display of such data will be desired. With WebGL's varyings and fragment shader, automatic linear interpolation of colors across the space on clientside is possible (see [WebGL fundamentals](https://webglfundamentals.org/webgl/lessons/webgl-fundamentals.html)), and we do not need to worry about doing interpolation or down-scaling of the raster data ourselves to make the layer looks smooth for web visualization.
 
-To use this package for displaying smooth raster layer or particle motion layer, we need to first **reproject the raw raster data into WGS 1984 (EPSG 4326)**.
+**Particle motion layer** is the companion approach for **vector fields** such as wind, where each grid cell stores u- and v-component velocity rather than a single scalar. A conventional web map might show wind with static arrows. A particle layer instead releases hundreds of thousands of short-lived points (with tails) into the field; each frame, every particle samples the local u/v at its position, moves a small step in that direction, and is recolored by speed at the new position. The effect is a continuous, flowing animation that makes direction and relative speed easy to read at a glance. This package runs that update on the GPU (transform feedback and a dedicated update vertex shader) rather than moving particles on the CPU each frame, and integrates the result as a Mapbox/MapLibre custom layer so pan and zoom stay in sync with the basemap or any other overlaid layers.
 
-For rendering smooth raster, the band of the attribute to map needs to have its values normalized to an integer between 0-255 and stored as R-band of a JPEG image. The min and max of the values without normalization is needed for the package to de-normalize the pixel values to the actual values. This package assumes such information to be stored as the EXIF image description, and in fact that is where the name of this package comes from. This idea of using EXIF is inspired by [wind-layer](https://github.com/sakitam-fdd/wind-layer/tree/master/packages/mapbox-gl). The idea of using an image to store normalized band values can be traced back to Vladimir Agafonkin's [article](https://blog.mapbox.com/how-i-built-a-wind-map-with-webgl-b63022b5537f). For smooth raster, the EXIF image description should be in the format of `min-attribute-value,max-attribute-value;`
+Sources can be either **EXIF-enabled JPEG** (default) or optional **GeoTIFF**. See [`docs/jpeg-source.md`](docs/jpeg-source.md) for JPEG band encoding, EXIF metadata, B-band NA masking (v1.1.0+), and the GRIB2 pipeline example. See [`docs/geotiff-source.md`](docs/geotiff-source.md) for float32 GeoTIFF (EPSG:4326).
 
-**Starting with version 1.1.0, B band of the image is used to indicate if the cell is NA or not** (see table above). For smooth raster layers, NA values should be encoded as 255 while non-NA values should be encoded as 0 in the B band. For wind particle layers, the encoding is reversed: 255 for non-NA values and 0 for NA values.
-
-For rendering wind as particles, the u- and v-component velocity need to be converted to an unit in mph (m/s or km/h might also be possible, but not tested; see Usage Reminder for details), normalized to an integer between 0-255, and stored as R-band and G-band of a JPEG image, respectively; **for NA cells of wind, please encode them as 0 for B-band while encoding non-NA cells as 255**. Additionally, the min and max of u- and v-component velocity (without normalization), as well as the min and max of speed in mph (sqrt(u * u, v * v)) need to be written to EXIF image description in the format of `min-u-velocity,max-u-velocity;min-v-velocity,max-v-velocity;min-speed,max-speed;`
-
-Under pipeline folder of this repo, there is a Python script with associated sample json files (based on NOAA HIRESW forecast) for converting grib2 to EXIF-enabled JPEG images. Let us say we want to get NOAA HIRESW forecast for wind in southern California, we can write a bash script that utilizes following commands ([more public available data](https://nomads.ncep.noaa.gov/)):
-```bash
-DATE=$(date -u +%Y%m%d)
-HOUR=01  # 00..48
-GRIB_FILE="wind_01.grib2"
-REPROJECTED_GRIB="reprojected_01.grib2"
-curl -f -s -o "$GRIB_FILE" "https://nomads.ncep.noaa.gov/cgi-bin/filter_hiresconus.pl?dir=%2Fhiresw.${DATE}&file=hiresw.t00z.arw_5km.f${HOUR}.conus.grib2&var_UGRD=on&var_VGRD=on&lev_10_m_above_ground=on&subregion=&toplat=36&leftlon=239&rightlon=243&bottomlat=32"
-gdalwarp -t_srs EPSG:4326 -dstnodata -9999 -overwrite -te -121 32 -117 36 "$GRIB_FILE" "$REPROJECTED_GRIB"
-python grib2_to_image.py "$REPROJECTED_GRIB" "${HOUR}" "jpeg_wind.json" "jpeg"  # A text file containing bounds info will also be outputed
-
-# aws s3 cp "$TEMP_DIR/wind/" s3://{AWS_S3_BUCKET_PATH}/wind-images/ --recursive --exclude "*" --include "*.jpeg"
-```
-
-**Usage Reminder**
-1. The shader programs uses a formula to convert mph to lat and long per hour (applicable to ParticleMotion layer only) for determining particle displacement, and the data that I use is mph. Before I package the original code, I add an `unit` parameter in the constructor which you can set it to "kph" (km/h) or "mps" (m/s), and the package will performs an unit conversion on the values parsed from the EXIF info. I am unsure how such an addition will work.
-2. The use of **Mapbox GL JS:** requires setting projection to `'mercator'` when initializing the map — the default `mapRuntime: 'mapbox'` does not support globe. The use of **MapLibre GL JS:** requires setting `mapRuntime: 'maplibre'` on each layer - MapLibre's globe projection is supported in v1.2.0+ (see [`maplibre-gl-demo`](maplibre-gl-demo/maplibre-gl-demo/src/App.jsx)).
+**Map Projection Reminder**
+The use of **Mapbox GL JS:** requires setting projection to `'mercator'` when initializing the map — the default `mapRuntime: 'mapbox'` does not support globe. The use of **MapLibre GL JS:** requires setting `mapRuntime: 'maplibre'` on each layer - MapLibre's globe projection is supported in v1.2.0+ (see [`maplibre-gl-demo`](maplibre-gl-demo/maplibre-gl-demo/src/App.jsx)).
 
 ## Installation
 
@@ -94,6 +65,14 @@ Then install this package:
 npm install mapbox-exif-layer
 ```
 
+If you use **GeoTIFF** sources (`.tif` / `.tiff`), also install the optional peer dependency:
+
+```bash
+npm install geotiff
+```
+
+JPEG-only setups do not need `geotiff`.
+
 Then import the layer classes in your JavaScript code:
 ```javascript
 import { ParticleMotion, SmoothRaster } from 'mapbox-exif-layer';
@@ -114,7 +93,7 @@ const map = new mapboxgl.Map({
 // Defining particle motion layer for wind
 const particleLayer = new ParticleMotion({
   id: 'wind-particle',
-  source: 'path/to/your/exif/image.jpeg',    // For simple deployment, you can upload the image to your public AWS S3 bucket with proper CORS policy and use its URL
+  source: 'path/to/your/exif/image.jpeg',    // Alternatively, source can be a GeoTIFF file with .tif or .tiff file extension
   color: [[0, [0, 195, 255]],
           [2, [0, 228, 248]],
           [4, [26, 255, 221]],
@@ -136,15 +115,16 @@ const particleLayer = new ParticleMotion({
           [36, [220, 0, 0]],
           [38, [182, 0, 0]],
           [40, [144, 0, 0]],
-          [42, [128, 0, 0]]],   // [ [Wind speed in mph, [R, G, B]] ...]
-  bounds: [-121, 36, -117, 32],    // [minX, maxY, maxX, minY]
+          [42, [128, 0, 0]]],   // [ [Wind speed in the same unit as input source data, [R, G, B]] ...]
+  unit: 'mph',  // When GeoTIFF file is the source, this is the unit of the u- and v-component velocities stored in the bands; when EXIF-JPEG is the source, this is the unit of the min and max velocity/speed values in the EXIF information. The unit should be consistent with the color parameter above as well
+  bounds: [-121, 36, -117, 32],    // [minX, maxY, maxX, minY] ; this parameter is mandatory for EXIF-JPEG source, but optional for GeoTIFF source (GeoTIFF source will always uses bounds stored in the file)
   readyForDisplay: true  // Only set this parameter to true if you want this layer to show up when the map is initially loaded. Otherwise (you have many layers but this layer is not to be shown up without toggeling), you do not need to specify this parameter
 });
 
 // Defining smooth raster layer for relative humidity 
 const relativeHumidityLayer = new SmoothRaster({
   id: 'relative-humidity',
-  source: 'path/to/your/exif/image.jpeg',
+  source: 'path/to/your/exif/image.jpeg',   // Alternatively, source can be a GeoTIFF file with .tif or .tiff file extension
   color: [  [5, [149, 89, 16]],    // value less than 5 will have the same color as a pixel with value 5
             [10, [169, 107, 30]],
             [15, [190, 128, 45]],
@@ -232,9 +212,41 @@ For the particle motion layer, there is also an optional second argument specify
 particleLayer.setSource("url/to/a/different/wind/img.jpeg", 0.7);
 ```
 
+With **MapLibre GL JS**, set `mapRuntime: 'maplibre'` on each layer (required for globe projection in v1.2.0+):
+```javascript
+import maplibregl from 'maplibre-gl';
+import { ParticleMotion, SmoothRaster } from 'mapbox-exif-layer';
+
+const map = new maplibregl.Map({
+  container: 'map',
+  style: 'https://tiles.openfreemap.org/styles/dark',
+  zoom: 7,
+  center: [-119.699944, 34.432546]
+});
+
+const particleLayer = new ParticleMotion({
+  id: 'wind-particle',
+  source: 'path/to/wind.tif',
+  color: WIND_COLOR,
+  // bounds parameter is not mandatory when you expect source is always tif
+  mapRuntime: 'maplibre',
+  readyForDisplay: true
+});
+
+map.on('load', () => {
+  map.addLayer(particleLayer);
+});
+
+map.on('style.load', () => {
+  map.setProjection({ type: 'globe' });
+});
+```
+
 **Aside**
 
 Although the color parameter defines an array of discrete value-RGB mappings, the package will always interpolate based on the given mappings and the min/max info in EXIF to create a texture with a total of 256 discrete color steps, and the final effect will be a color schema that seems to be continuous. If you want to color the raster in a complete discrete manner, this package will not be suitable. A continuous color schema is important in helping smooth raster layer look smooth.
+
+**Note:** That smooth **visual** effect applies mainly to the **EXIF JPEG** path, where the source texture uses linear filtering between neighboring cells. With a **GeoTIFF** source, `SmoothRaster` uploads float32 data and samples with nearest filtering, so the layer tends to look **blockier** at native grid resolution even though colormap stops are still interpolated. See [`docs/geotiff-source.md`](docs/geotiff-source.md) (Smoothness vs JPEG).
 
 ## Available Class Reference
 
@@ -245,9 +257,9 @@ A particle-based visualization layer that creates animated particles, suitable f
 #### Options
 
 - `id` (string): Unique layer ID
-- `source` (string): URL of the EXIF-enabled raster image
+- `source` (string): URL of an EXIF-enabled JPEG image or GeoTIFF file (`.tif` / `.tiff`; GeoTIFF requires optional peer package dependency`geotiff`)
 - `color` (array): Array of color stops `[value, [r, g, b]]`. Values do not have to be ordered since sorting is performed internally by the package.
-- `bounds` (array): Longitude (possible range -180 to 180) and latitude (possible range -90 to 90) of top-left and bottom-right corners of the extent in the format of `[minX, maxY, maxX, minY]`
+- `bounds` (array): Extent as `[minX, maxY, maxX, minY]` (longitude −180…180, latitude −90…90). **Required for EXIF JPEG** (extent is not stored in the image). **Optional for GeoTIFF** — bounds are read from the file; supply `bounds` only if you may later call `setSource` with a JPEG URL that leads to a different extent.
 - `readyForDisplay` (bool): Preventing the layer from rendering when the layer is added to the map, if necessary (default: false)
 - `particleCount` (number): Number of particles to render (default: 5000)
 - `velocityFactor` (number): Speed multiplier for particle motion (default: 0.05)
@@ -258,17 +270,20 @@ A particle-based visualization layer that creates animated particles, suitable f
 - `trailSizeDecay` (number): How quickly point size decreases for trail particles (default: 0.8)
 - `ageThreshold` (number): Age threshold before particle position reset probability increases. This prevents particles from degenerating to some circular/looped pattern (default: 500)
 - `maxAge` (number): Maximum age before particle position is forced to reset. This prevents particles from degenerating to some circular/looped pattern (default: 1000)
-- `unit` (string): Unit of the wind velocity values in the EXIF data (needs to be consistent with the unit in color parameter). Can be one of:
+- `unit` (string): When the source is a **GeoTIFF** file, the unit of the u- and v-component velocities stored in the bands. When the source is **EXIF JPEG**, the unit of the min/max velocity and speed values in the EXIF information. Must be consistent with the wind-speed units in the `color` parameter. Can be one of:
   - `'mph'` (default): Miles per hour
   - `'kph'`: Kilometers per hour
   - `'mps'`: Meters per second
 - `cacheOption` (string): [Cache option](https://developer.mozilla.org/en-US/docs/Web/API/Request/cache) to use when fetching the source image. It can be one of no-cache (default in 1.0.3), no-store (default in 1.0.2), reload, default, or force-cache.
 - `slot` (string): Optional [slot](https://docs.mapbox.com/style-spec/reference/slots/) identifier for the layer (used by Mapbox GL JS for [layer ordering](https://docs.mapbox.com/mapbox-gl-js/api/map/#addlayer-parameters-layer-slot)); typical values may include "top", "middle" (recommended), "bottom".
 - `mapRuntime` (string): `'mapbox'` (default) or `'maplibre'`. This parameter must be explicitly set to `'maplibre'` if maplibre-gl-js SDK is used. Only `'maplibre'` with [MapLibre GL JS](https://maplibre.org/projects/gl-js/) supports globe projection.
+- `sourceType` (string): `'auto'` (default), `'jpeg'`, or `'geotiff'`. GeoTIFF requires optional peer package dependency [`geotiff`](https://www.npmjs.com/package/geotiff); see [`docs/geotiff-source.md`](docs/geotiff-source.md).
+- `uBand` (number): GeoTIFF sample index for the u component (default: `0`, first band).
+- `vBand` (number): GeoTIFF sample index for the v component (default: `1`, second band).
 
 #### Methods
 
-- `setSource(source, percentParticleWhenSetSource = 0.5)` : Changes the URL of the EXIF-enabled wind image, and optionally the proportion of particles whose positions must be reset when the source is updated (default half of the particles). The layer will repaint automatically.
+- `setSource(source, percentParticleWhenSetSource = 0.5)` : Changes the source URL (JPEG or GeoTIFF), and optionally the proportion of particles whose positions must be reset when the source is updated (default half of the particles). The layer will repaint automatically.
 
 ### SmoothRaster
 
@@ -277,22 +292,24 @@ A raster visualization layer that provides a smooth display of the data.
 #### Options
 
 - `id` (string): Unique layer ID
-- `source` (string): URL of the EXIF-enabled raster image
+- `source` (string): URL of an EXIF-enabled JPEG image or GeoTIFF file (`.tif` / `.tiff`; GeoTIFF requires optional peer package dependency `geotiff`)
 - `color` (array): Array of color stops `[value, [r, g, b]]`. Values do not have to be ordered since sorting is performed internally by the package. An optional A-band (opacity) value can also be specified, but interpolation will not be applied to A-band. A-band is useful for rendering precipitation by setting all zero or near-zero precipitation cells completely transparent (see Usage example).
-- `bounds` (array): Longitude (possible range -180 to 180) and latitude (possible range -90 to 90) of top-left and bottom-right corners of the extent in the format of `[minX, maxY, maxX, minY]`
+- `bounds` (array): Extent as `[minX, maxY, maxX, minY]` (longitude −180…180, latitude −90…90). **Required for EXIF JPEG** (extent is not stored in the image). **Optional for GeoTIFF** — bounds are read from the file; supply `bounds` only if you may later call `setSource` with a JPEG URL that leads to a different extent.
 - `opacity` (number): Layer global opacity (default: 1.0)
 - `readyForDisplay` (bool): Preventing the layer from rendering when the layer is added to the map, if necessary (default: false)
 - `cacheOption` (string): [Cache option](https://developer.mozilla.org/en-US/docs/Web/API/Request/cache) to use when fetching the source image. It can be one of no-cache (default in 1.0.3), no-store (default in 1.0.2), reload, default, or force-cache.
 - `slot` (string): Optional [slot](https://docs.mapbox.com/style-spec/reference/slots/) identifier for the layer (used by Mapbox GL JS for [layer ordering](https://docs.mapbox.com/mapbox-gl-js/api/map/#addlayer-parameters-layer-slot)); typical values may include "top", "middle" (recommended), "bottom".
 - `mapRuntime` (string): `'mapbox'` (default) or `'maplibre'`. This parameter must be explicitly set to `'maplibre'` if maplibre-gl-js SDK is used. Only `'maplibre'` with [MapLibre GL JS](https://maplibre.org/projects/gl-js/) supports globe projection.
+- `sourceType` (string): `'auto'` (default), `'jpeg'`, or `'geotiff'`. GeoTIFF requires optional peer package dependency [`geotiff`](https://www.npmjs.com/package/geotiff); see [`docs/geotiff-source.md`](docs/geotiff-source.md).
+- `scalarBand` (number): GeoTIFF sample index for scalar data (default: `0`, first band).
 
 #### Methods
 
-- `setSource(source, color=null)` : Changes the URL of the EXIF-enabled raster image, and optionally color array (default is to use the same color array as before). The layer will repaint automatically.
+- `setSource(source, color=null)` : Changes the source URL (JPEG or GeoTIFF), and optionally color array (default is to use the same color array as before). The layer will repaint automatically.
 
 ## Acknowledgement
 
-The shader utility code of this package is built upon the util.js of [mapbox/webgl-wind](https://github.com/mapbox/webgl-wind/blob/master/src/util.js). The idea of EXIF is credit to [sakitam-fdd/wind-layer](https://github.com/sakitam-fdd/wind-layer).
+The shader utility code of this package is referencing from util.js of [mapbox/webgl-wind](https://github.com/mapbox/webgl-wind/blob/master/src/util.js). The idea of EXIF is credit to [sakitam-fdd/wind-layer](https://github.com/sakitam-fdd/wind-layer).
 
 ## License
 

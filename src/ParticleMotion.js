@@ -1,9 +1,37 @@
 import ExifReader from 'exifreader';
 import { setProjectionUniforms, buildMapLibreVertexShader } from './mapLibreGlGlobeHelper.js';
+import { valueRangeFromColorStops } from './colorStops.js';
+import { createTexture, createRg32FTexture } from './textureUtils.js';
+import { loadGeoTiffWind, assertTextureDimensions, kphToMph, mpsToMph, isSourceFormatGeotiff } from './geoTiffSource.js';
 
 // B channel: 0 = no-data (new pipeline), 255 = valid
 const NODATA_B_THRESHOLD = 0.08;
 const MIN_WIND_SPEED_MPH = 1.5;
+
+
+// u_physical_velocity: 1 correspond to geotif that has unnormalized/raw velocity values
+// u_physical_velocity: 0 correspond to JPEG source that has normalized velocity values
+const velocityUniformGlsl = 'uniform bool u_physical_velocity;';
+
+const velocityDecodeGlsl = `
+    vec2 decodeVelocity(vec4 velocityData) {
+        if (u_physical_velocity) {
+            return vec2(velocityData.r, velocityData.g);
+        }
+        // Denormalize velocities to actual mph values if it is JPEG source
+        return vec2(
+            mix(u_value_range_u[0], u_value_range_u[1], velocityData.r),
+            mix(u_value_range_v[0], u_value_range_v[1], velocityData.g)
+        );
+    }
+
+    bool velocityIsInvalid(vec4 velocityData) {
+        if (u_physical_velocity) {
+            return isnan(velocityData.r) || isnan(velocityData.g);
+        }
+        return velocityData.b < ${NODATA_B_THRESHOLD};
+    }
+`;
 
 const vertexShader = 
     `#version 300 es
@@ -24,6 +52,8 @@ const vertexShader =
     uniform mediump float u_max_age;         // Maximum age before forced reset
     uniform mediump float u_percent_reset;   // Percentage of particles to reset on source update
     uniform bool u_should_reset;     // Flag to indicate if we should apply the percentage reset
+    ${velocityUniformGlsl}
+    ${velocityDecodeGlsl}
     
     // Random function based on time and position
     float random(vec2 co) {
@@ -73,12 +103,11 @@ const vertexShader =
     }
     
     void main() {
-        // Sample normalized velocity from texture [0,1]
+        // Sample velocity from texture
         vec4 velocity = texture(u_velocity_texture, a_position);
-        
-        // Denormalize velocities to actual mph values
-        float u = mix(u_value_range_u[0], u_value_range_u[1], velocity.r);
-        float v = mix(u_value_range_v[0], u_value_range_v[1], velocity.g);
+        vec2 wind = decodeVelocity(velocity);
+        float u = wind.x;
+        float v = wind.y;
         
         // Calculate wind speed
         float windSpeed = length(vec2(u, v));
@@ -105,8 +134,8 @@ const vertexShader =
         // Get current age of particle and increment
         float age = a_age + 1.0;
         
-        // Reset if out of bounds, no-data (B≈0), or very low wind speed
-        if (newPos.x < 0.0 || newPos.x > 1.0 || newPos.y < 0.0 || newPos.y > 1.0 || velocity.b < ${NODATA_B_THRESHOLD} || windSpeed < ${MIN_WIND_SPEED_MPH}) {
+        // Reset if out of bounds, no-data, or very low wind speed
+        if (newPos.x < 0.0 || newPos.x > 1.0 || newPos.y < 0.0 || newPos.y > 1.0 || velocityIsInvalid(velocity) || windSpeed < ${MIN_WIND_SPEED_MPH}) {
             shouldReset = true;
         }
         
@@ -152,6 +181,8 @@ const fragmentShader =
     uniform mediump vec2 u_value_range_u;    // Wind U component range
     uniform mediump vec2 u_value_range_v;    // Wind V component range
     uniform mediump vec2 u_speed_range;      // Speed range for normalization
+    ${velocityUniformGlsl}
+    ${velocityDecodeGlsl}
     
     in vec2 v_position;         // Current position
     out vec4 fragColor;         // Output color
@@ -172,20 +203,25 @@ const fragmentShader =
         // Sample wind velocity for coloring
         vec4 velocity = texture(u_velocity_texture, v_position);
 
-        // Hide particles over no-data cells (B≈0 in new pipeline; B≈0 speed in old)
-        if (velocity.b < ${NODATA_B_THRESHOLD}) {
+        // Hide particles over no-data cells
+        if (velocityIsInvalid(velocity)) {
             discard;
         }
 
-        float u = mix(u_value_range_u[0], u_value_range_u[1], velocity.r);
-        float v = mix(u_value_range_v[0], u_value_range_v[1], velocity.g);
+        vec2 wind = decodeVelocity(velocity);
+        float u = wind.x;
+        float v = wind.y;
         float speed = length(vec2(u, v));
 
         if (speed < ${MIN_WIND_SPEED_MPH}) {
             discard;
         }
 
-        float normalizedSpeed = (speed - u_speed_range[0]) / (u_speed_range[1] - u_speed_range[0]);
+        float normalizedSpeed = clamp(
+            (speed - u_speed_range[0]) / (u_speed_range[1] - u_speed_range[0]),
+            0.0,
+            1.0
+        );
         
         // Sample color from colormap using normalized speed
         vec4 color = texture(u_wind_color, vec2(normalizedSpeed, 0.5));
@@ -214,6 +250,8 @@ const renderVertexShaderInner =
     uniform sampler2D u_velocity_texture;  // Velocity texture
     uniform mediump vec2 u_value_range_u;  // Wind U component range
     uniform mediump vec2 u_value_range_v;  // Wind V component range
+    ${velocityUniformGlsl}
+    ${velocityDecodeGlsl}
     
     out vec2 v_position;     // Pass position to fragment shader
     // out float v_opacity;     // Varying opacity for trail
@@ -255,8 +293,9 @@ const renderVertexShaderInner =
         
         // Sample velocity at the main particle's position
         vec4 velocityData = texture(u_velocity_texture, mainPos);
-        float u = mix(u_value_range_u[0], u_value_range_u[1], velocityData.r);
-        float v = mix(u_value_range_v[0], u_value_range_v[1], velocityData.g);
+        vec2 wind = decodeVelocity(velocityData);
+        float u = wind.x;
+        float v = wind.y;
         
         // Calculate velocity in normalized coordinates
         vec2 geo = positionToGeo(mainPos);
@@ -360,25 +399,6 @@ function createShader(gl, type, source) {
     return shader;
 }
 
-function createTexture(gl, filter, data, width, height) {
-    const texture = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, texture);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, filter);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, filter);
-    
-    if (data instanceof Uint8Array) {
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, data);
-    } else if (data instanceof Image) {
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, data);
-    } else {
-        // For null data (empty texture)
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
-    }
-    return texture;
-}
-
 function createBuffer(gl, data) {
     const buffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
@@ -422,19 +442,17 @@ function createColormap(gl, colors, valueRange) {
     return createTexture(gl, gl.LINEAR, data, 256, 1);
 }
 
-// Add unit conversion functions before the class definition
-function kphToMph(kph) {
-    return kph * 0.621371;
-}
-
-function mpsToMph(mps) {
-    return mps * 2.23694;
+function boundsEqual(a, b, epsilon = 1e-7) {
+    if (!a || !b || a.length !== b.length) {
+        return false;
+    }
+    return a.every((value, index) => Math.abs(value - b[index]) <= epsilon);
 }
 
 export default class ParticleMotion {
     constructor({id, source, color, bounds, particleCount = 5000, readyForDisplay = false, ageThreshold = 500, maxAge = 1000,
         velocityFactor = 0.05, fadeOpacity = 0.9, updateInterval = 50, pointSize = 5.0, trailLength = 3, trailSizeDecay = 0.8, 
-        unit = 'mph', cacheOption = 'no-cache', slot, mapRuntime = 'mapbox'}) {
+        unit = 'mph', cacheOption = 'no-cache', slot, mapRuntime = 'mapbox', sourceType = 'auto', uBand = 0, vBand = 1}) {
         this.id = id;
         this.type = 'custom';
         this.renderingMode = '2d';
@@ -444,8 +462,13 @@ export default class ParticleMotion {
         }
         
         this.source = source;
+        this.sourceType = sourceType;
+        this.uBand = uBand;
+        this.vBand = vBand;
+        this.physicalVelocity = false;
         this.color = color;
-        this.bounds = bounds;
+        this.layerBounds = bounds; // User-supplied extent for JPEG; restored when switching back from GeoTIFF
+        this.bounds = bounds;      // Active extent used by shaders (from layerBounds or GeoTIFF file)
         this.particleCount = particleCount;
         
         this.sourceLoaded = false;
@@ -545,11 +568,94 @@ export default class ParticleMotion {
         this.setSource(this.source, 0.0);
     }
 
+    // Update geographic extent; re-seed all particles when the extent changes.
+    applySourceBounds(bounds) {
+        if (!bounds) {
+            return false;
+        }
+
+        if (!this.bounds) {
+            this.bounds = bounds;
+            return false;
+        }
+
+        const extentChanged = !boundsEqual(this.bounds, bounds);
+        if (extentChanged) {
+            this.bounds = bounds;
+            this.shouldResetParticles = true;
+            this.percentParticleWhenSetSource = 1.0;
+        }
+
+        return extentChanged;
+    }
+
+    finalizeSourceLoad() {
+        this.sourceLoaded = true;
+        if (this.map) {
+            this.map.triggerRepaint();
+        }
+    }
+
     setSource(source, percentParticleWhenSetSource = 0.5) {
         if (this.source != source) {
             this.source = source;
         }
 
+        if (isSourceFormatGeotiff(source, this.sourceType)) {
+            this.loadGeoTiffSource(source, percentParticleWhenSetSource);
+            return;
+        }
+
+        this.physicalVelocity = false;
+        this.loadJpegSource(source, percentParticleWhenSetSource);
+    }
+
+    loadGeoTiffSource(source, percentParticleWhenSetSource = 0.5) {
+        fetch(source, {cache: this.cacheOption})
+            .then((response) => {
+                if (!response.ok) {
+                    throw new Error(`ParticleMotion: failed to fetch GeoTIFF (${response.status})`);
+                }
+                return response.arrayBuffer();
+            })
+            .then(async (arrayBuffer) => {
+                const result = await loadGeoTiffWind(arrayBuffer, {
+                    uBand: this.uBand,
+                    vBand: this.vBand,
+                    unit: this.unit,
+                });
+                if (!this.gl) {
+                    return;
+                }
+
+                assertTextureDimensions(result.width, result.height, this.gl);
+
+                const extentChanged = this.applySourceBounds(result.bounds);
+
+                if (this.sourceTexture) {
+                    this.gl.deleteTexture(this.sourceTexture);
+                }
+
+                this.physicalVelocity = true;
+                this.speedRange = valueRangeFromColorStops(this.color);
+                this.valueRange_u = [0, 1];
+                this.valueRange_v = [0, 1];
+                this.sourceTexture = createRg32FTexture(this.gl, result.data, result.width, result.height);
+                this.colormapTexture = createColormap(this.gl, this.color, this.speedRange);
+
+                if (!extentChanged && percentParticleWhenSetSource > 0.0) {
+                    this.percentParticleWhenSetSource = percentParticleWhenSetSource;
+                    this.shouldResetParticles = true;
+                }
+
+                this.finalizeSourceLoad();
+            })
+            .catch((error) => {
+                console.warn('ParticleMotion: Error loading GeoTIFF source:', error);
+            });
+    }
+
+    loadJpegSource(source, percentParticleWhenSetSource = 0.5) {
         const image = new Image();
         image.crossOrigin = "anonymous";
         
@@ -567,16 +673,23 @@ export default class ParticleMotion {
 
                 image.onload = () => {
                     URL.revokeObjectURL(objectURL);
+                    if (!this.gl) {
+                        return;
+                    }
+
+                    const extentChanged = this.applySourceBounds(this.layerBounds);
+
+                    if (this.sourceTexture) {
+                        this.gl.deleteTexture(this.sourceTexture);
+                    }
                     this.sourceTexture = createTexture(this.gl, this.gl.LINEAR, image);
-                    this.sourceLoaded = true;
-                    
-                    // Only apply percentParticleWhenSetSource if this is not the first source set
-                    if (percentParticleWhenSetSource > 0.0) {
+
+                    if (!extentChanged && percentParticleWhenSetSource > 0.0) {
                         this.percentParticleWhenSetSource = percentParticleWhenSetSource;
                         this.shouldResetParticles = true;
                     }
-                    
-                    this.map.triggerRepaint();
+
+                    this.finalizeSourceLoad();
                 };
 
                 image.onerror = (err) => {
@@ -677,6 +790,7 @@ export default class ParticleMotion {
         // Set new uniforms for particle reset
         gl.uniform1f(this.updateProgram.u_percent_reset, this.percentParticleWhenSetSource || 0.0);
         gl.uniform1i(this.updateProgram.u_should_reset, this.shouldResetParticles ? 1 : 0);
+        gl.uniform1i(this.updateProgram.u_physical_velocity, this.physicalVelocity ? 1 : 0);  // 1 correspond to geotif that has unnormalized velocity values
         // Reset the flag after setting it
         this.shouldResetParticles = false;
 
@@ -743,6 +857,7 @@ export default class ParticleMotion {
         gl.uniform2fv(renderProgram.u_value_range_u, this.valueRange_u);
         gl.uniform2fv(renderProgram.u_value_range_v, this.valueRange_v);
         gl.uniform2fv(renderProgram.u_speed_range, this.speedRange);
+        gl.uniform1i(renderProgram.u_physical_velocity, this.physicalVelocity ? 1 : 0);
     }
 
     bindAndDrawParticles(gl, renderProgram) {

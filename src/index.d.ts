@@ -4,12 +4,17 @@ declare module 'mapbox-exif-layer' {
       id: string;
       source: string;
       color: Array<[number, number[]]>;
-      bounds: [number, number, number, number];
+      /** Required for JPEG; optional for GeoTIFF (read from file). */
+      bounds?: [number, number, number, number];
       opacity?: number;
       readyForDisplay?: boolean;
       cacheOption?: 'no-cache' | 'no-store' | 'reload' | 'default' | 'force-cache';
       slot?: string;
       mapRuntime?: 'mapbox' | 'maplibre';
+      /** 'auto' detects .tif/.tiff URLs; GeoTIFF requires optional peer `geotiff` */
+      sourceType?: 'auto' | 'jpeg' | 'geotiff';
+      /** GeoTIFF sample index for scalar data (0 = first band). Default 0. */
+      scalarBand?: number;
     });
     
     setSource(source: string, color?: Array<[number, number[]]>): void;
@@ -20,7 +25,8 @@ declare module 'mapbox-exif-layer' {
       id: string;
       source: string;
       color: Array<[number, number[]]>;
-      bounds: [number, number, number, number];
+      /** Required for JPEG; optional for GeoTIFF (read from file). */
+      bounds?: [number, number, number, number];
       particleCount?: number;
       readyForDisplay?: boolean;
       velocityFactor?: number;
@@ -35,6 +41,12 @@ declare module 'mapbox-exif-layer' {
       cacheOption?: 'no-cache' | 'no-store' | 'reload' | 'default' | 'force-cache';
       slot?: string;
       mapRuntime?: 'mapbox' | 'maplibre';
+      /** 'auto' detects .tif/.tiff URLs; GeoTIFF requires optional peer `geotiff` */
+      sourceType?: 'auto' | 'jpeg' | 'geotiff';
+      /** GeoTIFF sample index for u component (0 = first band). Default 0. */
+      uBand?: number;
+      /** GeoTIFF sample index for v component (0 = first band). Default 1. */
+      vBand?: number;
     });
 
     setSource(source: string, percentReset?: number): void;
