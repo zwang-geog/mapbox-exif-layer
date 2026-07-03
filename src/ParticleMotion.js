@@ -1,5 +1,5 @@
 import ExifReader from 'exifreader';
-import { setProjectionUniforms, buildMapLibreVertexShader } from './mapLibreGlGlobeHelper.js';
+import { setProjectionUniforms, buildMapLibreVertexShader, normalizeBounds } from './mapLibreGlGlobeHelper.js';
 import { valueRangeFromColorStops } from './colorStops.js';
 import { createTexture, createRg32FTexture } from './textureUtils.js';
 import { loadGeoTiffWind, assertTextureDimensions, kphToMph, mpsToMph, isSourceFormatGeotiff } from './geoTiffSource.js';
@@ -467,8 +467,8 @@ export default class ParticleMotion {
         this.vBand = vBand;
         this.physicalVelocity = false;
         this.color = color;
-        this.layerBounds = bounds; // User-supplied extent for JPEG; restored when switching back from GeoTIFF
-        this.bounds = bounds;      // Active extent used by shaders (from layerBounds or GeoTIFF file)
+        this.layerBounds = normalizeBounds(bounds); // User-supplied extent for JPEG; restored when switching back from GeoTIFF
+        this.bounds = this.layerBounds;      // Active extent used by shaders (from layerBounds or GeoTIFF file)
         this.particleCount = particleCount;
         
         this.sourceLoaded = false;

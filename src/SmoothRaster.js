@@ -1,5 +1,5 @@
 import ExifReader from 'exifreader';
-import { setProjectionUniforms, createGlobeMesh, createIndexBuffer, buildMapLibreVertexShader, computeGlobeSubdivisions } from './mapLibreGlGlobeHelper.js';
+import { setProjectionUniforms, createGlobeMesh, createIndexBuffer, buildMapLibreVertexShader, computeGlobeSubdivisions, normalizeBounds } from './mapLibreGlGlobeHelper.js';
 import { valueRangeFromColorStops } from './colorStops.js';
 import { createTexture, createR32FTexture } from './textureUtils.js';
 import { loadGeoTiffScalar, assertTextureDimensions, isSourceFormatGeotiff } from './geoTiffSource.js';
@@ -187,8 +187,8 @@ export default class SmoothRaster {
         this.physicalValues = false;
         this.color = color;
         this.opacity = opacity;
-        this.layerBounds = bounds; // User-supplied extent for JPEG; restored when switching back from GeoTIFF
-        this.bounds = bounds;      // Active extent used by shaders (from layerBounds or GeoTIFF file)
+        this.layerBounds = normalizeBounds(bounds); // User-supplied extent for JPEG; restored when switching back from GeoTIFF
+        this.bounds = this.layerBounds;      // Active extent used by shaders (from layerBounds or GeoTIFF file)
         
         this.sourceLoaded = false;
         this.readyForDisplay = readyForDisplay;

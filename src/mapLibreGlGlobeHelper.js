@@ -36,6 +36,23 @@ export function buildMapLibreVertexShader(shaderData, vertexShaderInner) {
 const GLOBE_SUBDIVISION_MIN = 4;
 const GLOBE_SUBDIVISION_MAX = 128;
 
+/**
+ * Normalize bounds to [minX, maxY, maxX, minY], swapping inverted min/max pairs if needed.
+ * @param {[number, number, number, number] | null | undefined} bounds
+ * @returns {[number, number, number, number] | null | undefined}
+ */
+export function normalizeBounds(bounds) {
+    if (bounds == null || bounds.length !== 4) {
+        return bounds;
+    }
+    return [
+        Math.min(bounds[0], bounds[2]),
+        Math.max(bounds[1], bounds[3]),
+        Math.max(bounds[0], bounds[2]),
+        Math.min(bounds[1], bounds[3]),
+    ];
+}
+
 export function computeGlobeSubdivisions(bounds) {
     const lonSpan = bounds[2] - bounds[0];
     const latSpan = bounds[1] - bounds[3];
