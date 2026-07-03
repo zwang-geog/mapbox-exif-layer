@@ -6,7 +6,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 
 import './App.css'
 
-const BOUNDS = [-134.1220744907407436, 21.1211415092307639, -60.8992175092592873, 52.6176194907692292];
+const BOUNDS = [-134.1220744907407436, 52.6176194907692292, -60.8992175092592873, 21.1211415092307639];
 
 
 // Wind color assumes unit is mph; must specify unit in layer constructor if using different unit
