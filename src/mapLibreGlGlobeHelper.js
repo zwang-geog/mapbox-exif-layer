@@ -38,7 +38,7 @@ const GLOBE_SUBDIVISION_MAX = 128;
 
 export function computeGlobeSubdivisions(bounds) {
     const lonSpan = bounds[2] - bounds[0];
-    const latSpan = bounds[3] - bounds[1];
+    const latSpan = bounds[1] - bounds[3];
     const nCols = Math.min(GLOBE_SUBDIVISION_MAX, Math.max(GLOBE_SUBDIVISION_MIN, Math.round(lonSpan)));
     const nRows = Math.min(GLOBE_SUBDIVISION_MAX, Math.max(GLOBE_SUBDIVISION_MIN, Math.round(latSpan)));
     return {nCols, nRows};
