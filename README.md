@@ -5,8 +5,9 @@
 Custom Mapbox GL JS / MapLibre GL JS layers for rendering particle motion (e.g., wind) or smooth raster (e.g., temperature, relative humidity, precipitation) from EXIF-enabled JPEG images or GeoTIFF files
 
 
-> **GeoTIFF support.** Despite the package name, `ParticleMotion` and `SmoothRaster` accept GeoTIFF sources (float32, EPSG:4326) in addition to EXIF-enabled JPEG (v1.3.0+). GeoTIFF rasters use physical cell values directly and do not require 0–255 normalization. See [`docs/geotiff-source.md`](docs/geotiff-source.md). JPEG source requirements are documented in [`docs/jpeg-source.md`](docs/jpeg-source.md).
+> **GeoTIFF support.** Despite the package name, `ParticleMotion` and `SmoothRaster` accept GeoTIFF sources (float32, EPSG:4326) in addition to EXIF-enabled JPEG (v1.3.1+). GeoTIFF rasters use physical cell values directly and do not require 0–255 normalization. See [`docs/geotiff-source.md`](docs/geotiff-source.md). JPEG source requirements are documented in [`docs/jpeg-source.md`](docs/jpeg-source.md).
 
+Official site: [https://www.mapbox-exif-layer.com/](https://www.mapbox-exif-layer.com/)
 
 **Feature Highlights**
 * A built-in [custom layer](https://docs.mapbox.com/mapbox-gl-js/api/properties/#customlayerinterface) (Mapbox GL JS or MapLibre GL JS) instead of a canvas overlay, so layers are natively integrated with the map
