@@ -27,9 +27,9 @@ Official site: [https://www.mapbox-exif-layer.com/](https://www.mapbox-exif-laye
 
 [Demo video — Southern California wind particles (earlier demo)](https://www.youtube.com/watch?v=HLu0Ylhu5x4)
 
-[Demo video — US continental wind particle animation (v1.1.0)](https://www.youtube.com/watch?v=Zo6MDJT718Y)
+[Demo video — US continental wind particle animation (v1.1.0)](https://www.youtube.com/watch?v=iWKjNriTW-U)
 
-[Demo video - Maplibre GL JS globe projection](https://www.youtube.com/watch?v=mYro7l2piB0)
+[Demo video - Maplibre GL JS globe projection (v1.3.1)](https://www.youtube.com/watch?v=SLPBfteIbRE)
 
 [Technique Explanation](https://medium.com/@zifanw9/a-low-cost-custom-wind-particle-motion-layer-in-mapbox-gl-js-9a51978e3ffb)
 
