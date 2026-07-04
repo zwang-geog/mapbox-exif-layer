@@ -19,3 +19,22 @@ export function valueRangeFromColorStops(colors) {
     }
     return [min, max];
 }
+
+/** @param {unknown} range */
+export function normalizeMinMaxRange(range) {
+    if (range == null) {
+        return undefined;
+    }
+    if (!Array.isArray(range) || range.length !== 2) {
+        return range;
+    }
+
+    const [first, second] = range;
+    const minVal = parseFloat(first);
+    const maxVal = parseFloat(second);
+    if (isNaN(minVal) || isNaN(maxVal)) {
+        return range;
+    }
+
+    return minVal <= maxVal ? [minVal, maxVal] : [maxVal, minVal];
+}

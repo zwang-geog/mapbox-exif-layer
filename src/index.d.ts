@@ -15,6 +15,8 @@ declare module 'mapbox-exif-layer' {
       sourceType?: 'auto' | 'jpeg' | 'geotiff';
       /** GeoTIFF sample index for scalar data (0 = first band). Default 0. */
       scalarBand?: number;
+      /** Fixed [min, max] for colormap when JPEG/PNG has no EXIF scalar metadata. */
+      scalarValueRange?: [number, number];
     });
     
     setSource(source: string, color?: Array<[number, number[]]>): void;
@@ -38,6 +40,8 @@ declare module 'mapbox-exif-layer' {
       ageThreshold?: number;
       maxAge?: number;
       unit?: 'mph' | 'kph' | 'mps';
+      /** Fixed [min, max] for u/v denormalization when JPEG/PNG has no EXIF velocity metadata. */
+      velocityRange?: [number, number];
       cacheOption?: 'no-cache' | 'no-store' | 'reload' | 'default' | 'force-cache';
       slot?: string;
       mapRuntime?: 'mapbox' | 'maplibre';

@@ -31,6 +31,30 @@ min-attribute-value,max-attribute-value;
 
 For smooth raster layers, NA values should be encoded as **255** in the B band while non-NA values should be encoded as **0** (see table above).
 
+#### Smooth raster without EXIF (JPEG or PNG)
+
+`SmoothRaster` can also load a normalized scalar image that has **no** EXIF metadata. On load, EXIF is tried first; only when scalar metadata is missing does the layer use the constructor option `scalarValueRange`.
+
+- **`scalarValueRange`** (array): Two-element `[min, max]` matching the physical range used when encoding values into the R band (0–255).
+
+Example:
+
+```javascript
+new SmoothRaster({
+  id: 'temperature',
+  source: 'path/to/temperature.png',
+  bounds: [-121, 36, -117, 32],
+  scalarValueRange: [-20, 45],
+  color: [
+    [-20, [0, 0, 255]],
+    [0, [255, 255, 255]],
+    [45, [255, 0, 0]],
+  ],
+});
+```
+
+If the image includes valid EXIF scalar metadata, EXIF values take precedence and `scalarValueRange` is ignored for that source.
+
 ### Wind particles
 
 The u- and v-component velocity need to be in a consistent unit (mph by default; m/s or km/h via the layer `unit` option — see README Usage Reminder), normalized to integers between 0–255, and stored as **R** and **G** bands of a JPEG image, respectively. For NA cells, encode **0** in the B band; for non-NA cells, encode **255**.
@@ -40,6 +64,32 @@ Additionally, write the min and max of u- and v-component velocity (without norm
 ```text
 min-u-velocity,max-u-velocity;min-v-velocity,max-v-velocity;min-speed,max-speed;
 ```
+
+### Wind particles without EXIF (JPEG or PNG)
+
+`ParticleMotion` can also load a normalized u/v image that has **no** EXIF metadata (for example output from `pipeline/grib2_uv_to_image_with_fix_min_max.py`, which uses one fixed min/max for both components). On load, EXIF is tried first; only when velocity metadata is missing does the layer use the constructor option `velocityRange`.
+
+- **`velocityRange`** (array): Two-element `[min, max]` in the layer `unit` option. Applied to **both** u and v when denormalizing R/G bands from 0–255 back to physical velocity.
+- **Speed coloring**: When EXIF does not provide min/max speed, the colormap range is inferred from the `color` stops (same behavior as GeoTIFF sources).
+
+Example:
+
+```javascript
+new ParticleMotion({
+  id: 'wind-particle',
+  source: 'path/to/wind.png',
+  bounds: [-121, 36, -117, 32],
+  velocityRange: [-64, 64],  // must match fixed min/max used when encoding the image
+  unit: 'mps',
+  color: [
+    [0, [50, 0, 0]],
+    [10, [255, 255, 0]],
+    [20, [0, 255, 0]],
+  ],
+});
+```
+
+If the image includes valid EXIF wind metadata, EXIF values take precedence and `velocityRange` is ignored for that source.
 
 ## GRIB2 → JPEG pipeline example
 
@@ -56,3 +106,5 @@ python grib2_to_image.py "$REPROJECTED_GRIB" "${HOUR}" "jpeg_wind.json" "jpeg"  
 
 # aws s3 cp "$TEMP_DIR/wind/" s3://{AWS_S3_BUCKET_PATH}/wind-images/ --recursive --exclude "*" --include "*.jpeg"
 ```
+
+For images **without** EXIF (fixed-range u/v encoding), use `pipeline/grib2_uv_to_image_with_fix_min_max.py` and pass matching `velocityRange` on `ParticleMotion` — see [Wind particles without EXIF](#wind-particles-without-exif-jpeg-or-png) above.
