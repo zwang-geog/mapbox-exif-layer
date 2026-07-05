@@ -1,6 +1,6 @@
 import ExifReader from 'exifreader';
 import { setProjectionUniforms, buildMapLibreVertexShader, normalizeBounds } from './mapLibreGlGlobeHelper.js';
-import { valueRangeFromColorStops } from './colorStops.js';
+import { valueRangeFromColorStops, normalizeMinMaxRange } from './colorStops.js';
 import { createTexture, createRg32FTexture } from './textureUtils.js';
 import { loadGeoTiffWind, assertTextureDimensions, kphToMph, mpsToMph, isSourceFormatGeotiff } from './geoTiffSource.js';
 
@@ -449,10 +449,21 @@ function boundsEqual(a, b, epsilon = 1e-7) {
     return a.every((value, index) => Math.abs(value - b[index]) <= epsilon);
 }
 
+function convertVelocityBoundsToMph(min, max, unit) {
+    if (unit === 'kph') {
+        return [kphToMph(min), kphToMph(max)];
+    }
+    if (unit === 'mps') {
+        return [mpsToMph(min), mpsToMph(max)];
+    }
+    return [min, max];
+}
+
 export default class ParticleMotion {
     constructor({id, source, color, bounds, particleCount = 5000, readyForDisplay = false, ageThreshold = 500, maxAge = 1000,
         velocityFactor = 0.05, fadeOpacity = 0.9, updateInterval = 50, pointSize = 5.0, trailLength = 3, trailSizeDecay = 0.8, 
-        unit = 'mph', cacheOption = 'no-cache', slot, mapRuntime = 'mapbox', sourceType = 'auto', uBand = 0, vBand = 1}) {
+        unit = 'mph', cacheOption = 'no-cache', slot, mapRuntime = 'mapbox', sourceType = 'auto', uBand = 0, vBand = 1,
+        velocityRange}) {
         this.id = id;
         this.type = 'custom';
         this.renderingMode = '2d';
@@ -492,6 +503,7 @@ export default class ParticleMotion {
         this.speedRange = [0, 100];
         
         this.unit = unit;  // Store the unit
+        this.velocityRange = normalizeMinMaxRange(velocityRange);  // [min, max] for u/v denormalization when EXIF is absent
         this.cacheOption = cacheOption;  // Store the cache option
 
         // 'mapbox' (default) or 'maplibre' — selects which render implementation is bound below
@@ -596,6 +608,76 @@ export default class ParticleMotion {
         }
     }
 
+    applyParticleRangesFromExif(description) {
+        const matches = description.match(/(-?\d+\.?\d*),(-?\d+\.?\d*);(-?\d+\.?\d*),(-?\d+\.?\d*);(-?\d+\.?\d*),(-?\d+\.?\d*)/);
+        if (!matches) {
+            return false;
+        }
+
+        let min_u = parseFloat(matches[1]);
+        let max_u = parseFloat(matches[2]);
+        let min_v = parseFloat(matches[3]);
+        let max_v = parseFloat(matches[4]);
+        let min_speed = parseFloat(matches[5]);
+        let max_speed = parseFloat(matches[6]);
+
+        [min_u, max_u] = convertVelocityBoundsToMph(min_u, max_u, this.unit);
+        [min_v, max_v] = convertVelocityBoundsToMph(min_v, max_v, this.unit);
+        [min_speed, max_speed] = convertVelocityBoundsToMph(min_speed, max_speed, this.unit);
+
+        if (isNaN(min_u) || isNaN(max_u) || isNaN(min_v) || isNaN(max_v) || isNaN(min_speed) || isNaN(max_speed)) {
+            return false;
+        }
+
+        this.valueRange_u = [min_u, max_u];
+        this.valueRange_v = [min_v, max_v];
+        this.speedRange = [min_speed, max_speed];
+        if (this.gl) {
+            this.colormapTexture = createColormap(this.gl, this.color, this.speedRange);
+        }
+        return true;
+    }
+
+    applyParticleRangesFromVelocityRange(velocityRange) {
+        if (!Array.isArray(velocityRange) || velocityRange.length !== 2) {
+            console.warn('ParticleMotion: velocityRange must be a two-element array [min, max]');
+            return false;
+        }
+
+        const minVal = parseFloat(velocityRange[0]);
+        const maxVal = parseFloat(velocityRange[1]);
+        if (isNaN(minVal) || isNaN(maxVal)) {
+            console.warn('ParticleMotion: velocityRange contains non-numeric values');
+            return false;
+        }
+
+        const [minMph, maxMph] = convertVelocityBoundsToMph(minVal, maxVal, this.unit);
+        this.valueRange_u = [minMph, maxMph];
+        this.valueRange_v = [minMph, maxMph];
+        this.speedRange = valueRangeFromColorStops(this.color);
+        if (this.gl) {
+            this.colormapTexture = createColormap(this.gl, this.color, this.speedRange);
+        }
+        return true;
+    }
+
+    resolveJpegParticleRanges(exifDescription) {
+        if (exifDescription && this.applyParticleRangesFromExif(exifDescription)) {
+            return true;
+        }
+
+        if (this.velocityRange && this.applyParticleRangesFromVelocityRange(this.velocityRange)) {
+            return true;
+        }
+
+        if (exifDescription) {
+            console.warn('ParticleMotion: No valid velocity ranges found in EXIF data');
+        } else if (!this.velocityRange) {
+            console.warn('ParticleMotion: No EXIF velocity metadata and no velocityRange option provided');
+        }
+        return false;
+    }
+
     setSource(source, percentParticleWhenSetSource = 0.5) {
         if (this.source != source) {
             this.source = source;
@@ -698,58 +780,22 @@ export default class ParticleMotion {
                 };
 
                 (async () => {
+                    let exifDescription;
                     try {
                         const tags = await ExifReader.load(arrayBuffer);
-                        
                         if (tags["ImageDescription"] && tags["ImageDescription"].description) {
-                            const description = tags["ImageDescription"].description;
-                            
-                            const matches = description.match(/(-?\d+\.?\d*),(-?\d+\.?\d*);(-?\d+\.?\d*),(-?\d+\.?\d*);(-?\d+\.?\d*),(-?\d+\.?\d*)/);
-                            if (matches) {
-                                let min_u = parseFloat(matches[1]);
-                                let max_u = parseFloat(matches[2]);
-                                let min_v = parseFloat(matches[3]);
-                                let max_v = parseFloat(matches[4]);
-                                let min_speed = parseFloat(matches[5]);
-                                let max_speed = parseFloat(matches[6]);
-                                
-                                // Convert units if necessary
-                                if (this.unit === 'kph') {
-                                    min_u = kphToMph(min_u);
-                                    max_u = kphToMph(max_u);
-                                    min_v = kphToMph(min_v);
-                                    max_v = kphToMph(max_v);
-                                    min_speed = kphToMph(min_speed);
-                                    max_speed = kphToMph(max_speed);
-                                } else if (this.unit === 'mps') {
-                                    min_u = mpsToMph(min_u);
-                                    max_u = mpsToMph(max_u);
-                                    min_v = mpsToMph(min_v);
-                                    max_v = mpsToMph(max_v);
-                                    min_speed = mpsToMph(min_speed);
-                                    max_speed = mpsToMph(max_speed);
-                                }
-                                
-                                if (!isNaN(min_u) && !isNaN(max_u) && !isNaN(min_v) && !isNaN(max_v) && !isNaN(min_speed) && !isNaN(max_speed)) {
-                                    this.valueRange_u = [min_u, max_u];
-                                    this.valueRange_v = [min_v, max_v];
-                                    this.speedRange = [min_speed, max_speed];
-                                    
-                                    this.colormapTexture = createColormap(this.gl, this.color, this.speedRange);
-                                    
-                                    image.src = objectURL;
-                                    return;
-                                }
-                            }
+                            exifDescription = tags["ImageDescription"].description;
                         }
-                        
-                        console.warn('ParticleMotion: No valid value ranges found in EXIF data');
-                        URL.revokeObjectURL(objectURL);
-                        
                     } catch (error) {
                         console.warn('ParticleMotion: Error reading EXIF data:', error);
-                        URL.revokeObjectURL(objectURL);
                     }
+
+                    if (!this.resolveJpegParticleRanges(exifDescription)) {
+                        URL.revokeObjectURL(objectURL);
+                        return;
+                    }
+
+                    image.src = objectURL;
                 })();
             })
             .catch(error => {

@@ -1,6 +1,6 @@
 import ExifReader from 'exifreader';
 import { setProjectionUniforms, createGlobeMesh, createIndexBuffer, buildMapLibreVertexShader, computeGlobeSubdivisions, normalizeBounds } from './mapLibreGlGlobeHelper.js';
-import { valueRangeFromColorStops } from './colorStops.js';
+import { valueRangeFromColorStops, normalizeMinMaxRange } from './colorStops.js';
 import { createTexture, createR32FTexture } from './textureUtils.js';
 import { loadGeoTiffScalar, assertTextureDimensions, isSourceFormatGeotiff } from './geoTiffSource.js';
 
@@ -172,7 +172,7 @@ function createColormap(gl, colors, valueRange) {
 }
 
 export default class SmoothRaster {
-    constructor({id, source, color, bounds, opacity = 1.0, readyForDisplay = false, cacheOption = 'no-cache', slot, mapRuntime = 'mapbox', sourceType = 'auto', scalarBand = 0}) {
+    constructor({id, source, color, bounds, opacity = 1.0, readyForDisplay = false, cacheOption = 'no-cache', slot, mapRuntime = 'mapbox', sourceType = 'auto', scalarBand = 0, scalarValueRange}) {
         this.id = id;
         this.type = 'custom';
         this.renderingMode = '2d';
@@ -189,6 +189,7 @@ export default class SmoothRaster {
         this.opacity = opacity;
         this.layerBounds = normalizeBounds(bounds); // User-supplied extent for JPEG; restored when switching back from GeoTIFF
         this.bounds = this.layerBounds;      // Active extent used by shaders (from layerBounds or GeoTIFF file)
+        this.scalarValueRange = normalizeMinMaxRange(scalarValueRange);  // [min, max] for colormap when EXIF is absent
         
         this.sourceLoaded = false;
         this.readyForDisplay = readyForDisplay;
@@ -280,6 +281,56 @@ export default class SmoothRaster {
         }
     }
 
+    applyScalarRangeFromExif(description) {
+        const matches = description.match(/(-?\d+\.?\d*),(-?\d+\.?\d*)/);
+        if (!matches) {
+            return false;
+        }
+
+        const min = parseFloat(matches[1]);
+        const max = parseFloat(matches[2]);
+        if (isNaN(min) || isNaN(max)) {
+            return false;
+        }
+
+        this.valueRange = [min, max];
+        return true;
+    }
+
+    applyScalarRangeFromScalarValueRange(scalarValueRange) {
+        if (!Array.isArray(scalarValueRange) || scalarValueRange.length !== 2) {
+            console.warn('SmoothRaster: scalarValueRange must be a two-element array [min, max]');
+            return false;
+        }
+
+        const minVal = parseFloat(scalarValueRange[0]);
+        const maxVal = parseFloat(scalarValueRange[1]);
+        if (isNaN(minVal) || isNaN(maxVal)) {
+            console.warn('SmoothRaster: scalarValueRange contains non-numeric values');
+            return false;
+        }
+
+        this.valueRange = [minVal, maxVal];
+        return true;
+    }
+
+    resolveJpegScalarRange(exifDescription) {
+        if (exifDescription && this.applyScalarRangeFromExif(exifDescription)) {
+            return true;
+        }
+
+        if (this.scalarValueRange && this.applyScalarRangeFromScalarValueRange(this.scalarValueRange)) {
+            return true;
+        }
+
+        if (exifDescription) {
+            console.warn('SmoothRaster: No valid scalar value range found in EXIF data');
+        } else if (!this.scalarValueRange) {
+            console.warn('SmoothRaster: No EXIF scalar metadata and no scalarValueRange option provided');
+        }
+        return false;
+    }
+
     setSource(source, color = null) {
         if (this.source != source) {
             this.source = source;
@@ -347,59 +398,48 @@ export default class SmoothRaster {
             .then(([blob, arrayBuffer]) => {
                 const objectURL = URL.createObjectURL(blob);
 
-                // Set default value range if EXIF reading fails
-                this.valueRange = [0, 255];  // Default range
-                
+                image.onload = () => {
+                    URL.revokeObjectURL(objectURL);
+                    if (!this.gl) {
+                        return;
+                    }
+
+                    this.applySourceBounds(this.layerBounds);
+
+                    if (this.sourceTexture) {
+                        this.gl.deleteTexture(this.sourceTexture);
+                    }
+                    this.sourceTexture = createTexture(this.gl, this.gl.LINEAR, image);
+                    this.colormapTexture = createColormap(this.gl, this.color, this.valueRange);
+                    this.finalizeSourceLoad();
+                };
+
+                image.onerror = (err) => {
+                    URL.revokeObjectURL(objectURL);
+                    console.warn('SmoothRaster: Error loading source image:', err);
+                };
+
                 (async () => {
+                    let exifDescription;
                     try {
                         const tags = await ExifReader.load(arrayBuffer);
-                        
                         if (tags["ImageDescription"] && tags["ImageDescription"].description) {
-                            const description = tags["ImageDescription"].description;
-                            
-                            const matches = description.match(/(-?\d+\.?\d*),(-?\d+\.?\d*)/);
-                            if (matches) {
-                                const min = parseFloat(matches[1]);
-                                const max = parseFloat(matches[2]);
-                                
-                                if (!isNaN(min) && !isNaN(max)) {
-                                    this.valueRange = [min, max];
-                                }
-                            }
+                            exifDescription = tags["ImageDescription"].description;
                         }
-                        
-                        // Then define onload handler
-                        image.onload = () => {
-                            URL.revokeObjectURL(objectURL);
-                            if (this.gl) {
-                                this.applySourceBounds(this.layerBounds);
-
-                                if (this.sourceTexture) {
-                                    this.gl.deleteTexture(this.sourceTexture);
-                                }
-                                this.sourceTexture = createTexture(this.gl, this.gl.LINEAR, image);
-                                if (this.valueRange) {
-                                    this.colormapTexture = createColormap(this.gl, this.color, this.valueRange);
-                                }
-                                this.finalizeSourceLoad();
-                            }
-                        };
-
-                        image.onerror = (err) => {
-                            URL.revokeObjectURL(objectURL);
-                            console.error('Error loading source image:', err);
-                        };
-                        // Always proceed to load the image, even if EXIF parsing fails
-                        image.src = objectURL;
                     } catch (error) {
-                        console.warn('Error reading EXIF data:', error);
-                        // Still proceed with loading the image
-                        image.src = objectURL;
+                        console.warn('SmoothRaster: Error reading EXIF data:', error);
                     }
+
+                    if (!this.resolveJpegScalarRange(exifDescription)) {
+                        URL.revokeObjectURL(objectURL);
+                        return;
+                    }
+
+                    image.src = objectURL;
                 })();
             })
             .catch(error => {
-                console.error('Error fetching image:', error);
+                console.warn('SmoothRaster: Error fetching image:', error);
             });
     }
 
