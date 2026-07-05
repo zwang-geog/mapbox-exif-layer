@@ -9,6 +9,7 @@ Custom Mapbox GL JS / MapLibre GL JS layers for rendering particle motion (e.g.,
 
 > **JPEG/PNG without EXIF (v1.3.2+).** For normalized JPEG or PNG files that omit EXIF `ImageDescription` min/max metadata, pass `scalarValueRange` on `SmoothRaster` or `velocityRange` on `ParticleMotion` in the constructor. When EXIF is present, EXIF `ImageDescription` takes precedence over these options. See [`docs/jpeg-source.md`](docs/jpeg-source.md).
 
+Official site: [https://www.mapbox-exif-layer.com/](https://www.mapbox-exif-layer.com/)
 
 **Feature Highlights**
 * A built-in [custom layer](https://docs.mapbox.com/mapbox-gl-js/api/properties/#customlayerinterface) (Mapbox GL JS or MapLibre GL JS) instead of a canvas overlay, so layers are natively integrated with the map
@@ -28,9 +29,9 @@ Custom Mapbox GL JS / MapLibre GL JS layers for rendering particle motion (e.g.,
 
 [Demo video — Southern California wind particles (earlier demo)](https://www.youtube.com/watch?v=HLu0Ylhu5x4)
 
-[Demo video — US continental wind particle animation (v1.1.0)](https://www.youtube.com/watch?v=Zo6MDJT718Y)
+[Demo video — US continental wind particle animation (v1.1.0)](https://www.youtube.com/watch?v=iWKjNriTW-U)
 
-[Demo video - Maplibre GL JS globe projection](https://www.youtube.com/watch?v=mYro7l2piB0)
+[Demo video - Maplibre GL JS globe projection (v1.3.1)](https://www.youtube.com/watch?v=SLPBfteIbRE)
 
 [Technique Explanation](https://medium.com/@zifanw9/a-low-cost-custom-wind-particle-motion-layer-in-mapbox-gl-js-9a51978e3ffb)
 
