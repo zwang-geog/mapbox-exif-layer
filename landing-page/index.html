@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>mapbox-exif-layer — Wind particles &amp; smooth weather rasters for Mapbox &amp; MapLibre GL JS</title>
-  <meta name="description" content="Open-source custom layers for Mapbox GL JS and MapLibre GL JS — GPU wind particle animation and weather rasters displayed from EXIF-enabled JPEG images or GeoTIFF files. Globe projection on MapLibre. Live demos, npm package, and documentation." />
+  <meta name="description" content="Open-source custom layers for Mapbox GL JS and MapLibre GL JS — GPU wind particle animation and weather rasters displayed from JPEG/PNG images or GeoTIFF files. Globe projection on MapLibre. Live demos, npm package, and documentation." />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -112,7 +112,7 @@
             serve tiles, and get a blocky layer like QGIS at native resolution. Weather fields are spatially smooth, so we want a softer
             display. With WebGL varyings and a fragment shader, colors interpolate across space on the client
             (<a href="https://webglfundamentals.org/webgl/lessons/webgl-fundamentals.html" target="_blank" rel="noopener">WebGL fundamentals</a>)
-            without hand-built downsampling. (Note: to achieve a good smoothing effect, using EXIF JPEG source instead of GeoTIFF is recommended.)
+            without hand-built downsampling. (Note: to achieve a good smoothing effect, using JPEG/PNG image source instead of GeoTIFF is recommended.)
           </p>
           <p class="layer-card-actions">
             <a class="btn btn-secondary layer-api-btn" href="https://github.com/zwang-geog/mapbox-exif-layer/tree/main#smoothraster" target="_blank" rel="noopener">API reference</a>
@@ -158,7 +158,7 @@
       <p class="resource-group-label">Two supported data sources</p>
       <div class="resource-button-grid">
         <a class="btn btn-secondary resource-btn" href="https://github.com/zwang-geog/mapbox-exif-layer/blob/main/docs/geotiff-source.md" target="_blank" rel="noopener">GeoTIFF</a>
-        <a class="btn btn-secondary resource-btn" href="https://github.com/zwang-geog/mapbox-exif-layer/blob/main/docs/jpeg-source.md" target="_blank" rel="noopener">EXIF-enabled JPEG</a>
+        <a class="btn btn-secondary resource-btn" href="https://github.com/zwang-geog/mapbox-exif-layer/blob/main/docs/jpeg-source.md" target="_blank" rel="noopener">Properly encoded JPEG/PNG image</a>
       </div>
     </div>
   </section>
@@ -171,7 +171,7 @@
         <h3>When should I use <code>mapbox-exif-layer</code>?</h3>
         <ul>
           <li>Map wind as a <strong>dynamic particle motion</strong> layer.</li>
-          <li>Map weather (temperature, humidity, precipitation) — or any scalar field — where you want a <strong>smooth, non-blocky</strong> look via client-side linear interpolation (best with EXIF JPEG sources).</li>
+          <li>Map weather (temperature, humidity, precipitation) — or any scalar field — where you want a <strong>smooth, non-blocky</strong> look via client-side linear interpolation (best with JPEG/PNG image sources).</li>
           <li><strong>Visualize a small GeoTIFF</strong> in the browser without setting up a raster tile server.</li>
         </ul>
       </div>
@@ -179,7 +179,7 @@
       <div class="qa-block">
         <h3>How does it differ from other wind-mapping solutions?</h3>
         <ul>
-          <li><strong>Low-cost processing and hosting:</strong> upload an EXIF JPEG or GeoTIFF to a public S3 bucket, your site's static directory, or similar — little infrastructure and ongoing cost.</li>
+          <li><strong>Low-cost processing and hosting:</strong> upload a properly encoded JPEG/PNG image to a public S3 bucket, your site's static directory, or similar — little infrastructure and ongoing cost.</li>
           <li><strong>Mobile browser compatible:</strong> built on the Mapbox/MapLibre custom-layer interface; wherever those SDKs run on a phone or tablet browser, these layers can too.</li>
           <li><strong>Respects actual u/v velocity:</strong> particles move according to local u- and v-component values, not at one uniform speed across the map.</li>
           <li><strong>Speed-colored particles:</strong> particle color reflects wind speed in the same layer — no separate speed raster to stack on top — so wind overlays cleanly with other weather layers such as temperature.</li>
@@ -188,30 +188,47 @@
       </div>
 
       <div class="qa-block">
-        <h3>What is an EXIF-enabled JPEG in this package?</h3>
+        <h3>How are JPEG/PNG image sources encoded?</h3>
         <p>
-          A JPEG stores three 8-bit RGB bands (integers 0–255 per channel). For <strong>wind</strong>
-          (<code>ParticleMotion</code>), u-velocity is min–max normalized to 0–255 in the <strong>R</strong> band and
-          v-velocity in the <strong>G</strong> band; no-data cells use <strong>B&nbsp;=&nbsp;0</strong> (valid cells
-          use B&nbsp;=&nbsp;255). For a <strong>smooth raster</strong> (<code>SmoothRaster</code>), the scalar attribute
-          is normalized to 0–255 in the <strong>R</strong> band; no-data cells use <strong>B&nbsp;=&nbsp;255</strong>
-          (valid cells use B&nbsp;=&nbsp;0). The physical min and max values (before normalization) are written to EXIF
-          <code>ImageDescription</code> on the JPEG. See
+          A JPEG or PNG used as a source is <strong>not</strong> a normal photo — it stores a normalized weather grid in
+          three 8-bit RGB bands (0–255 per channel). For <strong>wind</strong> (<code>ParticleMotion</code>),
+          u-velocity is min–max normalized to 0–255 in the <strong>R</strong> band and v-velocity in the
+          <strong>G</strong> band; no-data cells use <strong>B&nbsp;=&nbsp;0</strong> (valid cells use
+          B&nbsp;=&nbsp;255). For a <strong>smooth raster</strong> (<code>SmoothRaster</code>), the scalar attribute is
+          normalized to 0–255 in the <strong>R</strong> band; no-data cells use <strong>B&nbsp;=&nbsp;255</strong>
+          (valid cells use B&nbsp;=&nbsp;0).
+        </p>
+        <p>
+          The layer also needs the physical <strong>min and max</strong> values used when encoding (before
+          normalization). You can supply them in either of two ways:
+        </p>
+        <ul>
+          <li><strong>EXIF</strong> — write min/max to JPEG <code>ImageDescription</code> (the classic
+            “EXIF-enabled JPEG” path; see
+            <a href="https://github.com/zwang-geog/mapbox-exif-layer/blob/main/docs/jpeg-source.md#method-2-dynamic-dataset-dependent-minmax-values" target="_blank" rel="noopener">Method&nbsp;2</a>
+            in the docs).</li>
+          <li><strong>Constructor</strong> (v1.3.2+) — pass <code>scalarValueRange</code> on
+            <code>SmoothRaster</code> or <code>velocityRange</code> on <code>ParticleMotion</code> when the image has no
+            EXIF metadata (<a href="https://github.com/zwang-geog/mapbox-exif-layer/blob/main/docs/jpeg-source.md#method-1-constant-dataset-independent-minmax-values" target="_blank" rel="noopener">Method&nbsp;1</a>). If EXIF is present, it takes precedence.</li>
+        </ul>
+        <p>
+          See
           <a href="https://github.com/zwang-geog/mapbox-exif-layer/blob/main/docs/jpeg-source.md" target="_blank" rel="noopener">docs/jpeg-source.md</a>
-          for the full encoding rules and pipeline example.
+          for encoding rules, both min/max workflows, and ready-to-use pipeline scripts.
         </p>
       </div>
 
       <div class="qa-block">
-        <h3>When should I use EXIF JPEG vs GeoTIFF?</h3>
+        <h3>When should I use a JPEG/PNG image source vs GeoTIFF?</h3>
         <p>
-          EXIF JPEGs are much smaller than GeoTIFFs. On this site’s NOAA NAM NEST CONUS demo grid (2269×976), wind is
-          <strong>~332&nbsp;KB</strong> as JPEG vs <strong>~8.9&nbsp;MB</strong> as ZSTD-compressed float32 GeoTIFF — a
-          big difference for storage and download when you serve many forecast timesteps.
+          Properly encoded JPEG/PNG rasters are much smaller than GeoTIFFs. On this site’s NOAA NAM NEST CONUS demo grid
+          (2269×976), wind is <strong>~332&nbsp;KB</strong> as JPEG vs <strong>~8.9&nbsp;MB</strong> as
+          ZSTD-compressed float32 GeoTIFF — a big difference for storage and download when you serve many forecast
+          timesteps.
         </p>
         <ul>
-          <li><strong>Prefer EXIF JPEG</strong> when you need many timesteps (multi-hour forecasts), want minimal hosting cost, or want the smoothest <code>SmoothRaster</code> look (linear texture filtering on 8-bit RGBA).</li>
-          <li><strong>Prefer GeoTIFF</strong> (EPSG:4326, Float32, compressed) when you want a GIS-friendly pipeline without custom JPEG encoding, have a smaller study area, or only a few timesteps. Extra float precision is often not visible in everyday visualization.</li>
+          <li><strong>Prefer JPEG/PNG</strong> when you need many timesteps (multi-hour forecasts), want minimal hosting cost, or want the smoothest <code>SmoothRaster</code> look (linear texture filtering on 8-bit RGB). Min/max metadata can come from EXIF or constructor <code>scalarValueRange</code> / <code>velocityRange</code>.</li>
+          <li><strong>Prefer GeoTIFF</strong> (EPSG:4326, Float32, compressed) when you want a GIS-friendly pipeline without custom image encoding, have a smaller study area, or only a few timesteps. Extra float precision is often not visible in everyday visualization.</li>
         </ul>
       </div>
 
