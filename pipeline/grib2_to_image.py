@@ -4,7 +4,6 @@ from osgeo import gdal
 gdal.UseExceptions()  # Suppress FutureWarning and enable exceptions
 import os
 from PIL import Image
-from PIL.ExifTags import TAGS
 import piexif
 import json
 
@@ -103,9 +102,8 @@ def get_band_index(ds, band_spec):
     else:
         raise Exception(f"Invalid band specification type: {type(band_spec)}")
 
-def process_grib(input_file, output_suffix, config_file, output_format='jpeg', add_exif=True):
-    """Process GRIB2 file and convert to image based on configuration."""
-    # Open the GRIB file
+def process_grib(input_file, output_suffix, config_file):
+    """Process a raster file and convert to EXIF-enabled JPEG based on configuration."""
     ds = gdal.Open(input_file)
     if ds is None:
         raise Exception(f"Could not open {input_file}")
@@ -132,7 +130,7 @@ def process_grib(input_file, output_suffix, config_file, output_format='jpeg', a
     # Process each parameter in the configuration
     for param_name, param_config in config.items():
         # Prepare output filename with full path
-        output_file = os.path.join(input_dir, f"{param_name}/{param_name}_{output_suffix}.{output_format}")
+        output_file = os.path.join(input_dir, f"{param_name}/{param_name}_{output_suffix}.jpeg")
         # Create directory if it doesn't exist
         os.makedirs(f"{input_dir}/{param_name}", exist_ok=True)
         
@@ -205,35 +203,19 @@ def process_grib(input_file, output_suffix, config_file, output_format='jpeg', a
 
         # Create PIL Image
         image = Image.fromarray(rgb_array, 'RGB')
-        
-        if add_exif:
-            # Create EXIF data with metadata
-            description = ''.join([f"{min_val},{max_val};" for min_val, max_val in min_max_values])
-            
-            # Create EXIF dictionary
-            exif_dict = {
-                "0th": {},
-                "Exif": {},
-                "GPS": {},
-                "1st": {},
-                "thumbnail": None
-            }
-            
-            # Add image description to EXIF
-            exif_dict["0th"][piexif.ImageIFD.ImageDescription] = description.encode('utf-8')
-            
-            # Convert EXIF dict to bytes
-            exif_bytes = piexif.dump(exif_dict)
-            
-            # Save image with EXIF metadata
-            image.save(output_file, output_format.upper(), 
-                      quality=95 if output_format.lower() == 'jpeg' else None,
-                      optimize=True, exif=exif_bytes)
-        else:
-            # Save image without EXIF metadata
-            image.save(output_file, output_format.upper(),
-                      quality=95 if output_format.lower() == 'jpeg' else None,
-                      optimize=True)
+
+        description = ''.join([f"{min_val},{max_val};" for min_val, max_val in min_max_values])
+        exif_dict = {
+            "0th": {},
+            "Exif": {},
+            "GPS": {},
+            "1st": {},
+            "thumbnail": None
+        }
+        exif_dict["0th"][piexif.ImageIFD.ImageDescription] = description.encode('utf-8')
+        exif_bytes = piexif.dump(exif_dict)
+
+        image.save(output_file, 'JPEG', quality=95, optimize=True, exif=exif_bytes)
 
     # Write bounds to text file in the same directory
     bounds_file = os.path.join(input_dir, f"bounds_{output_suffix}.txt")
@@ -244,24 +226,16 @@ def process_grib(input_file, output_suffix, config_file, output_format='jpeg', a
     ds = None
 
 def main():
-    if len(sys.argv) < 5:
-        print("Usage: python grib2_to_image.py <input_grib2> <output_suffix> <config_json> [output_format] [add_exif]")
-        print("output_format: jpeg or png (default: jpeg)")
-        print("add_exif: true or false (default: true)")
+    if len(sys.argv) < 4:
+        print("Usage: python grib2_to_image.py <input_raster> <output_suffix> <config_json>")
         sys.exit(1)
 
     input_file = sys.argv[1]
     output_suffix = sys.argv[2]
     config_file = sys.argv[3]
-    output_format = sys.argv[4].lower() if len(sys.argv) > 4 else 'jpeg'
-    add_exif = sys.argv[5].lower() == 'true' if len(sys.argv) > 5 else True
-
-    if output_format not in ['jpeg', 'png']:
-        print("Error: output_format must be either 'jpeg' or 'png'")
-        sys.exit(1)
 
     try:
-        process_grib(input_file, output_suffix, config_file, output_format, add_exif)
+        process_grib(input_file, output_suffix, config_file)
     except Exception as e:
         print(f"Error processing file: {str(e)}", file=sys.stderr)
         sys.exit(1)

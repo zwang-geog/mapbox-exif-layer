@@ -5,7 +5,9 @@
 Custom Mapbox GL JS / MapLibre GL JS layers for rendering particle motion (e.g., wind) or smooth raster (e.g., temperature, relative humidity, precipitation) from EXIF-enabled JPEG images or GeoTIFF files
 
 
-> **GeoTIFF support.** Despite the package name, `ParticleMotion` and `SmoothRaster` accept GeoTIFF sources (float32, EPSG:4326) in addition to EXIF-enabled JPEG (v1.3.0+). GeoTIFF rasters use physical cell values directly and do not require 0–255 normalization. See [`docs/geotiff-source.md`](docs/geotiff-source.md). JPEG source requirements are documented in [`docs/jpeg-source.md`](docs/jpeg-source.md).
+> **GeoTIFF support.** Despite the package name, `ParticleMotion` and `SmoothRaster` accept GeoTIFF sources (float32, EPSG:4326) in addition to EXIF-enabled JPEG (v1.3.1+). GeoTIFF rasters use physical cell values directly and do not require 0–255 normalization. See [`docs/geotiff-source.md`](docs/geotiff-source.md). JPEG source requirements are documented in [`docs/jpeg-source.md`](docs/jpeg-source.md).
+
+> **JPEG/PNG without EXIF (v1.3.2+).** For normalized JPEG or PNG files that omit EXIF `ImageDescription` min/max metadata, pass `scalarValueRange` on `SmoothRaster` or `velocityRange` on `ParticleMotion` in the constructor. When EXIF is present, EXIF `ImageDescription` takes precedence over these options. See [`docs/jpeg-source.md`](docs/jpeg-source.md).
 
 
 **Feature Highlights**
@@ -274,6 +276,7 @@ A particle-based visualization layer that creates animated particles, suitable f
   - `'mph'` (default): Miles per hour
   - `'kph'`: Kilometers per hour
   - `'mps'`: Meters per second
+- `velocityRange` (array): Optional two-element `[min, max]` in the layer `unit` option. Used to de-normalize u and v from the R and G bands when the JPEG/PNG source has no EXIF velocity metadata; applied to both u- and v- components. Ignored when valid EXIF metadata is present. Speed coloring without EXIF is inferred from `color` stops, not from this range. See [`docs/jpeg-source.md`](docs/jpeg-source.md).
 - `cacheOption` (string): [Cache option](https://developer.mozilla.org/en-US/docs/Web/API/Request/cache) to use when fetching the source image. It can be one of no-cache (default in 1.0.3), no-store (default in 1.0.2), reload, default, or force-cache.
 - `slot` (string): Optional [slot](https://docs.mapbox.com/style-spec/reference/slots/) identifier for the layer (used by Mapbox GL JS for [layer ordering](https://docs.mapbox.com/mapbox-gl-js/api/map/#addlayer-parameters-layer-slot)); typical values may include "top", "middle" (recommended), "bottom".
 - `mapRuntime` (string): `'mapbox'` (default) or `'maplibre'`. This parameter must be explicitly set to `'maplibre'` if maplibre-gl-js SDK is used. Only `'maplibre'` with [MapLibre GL JS](https://maplibre.org/projects/gl-js/) supports globe projection.
@@ -302,6 +305,7 @@ A raster visualization layer that provides a smooth display of the data.
 - `mapRuntime` (string): `'mapbox'` (default) or `'maplibre'`. This parameter must be explicitly set to `'maplibre'` if maplibre-gl-js SDK is used. Only `'maplibre'` with [MapLibre GL JS](https://maplibre.org/projects/gl-js/) supports globe projection.
 - `sourceType` (string): `'auto'` (default), `'jpeg'`, or `'geotiff'`. GeoTIFF requires optional peer package dependency [`geotiff`](https://www.npmjs.com/package/geotiff); see [`docs/geotiff-source.md`](docs/geotiff-source.md).
 - `scalarBand` (number): GeoTIFF sample index for scalar data (default: `0`, first band).
+- `scalarValueRange` (array): Optional two-element `[min, max]` matching the physical range used when encoding the R band. Maps encoded values to physical units for the colormap when the JPEG/PNG source has no EXIF scalar metadata. Ignored when valid EXIF metadata is present. `color` stop values should use the same physical units. See [`docs/jpeg-source.md`](docs/jpeg-source.md).
 
 #### Methods
 
