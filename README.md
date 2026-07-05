@@ -2,19 +2,19 @@
 
 [![npm version](https://img.shields.io/npm/v/mapbox-exif-layer)](https://www.npmjs.com/package/mapbox-exif-layer)
 
-Custom Mapbox GL JS / MapLibre GL JS layers for rendering particle motion (e.g., wind) or smooth raster (e.g., temperature, relative humidity, precipitation) from EXIF-enabled JPEG images or GeoTIFF files
+Custom Mapbox GL JS / MapLibre GL JS layers for rendering particle motion (e.g., wind) or smooth raster (e.g., temperature, relative humidity, precipitation) from JPEG/PNG images or GeoTIFF files
 
 
-> **GeoTIFF support.** Despite the package name, `ParticleMotion` and `SmoothRaster` accept GeoTIFF sources (float32, EPSG:4326) in addition to EXIF-enabled JPEG (v1.3.1+). GeoTIFF rasters use physical cell values directly and do not require 0–255 normalization. See [`docs/geotiff-source.md`](docs/geotiff-source.md). JPEG source requirements are documented in [`docs/jpeg-source.md`](docs/jpeg-source.md).
+> **GeoTIFF support (v1.3.1+).** Despite the package name, `ParticleMotion` and `SmoothRaster` accept GeoTIFF sources (float32, EPSG:4326) in addition to JPEG/PNG (with or without EXIF). GeoTIFF rasters use physical cell values directly and do not require 0–255 normalization. See [`docs/geotiff-source.md`](https://github.com/zwang-geog/mapbox-exif-layer/blob/main/docs/geotiff-source.md). JPEG source requirements are documented in [`docs/jpeg-source.md`](https://github.com/zwang-geog/mapbox-exif-layer/blob/main/docs/jpeg-source.md).
 
-> **JPEG/PNG without EXIF (v1.3.2+).** For normalized JPEG or PNG files that omit EXIF `ImageDescription` min/max metadata, pass `scalarValueRange` on `SmoothRaster` or `velocityRange` on `ParticleMotion` in the constructor. When EXIF is present, EXIF `ImageDescription` takes precedence over these options. See [`docs/jpeg-source.md`](docs/jpeg-source.md).
+> **JPEG/PNG without EXIF (v1.3.2+).** For normalized JPEG or PNG files that omit EXIF `ImageDescription` min/max metadata, pass `scalarValueRange` on `SmoothRaster` or `velocityRange` on `ParticleMotion` in the constructor. When EXIF is present, EXIF `ImageDescription` takes precedence over these options. See [`docs/jpeg-source.md`](https://github.com/zwang-geog/mapbox-exif-layer/blob/main/docs/jpeg-source.md).
 
 Official site: [https://www.mapbox-exif-layer.com/](https://www.mapbox-exif-layer.com/)
 
 **Feature Highlights**
 * A built-in [custom layer](https://docs.mapbox.com/mapbox-gl-js/api/properties/#customlayerinterface) (Mapbox GL JS or MapLibre GL JS) instead of a canvas overlay, so layers are natively integrated with the map
-* **New in v1.2.0+: MapLibre GL JS with globe projection** — set `mapRuntime: 'maplibre'` on `ParticleMotion` or `SmoothRaster` and use MapLibre's [globe projection](https://maplibre.org/maplibre-gl-js/docs/examples/add-a-simple-custom-layer-on-a-globe/) (`map.setProjection({ type: 'globe' })`); see [`maplibre-gl-demo`](maplibre-gl-demo/maplibre-gl-demo/src/App.jsx) for a working example. Mapbox GL JS remains as the default mapRuntime and only supports mercator.
-* No tile server setup required: a GeoTIFF file or an EXIF-enabled JPEG image as source (as simple as uploading the file to a publicly accessible AWS S3 bucket)
+* **New in v1.2.0+: MapLibre GL JS with globe projection** — set `mapRuntime: 'maplibre'` on `ParticleMotion` or `SmoothRaster` and use MapLibre's [globe projection](https://maplibre.org/maplibre-gl-js/docs/examples/add-a-simple-custom-layer-on-a-globe/) (`map.setProjection({ type: 'globe' })`); see [`maplibre-gl-demo`](https://github.com/zwang-geog/mapbox-exif-layer/blob/main/maplibre-gl-demo/maplibre-gl-demo/src/App.jsx) for a working example. Mapbox GL JS remains as the default mapRuntime and only supports mercator.
+* No tile server setup required: serve a GeoTIFF file or a **properly encoded** JPEG/PNG raster (normalized grid values in RGB bands per [`docs/jpeg-source.md`](https://github.com/zwang-geog/mapbox-exif-layer/blob/main/docs/jpeg-source.md) — not arbitrary photos) from a static URL such as a publicly accessible AWS S3 bucket
 * **WebGL GPU-accelerated** wind particles: position and age live in GPU buffers, each frame a dedicated vertex shader advances every particle via transform feedback — no per-frame CPU loop over hundreds of thousands of points
 * Works for browsers on both desktop/laptop and iPhone/iPad
 * Wind particles can have varying colors based on speed, and particle movement respect the relative u- and v-component velocity rather than moving at the same rate
@@ -41,7 +41,7 @@ Official site: [https://www.mapbox-exif-layer.com/](https://www.mapbox-exif-laye
 
 **Particle motion layer** is the companion approach for **vector fields** such as wind, where each grid cell stores u- and v-component velocity rather than a single scalar. A conventional web map might show wind with static arrows. A particle layer instead releases hundreds of thousands of short-lived points (with tails) into the field; each frame, every particle samples the local u/v at its position, moves a small step in that direction, and is recolored by speed at the new position. The effect is a continuous, flowing animation that makes direction and relative speed easy to read at a glance. This package runs that update on the GPU (transform feedback and a dedicated update vertex shader) rather than moving particles on the CPU each frame, and integrates the result as a Mapbox/MapLibre custom layer so pan and zoom stay in sync with the basemap or any other overlaid layers.
 
-Sources can be either **EXIF-enabled JPEG** (default) or optional **GeoTIFF**. See [`docs/jpeg-source.md`](docs/jpeg-source.md) for JPEG band encoding, EXIF metadata, B-band NA masking (v1.1.0+), and the GRIB2 pipeline example. See [`docs/geotiff-source.md`](docs/geotiff-source.md) for float32 GeoTIFF (EPSG:4326).
+Sources can be either **JPEG/PNG images with cell value normalized to uint8** or **GeoTIFF**. See [`docs/jpeg-source.md`](https://github.com/zwang-geog/mapbox-exif-layer/blob/main/docs/jpeg-source.md) for band encoding, supplying value ranges via constructor parameters or EXIF `ImageDescription`, and guides to the ready-to-use pipeline scripts. See [`docs/geotiff-source.md`](https://github.com/zwang-geog/mapbox-exif-layer/blob/main/docs/geotiff-source.md) for float32 GeoTIFF (EPSG:4326).
 
 **Map Projection Reminder**
 The use of **Mapbox GL JS:** requires setting projection to `'mercator'` when initializing the map — the default `mapRuntime: 'mapbox'` does not support globe. The use of **MapLibre GL JS:** requires setting `mapRuntime: 'maplibre'` on each layer - MapLibre's globe projection is supported in v1.2.0+ (see [`maplibre-gl-demo`](maplibre-gl-demo/maplibre-gl-demo/src/App.jsx)).
@@ -82,6 +82,8 @@ import { ParticleMotion, SmoothRaster } from 'mapbox-exif-layer';
 ```
 
 ## Usage
+
+The following example assumes the source JPEG has EXIF `ImageDescription` encoding the value range of the source data ([learn more](https://github.com/zwang-geog/mapbox-exif-layer/blob/main/docs/jpeg-source.md#method-2-dynamic-dataset-dependent-minmax-values)). For images without EXIF, pass `scalarValueRange` or `velocityRange` instead — see [Method 1](https://github.com/zwang-geog/mapbox-exif-layer/blob/main/docs/jpeg-source.md#method-1-constant-dataset-independent-minmax-values) in the same doc.
 
 ```javascript
 // Initialize a map

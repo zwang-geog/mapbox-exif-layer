@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## v1.3.2
+
+- **JPEG/PNG without EXIF:** Added optional constructor parameters for sources that omit EXIF `ImageDescription` min/max metadata. `SmoothRaster` accepts `scalarValueRange` (`[min, max]`) to map encoded R-band values to physical units for the colormap. `ParticleMotion` accepts `velocityRange` (`[min, max]`, in the layer `unit`) to de-normalize u and v from the R and G bands; wind speed coloring without EXIF is inferred from `color` stops (as with GeoTIFF). When EXIF is present, it takes precedence over these options.
+- **Pipeline:** Added `grib2_scalar_to_image_with_fix_min_max.py` and `grib2_uv_to_image_with_fix_min_max.py` for fixed-range JPEG/PNG encoding without EXIF. Simplified `grib2_to_image.py` to always write EXIF-enabled JPEG.
+- **Docs:** Expanded [`docs/jpeg-source.md`](docs/jpeg-source.md) with Method 1 (constructor value ranges) and Method 2 (EXIF) workflows.
+
 ## v1.3.1
 
 - **Fixed GeoTIFF north–south flip:** Removed `UNPACK_FLIP_Y_WEBGL` when uploading float32 GeoTIFF textures. The extra Y flip did not match how JPEG sources are oriented and caused both `SmoothRaster` and `ParticleMotion` to display GeoTIFF data mirrored on the map.
