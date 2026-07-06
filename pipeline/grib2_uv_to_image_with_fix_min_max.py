@@ -51,6 +51,50 @@ def build_image_array(u_norm, v_norm, nodata_mask, mask_in_alpha=False):
     return np.stack([u_norm, v_norm, mask_band], axis=2), 'RGB'
 
 
+def find_band_by_attribute(ds, attribute_str):
+    """Find band index by matching metadata attribute."""
+    if not attribute_str or '=' not in attribute_str:
+        return None
+
+    key, value = attribute_str.split('=', 1)
+
+    for i in range(1, ds.RasterCount + 1):
+        band = ds.GetRasterBand(i)
+        metadata = band.GetMetadata()
+        if metadata.get(key) == value:
+            return i
+
+    return None
+
+
+def get_band_index(ds, band_spec):
+    """Resolve a band spec (1-based index or KEY=VALUE attribute) to a band index."""
+    if isinstance(band_spec, int):
+        band_idx = band_spec
+    elif isinstance(band_spec, str):
+        band_idx = find_band_by_attribute(ds, band_spec)
+        if band_idx is None:
+            raise ValueError(f'Could not find band matching attribute: {band_spec}')
+    else:
+        raise ValueError(f'Invalid band specification type: {type(band_spec)}')
+
+    if band_idx < 1 or band_idx > ds.RasterCount:
+        raise ValueError(f'Band {band_idx} is out of range (1-{ds.RasterCount})')
+    return band_idx
+
+
+def parse_band_spec(value):
+    """Parse CLI band argument as integer index or KEY=VALUE attribute string."""
+    if '=' in value:
+        return value
+    try:
+        return int(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError(
+            f"Band must be a 1-based integer or KEY=VALUE attribute string, got: {value!r}"
+        ) from exc
+
+
 def is_epsg4326(ds):
     """Return True when the dataset CRS matches EPSG:4326."""
     wkt = ds.GetProjection()
@@ -114,13 +158,11 @@ def process_grib_uv(
 ):
     ds = open_in_epsg4326(input_file)
 
-    if u_band < 1 or u_band > ds.RasterCount:
-        raise ValueError(f"uBand {u_band} is out of range (1-{ds.RasterCount})")
-    if v_band < 1 or v_band > ds.RasterCount:
-        raise ValueError(f"vBand {v_band} is out of range (1-{ds.RasterCount})")
+    u_band_idx = get_band_index(ds, u_band)
+    v_band_idx = get_band_index(ds, v_band)
 
-    u_raster = ds.GetRasterBand(u_band)
-    v_raster = ds.GetRasterBand(v_band)
+    u_raster = ds.GetRasterBand(u_band_idx)
+    v_raster = ds.GetRasterBand(v_band_idx)
 
     u_data = u_raster.ReadAsArray().astype(np.float64)
     v_data = v_raster.ReadAsArray().astype(np.float64)
@@ -158,8 +200,20 @@ def parse_args(argv):
     )
     parser.add_argument('input_grib2', help='Input GRIB2 file path')
     parser.add_argument('output_file', help='Output image path (.jpg, .jpeg, or .png)')
-    parser.add_argument('--u-band', type=int, default=1, dest='u_band', help='U band index (1-based, default: 1)')
-    parser.add_argument('--v-band', type=int, default=2, dest='v_band', help='V band index (1-based, default: 2)')
+    parser.add_argument(
+        '--u-band',
+        type=parse_band_spec,
+        default=1,
+        dest='u_band',
+        help='U band: 1-based index or KEY=VALUE attribute (default: 1)',
+    )
+    parser.add_argument(
+        '--v-band',
+        type=parse_band_spec,
+        default=2,
+        dest='v_band',
+        help='V band: 1-based index or KEY=VALUE attribute (default: 2)',
+    )
     parser.add_argument('--min-value', type=float, default=-64.0, dest='min_value', help='Fixed min for normalization (default: -64)')
     parser.add_argument('--max-value', type=float, default=64.0, dest='max_value', help='Fixed max for normalization (default: 64)')
     parser.add_argument(

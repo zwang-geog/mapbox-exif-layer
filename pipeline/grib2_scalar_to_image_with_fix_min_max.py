@@ -49,6 +49,50 @@ def build_image_array(scalar_norm, nodata_mask):
     return np.stack([scalar_norm, g_band, mask_band], axis=2), 'RGB'
 
 
+def find_band_by_attribute(ds, attribute_str):
+    """Find band index by matching metadata attribute."""
+    if not attribute_str or '=' not in attribute_str:
+        return None
+
+    key, value = attribute_str.split('=', 1)
+
+    for i in range(1, ds.RasterCount + 1):
+        band = ds.GetRasterBand(i)
+        metadata = band.GetMetadata()
+        if metadata.get(key) == value:
+            return i
+
+    return None
+
+
+def get_band_index(ds, band_spec):
+    """Resolve a band spec (1-based index or KEY=VALUE attribute) to a band index."""
+    if isinstance(band_spec, int):
+        band_idx = band_spec
+    elif isinstance(band_spec, str):
+        band_idx = find_band_by_attribute(ds, band_spec)
+        if band_idx is None:
+            raise ValueError(f'Could not find band matching attribute: {band_spec}')
+    else:
+        raise ValueError(f'Invalid band specification type: {type(band_spec)}')
+
+    if band_idx < 1 or band_idx > ds.RasterCount:
+        raise ValueError(f'Band {band_idx} is out of range (1-{ds.RasterCount})')
+    return band_idx
+
+
+def parse_band_spec(value):
+    """Parse CLI band argument as integer index or KEY=VALUE attribute string."""
+    if '=' in value:
+        return value
+    try:
+        return int(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError(
+            f"Band must be a 1-based integer or KEY=VALUE attribute string, got: {value!r}"
+        ) from exc
+
+
 def is_epsg4326(ds):
     """Return True when the dataset CRS matches EPSG:4326."""
     wkt = ds.GetProjection()
@@ -110,10 +154,9 @@ def process_grib_scalar(
 ):
     ds = open_in_epsg4326(input_file)
 
-    if scalar_band < 1 or scalar_band > ds.RasterCount:
-        raise ValueError(f"scalarBand {scalar_band} is out of range (1-{ds.RasterCount})")
+    scalar_band_idx = get_band_index(ds, scalar_band)
 
-    scalar_raster = ds.GetRasterBand(scalar_band)
+    scalar_raster = ds.GetRasterBand(scalar_band_idx)
     scalar_data = scalar_raster.ReadAsArray().astype(np.float64)
     nodata_mask = build_nodata_mask(scalar_data, scalar_raster.GetNoDataValue())
 
@@ -145,10 +188,10 @@ def parse_args(argv):
     parser.add_argument('output_file', help='Output image path (.jpg, .jpeg, or .png)')
     parser.add_argument(
         '--scalar-band',
-        type=int,
+        type=parse_band_spec,
         default=1,
         dest='scalar_band',
-        help='Scalar band index (1-based, default: 1)',
+        help='Scalar band: 1-based index or KEY=VALUE attribute (default: 1)',
     )
     parser.add_argument(
         '--min-value',

@@ -34,16 +34,26 @@ Ready-to-use Python scripts for converting raster data (grib2, GeoTIFF etc) to J
 
 ```
 python grib2_scalar_to_image_with_fix_min_max.py <input_raster> <output_file> \
-  [--scalar-band N] \
+  [--scalar-band BAND] \
   --min-value MIN --max-value MAX
 ```
 
-Example:
+`BAND` is a 1-based band index (default: `1`) or a GRIB metadata string such as `GRIB_ELEMENT=APCP01`.
+
+Examples:
 
 ```bash
+# Temperature (band index)
 python grib2_scalar_to_image_with_fix_min_max.py reprojected.grib2 temperature.png \
   --scalar-band 1 \
   --min-value -20 --max-value 45
+```
+
+```bash
+# Hourly precipitation (GRIB attribute)
+python grib2_scalar_to_image_with_fix_min_max.py input.grib2 precipitation.png \
+  --scalar-band GRIB_ELEMENT=APCP01 \
+  --min-value 0 --max-value 50
 ```
 
 - Wind / Particle motion layer: [pipeline/grib2_uv_to_image_with_fix_min_max.py](https://github.com/zwang-geog/mapbox-exif-layer/blob/main/pipeline/grib2_uv_to_image_with_fix_min_max.py)
