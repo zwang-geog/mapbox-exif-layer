@@ -1,0 +1,8 @@
+﻿,mapbox-exif-layer,maplibre-gl-wind,sakitam-gis/maplibre-wind
+MapLibre v5 support,Yes (with mapRuntime set to maplibre in constructor; v1.2.1+),Yes (via MapboxOverlay of deck.gl),No (only works for Maplibre v3)
+MapLibre Globe Projection,Yes (only possible for maplibre but not mapbox),No,No
+Particle colors vary by actual speed,Yes,Yes,No
+Particle has tails,Yes,No,Yes
+GeoTIFF support,Yes (sample code and data are provided; v1.3.1+),No,"Yes (mentioned in the doc, but no  sample code or data supplied)"
+Tiled images instead of single image support,No (single JPEG or PNG image only),No (single PNG image only),"Yes (mentioned in the doc, but lack detailed documentation of making tiled images)"
+NA/No data cells handling,Store 0 in B-band for NA cells (v1.1.0+),Store 0 in A-band for NA cells,Require GeoJSON mask valid or invalid area and supply mask parameter to the layer constructor
