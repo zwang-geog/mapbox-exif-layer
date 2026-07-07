@@ -178,13 +178,80 @@
 
       <div class="qa-block">
         <h3>How does it differ from other wind-mapping solutions?</h3>
-        <ul>
-          <li><strong>Low-cost processing and hosting:</strong> upload a properly encoded JPEG/PNG image to a public S3 bucket, your site's static directory, or similar — little infrastructure and ongoing cost.</li>
-          <li><strong>Mobile browser compatible:</strong> built on the Mapbox/MapLibre custom-layer interface; wherever those SDKs run on a phone or tablet browser, these layers can too.</li>
-          <li><strong>Respects actual u/v velocity:</strong> particles move according to local u- and v-component values, not at one uniform speed across the map.</li>
-          <li><strong>Speed-colored particles:</strong> particle color reflects wind speed in the same layer — no separate speed raster to stack on top — so wind overlays cleanly with other weather layers such as temperature.</li>
-          <li><strong>Avoids degenerate particle patterns:</strong> particle age is tracked on the GPU and stale particles are reset across the extent — reducing the “locked-in” cyclonic or atmospheric-river loops that some wind visualizations show when particles never leave large-scale flow features.</li>
-        </ul>
+        <p>
+          <strong>Mapbox Wind Layer</strong> relies on Mapbox’s proprietary Tiling Service to convert GRIB wind data into
+          raster arrays tiled at multiple zoom levels. At high zoom (e.g. greater than 12), covering the extent can require a
+          very large number of tiles — processing cost grows quickly, and pipelines sometimes hang or get killed before they
+          finish. If you cap tiles at zoom 12 instead, particles look like blurry boxes sliding across the map when users zoom
+          in to village, neighborhood, or street level — an aesthetic that is hard to accept for detailed views.
+        </p>
+        <p><strong>Open-source alternatives</strong></p>
+        <div class="comparison-table-wrap">
+          <table class="comparison-table">
+            <thead>
+              <tr>
+                <th scope="col"></th>
+                <th scope="col"><code>mapbox-exif-layer</code></th>
+                <th scope="col"><code>maplibre-gl-wind</code></th>
+                <th scope="col"><code>sakitam-gis/maplibre-wind</code></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">MapLibre v5 support</th>
+                <td>Yes (with <code>mapRuntime</code> set to <code>maplibre</code> in constructor; v1.2.1+)</td>
+                <td>Yes (via MapboxOverlay of deck.gl)</td>
+                <td>No (only works for MapLibre v3)</td>
+              </tr>
+              <tr>
+                <th scope="row">MapLibre Globe Projection</th>
+                <td>Yes</td>
+                <td>No</td>
+                <td>No</td>
+              </tr>
+              <tr>
+                <th scope="row">Particle colors vary by actual speed</th>
+                <td>Yes</td>
+                <td>Yes</td>
+                <td>No</td>
+              </tr>
+              <tr>
+                <th scope="row">Particle has tails</th>
+                <td>Yes</td>
+                <td>No</td>
+                <td>Yes</td>
+              </tr>
+              <tr>
+                <th scope="row">GeoTIFF support</th>
+                <td>Yes (sample code and data are provided; v1.3.1+)</td>
+                <td>No</td>
+                <td>Yes (mentioned in the doc, but no sample code or data supplied)</td>
+              </tr>
+              <tr>
+                <th scope="row">Image source support</th>
+                <td>Single JPEG or PNG</td>
+                <td>Single PNG</td>
+                <td>Single or tiled JPEG or PNG</td>
+              </tr>
+              <tr>
+                <th scope="row">Browser on mobile device support</th>
+                <td>Yes (native)</td>
+                <td>Yes (depends on deck.gl)</td>
+                <td>No (very likely to lose WebGL context)</td>
+              </tr>
+              <tr>
+                <th scope="row">NA/No data cells handling</th>
+                <td>Store 0 in B-band for NA cells (v1.1.0+)</td>
+                <td>Store 0 in A-band for NA cells</td>
+                <td>Require GeoJSON mask valid or invalid area and supply <code>mask</code> parameter to the layer constructor</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          See more in
+          <a href="https://medium.com/@zifanw9/assessing-packages-for-mapping-wind-as-particle-motion-layer-in-maplibre-2ec8db9aea33?sharedUserId=zifanw9" target="_blank" rel="noopener">Assessing packages for mapping wind as particle motion layer in MapLibre</a>.
+        </p>
       </div>
 
       <div class="qa-block">

@@ -507,6 +507,58 @@ a:hover {
   margin-top: 0;
 }
 
+.comparison-table-wrap {
+  overflow-x: auto;
+  margin: 0 0 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.comparison-table {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.comparison-table th,
+.comparison-table td {
+  padding: 0.65rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+  line-height: 1.45;
+}
+
+.comparison-table thead th {
+  background: var(--bg-elevated);
+  color: var(--text);
+  font-weight: 600;
+}
+
+.comparison-table tbody th {
+  color: var(--text);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.comparison-table td {
+  color: var(--text-muted);
+}
+
+.comparison-table tbody tr:last-child th,
+.comparison-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.comparison-table code {
+  font-family: var(--mono);
+  font-size: 0.85em;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+}
+
 /* Getting started */
 .getting-started {
   padding: 1.5rem 1.25rem;
