@@ -8,11 +8,10 @@ description: >-
 
 # Wind particles with mapbox-exif-layer
 
-Walk the user through setup in order. **Do not skip ahead to code** until the relevant step is answered. If the user already stated an answer, confirm briefly and move on.
-
-**Workspace:** Treat the user’s project as a standalone app (e.g. React + Mapbox/MapLibre). Before Step 4 preprocessing, install GDAL/Python dependencies — see [install_pipeline_dependency.md](references/install_pipeline_dependency.md).
-
-Package: [`mapbox-exif-layer`](https://www.mapbox-exif-layer.com) (npm) — `ParticleMotion` custom layer. Docs: [JPEG/PNG](https://github.com/zwang-geog/mapbox-exif-layer/blob/main/docs/jpeg-source.md), [GeoTIFF](https://github.com/zwang-geog/mapbox-exif-layer/blob/main/docs/geotiff-source.md).
+- Walk through the setup in order.
+- Ask **one step at a time** unless the user gave full context upfront.
+- Summarize decisions in a short bullet list before writing code.
+- If user asks why using mapbox-exif-layer for wind particle mapping, reference to the official site https://www.mapbox-exif-layer.com/ for Frequently Asked Questions such as how it differ from other wind-mapping solutions as well as working demo sites
 
 ---
 
@@ -70,9 +69,56 @@ Read and follow [wind-data-checklist.md](references/wind-data-checklist.md) when
 
 ---
 
-## Agent behavior
+## Step 5 — Frontend project setup
 
-- Ask **one step at a time** unless the user gave full context upfront.
-- Summarize decisions in a short bullet list before writing code.
-- Do **not** suggest `maplibre-gl-wind` or other packages unless the user explicitly asks for alternatives.
-- Link to official docs above rather than inventing encoding rules.
+Resolve the frontend project in this order:
+
+1. **Project already exists** → inspect the codebase (`package.json`, framework config, existing map setup). **Keep the framework in use.** Install any missing npm packages below; do not re-scaffold.
+2. **New project** → **ask the user** which **framework** (e.g. React, Vue, Svelte) and **CSS library** (e.g. Tailwind, MUI) they want, then initialize the project.
+
+Use the **Map SDK from Step 1** to choose the map package. Use **Step 3** to decide whether `geotiff` is needed.
+
+### Install map SDK (one of)
+
+**Mapbox GL JS**:
+
+```bash
+npm install mapbox-gl
+```
+
+**MapLibre GL JS**:
+
+```bash
+npm install maplibre-gl
+```
+
+### Install mapbox-exif-layer
+
+```bash
+npm install mapbox-exif-layer
+```
+
+### GeoTIFF peer dependency (Step 3 = `geotiff` only)
+
+```bash
+npm install geotiff
+```
+
+JPEG/PNG-only setups do **not** need `geotiff`.
+
+---
+
+## Step 6 — Add wind particle layer
+
+**When to run:** After Step 5, using recorded values from Steps 1–4 (SDK, `source` path, bounds sidecar for JPEG/PNG, display `unit`, `velocityRange` if dataset-independent).
+
+**What to do:** Open the reference for the **Map SDK from Step 1**. Wire `ParticleMotion` with the processed wind file and bounds; add the layer to the map.
+
+| Step 1 SDK | Reference |
+|------------|-----------|
+| Mapbox GL JS | [add-wind-particle-mapbox.md](references/add-wind-particle-mapbox.md) |
+| MapLibre GL JS | [add-wind-particle-maplibre.md](references/add-wind-particle-maplibre.md) |
+
+To fine-tune particle appearance or behavior (`particleCount`, `velocityFactor`, `updateInterval`, `trailLength`, GeoTIFF band indices, etc.), see [particle_motion_layer_options.md](references/particle_motion_layer_options.md).
+
+---
