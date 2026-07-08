@@ -1,0 +1,15 @@
+{
+    "name": "wind-weather-map-layers",
+    "description": "Wind particles with JPEG/PNG image or GeoTIFF source, smooth non-blocky weather display, and small whole-file GeoTIFF quick visualization. Custom layers for Mapbox and MapLibre GL JS. Support MapLibre globe projection.",
+    "version": "1.0.0",
+    "author": { "name": "Zifan Wang" },
+    "keywords": [
+      "wind", "particle", "weather", "raster", "smooth",
+      "geotiff", "jpeg", "mapbox", "maplibre", "webgl",
+      "temperature", "precipitation", "wind-map", "humidity",
+      "animation", "web-map", "visualization", "map-layer", "map-plugin"
+    ],
+    "homepage": "https://www.mapbox-exif-layer.com",
+    "repository": "https://github.com/zwang-geog/mapbox-exif-layer",
+    "license": "MIT"
+}

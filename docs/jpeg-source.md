@@ -76,6 +76,7 @@ Notes:
 1. The above two scripts use GDAL that is **capable to read any common raster datasets**, not limited to grib2
 2. The above two scripts **automatically reproject the datasets to WGS84 (EPSG 4326)**. If you are writing your own script for conversion, make sure to reproject the geospatial file to EPSG 4326 before normalization and writing the image file
 3. The above two scripts do NOT encode EXIF information since the min and max values already are input to the scripts
+4. Each script also writes **`bounds_<output_stem>.txt`** next to the output image — one line, comma-separated **`minX,maxY,maxX,minY`** (same order as the layer `bounds` option). Example: `wind.png` → `bounds_wind.txt`.
 
 For the front-end JavaScript code, the layer constructor needs an extra parameter to tell the layer the user-defined constant value range (only v1.3.2+ supports this parameter). For `SmoothRaster`, `scalarValueRange` must match the `--min-value` / `--max-value` used when encoding the image, and your `color` stop values should use the same physical units within that range.
 
@@ -170,7 +171,7 @@ python grib2_to_image.py <input_raster> <output_suffix> <config_json>
 | `output_suffix` | Label inserted into output filenames (e.g. forecast hour `01` → `wind_01.jpeg`). Also used for the bounds sidecar file `bounds_<output_suffix>.txt`. |
 | `config_json` | JSON file describing which bands to encode and any unit conversions. |
 
-For each entry in the config, the script writes `<input_dir>/<param_name>/<param_name>_<output_suffix>.jpeg` with dataset min/max values stored in EXIF `ImageDescription`. It also writes `bounds_<output_suffix>.txt` (minx, maxx, miny, maxy) next to the input file; use those values for the layer `bounds` option.
+For each entry in the config, the script writes `<input_dir>/<param_name>/<param_name>_<output_suffix>.jpeg` with dataset min/max values stored in EXIF `ImageDescription`. It also writes `bounds_<output_suffix>.txt` next to the input file — one line, comma-separated values in layer order **`minX,maxY,maxX,minY`** (west, north, east, south in degrees).
 
 **Config JSON structure.** The top-level object maps an output name to a band configuration:
 

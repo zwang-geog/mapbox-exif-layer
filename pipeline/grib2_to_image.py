@@ -217,10 +217,10 @@ def process_grib(input_file, output_suffix, config_file):
 
         image.save(output_file, 'JPEG', quality=95, optimize=True, exif=exif_bytes)
 
-    # Write bounds to text file in the same directory
+    # Write bounds to text file in the same directory ([minX, maxY, maxX, minY])
     bounds_file = os.path.join(input_dir, f"bounds_{output_suffix}.txt")
     with open(bounds_file, 'w') as f:
-        f.write(f"minx: {minx}\nmaxx: {maxx}\nminy: {miny}\nmaxy: {maxy}\n")
+        f.write(f"{minx},{maxy},{maxx},{miny}\n")
     
     # Clean up
     ds = None
