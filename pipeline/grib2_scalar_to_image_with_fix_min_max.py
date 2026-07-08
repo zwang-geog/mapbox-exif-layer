@@ -145,6 +145,27 @@ def image_format_from_path(output_file):
     raise ValueError(f"Unsupported output extension '{ext}'. Use .jpg, .jpeg, or .png.")
 
 
+def compute_wgs84_bounds(ds):
+    """Return geographic bounds as minX, maxY, maxX, minY from an EPSG:4326 dataset."""
+    geotransform = ds.GetGeoTransform()
+    width = ds.RasterXSize
+    height = ds.RasterYSize
+    minx = geotransform[0]
+    maxy = geotransform[3]
+    maxx = minx + width * geotransform[1]
+    miny = maxy + height * geotransform[5]
+    return minx, maxy, maxx, miny
+
+
+def write_bounds_sidecar(output_file, minx, maxy, maxx, miny):
+    """Write bounds_<output_stem>.txt beside the image ([minX, maxY, maxX, minY])."""
+    output_dir = os.path.dirname(os.path.abspath(output_file)) or '.'
+    stem = os.path.splitext(os.path.basename(output_file))[0]
+    bounds_file = os.path.join(output_dir, f'bounds_{stem}.txt')
+    with open(bounds_file, 'w') as f:
+        f.write(f'{minx},{maxy},{maxx},{miny}\n')
+
+
 def process_grib_scalar(
     input_file,
     output_file,
@@ -173,6 +194,9 @@ def process_grib_scalar(
         save_kwargs['quality'] = 95
 
     image.save(output_file, output_format, **save_kwargs)
+
+    minx, maxy, maxx, miny = compute_wgs84_bounds(ds)
+    write_bounds_sidecar(output_file, minx, maxy, maxx, miny)
     ds = None
 
 
