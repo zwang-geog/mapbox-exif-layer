@@ -6,7 +6,44 @@
   <title>mapbox-exif-layer — Wind particles &amp; smooth weather rasters for Mapbox &amp; MapLibre GL JS</title>
   <meta name="description" content="Open-source custom layers for Mapbox GL JS and MapLibre GL JS — GPU wind particle animation and weather rasters displayed from JPEG/PNG images or GeoTIFF files. Globe projection on MapLibre. Live demos, npm package, and documentation." />
   <link rel="canonical" href="https://www.mapbox-exif-layer.com/" />
+
+  <!-- Open Graph -->
+  <meta property="og:type"        content="website" />
+  <meta property="og:url"         content="https://www.mapbox-exif-layer.com/" />
+  <meta property="og:title"       content="mapbox-exif-layer — Wind particles &amp; smooth weather rasters for Mapbox &amp; MapLibre GL JS" />
+  <meta property="og:description" content="Open-source custom layers for Mapbox GL JS and MapLibre GL JS — GPU wind particle animation and weather rasters from JPEG/PNG or GeoTIFF. Globe projection on MapLibre. Live demos, npm package, docs." />
+  <meta property="og:image"       content="https://www.mapbox-exif-layer.com/wind_example.png" />
+  <meta property="og:image:alt"   content="GPU-accelerated wind particle animation rendered on a Mapbox GL JS map" />
+  <meta property="og:image:width"  content="1200" />
+  <meta property="og:image:height" content="630" />
+
+  <!-- Twitter / X Card -->
+  <meta name="twitter:card"        content="summary_large_image" />
+  <meta name="twitter:title"       content="mapbox-exif-layer — Wind particles &amp; smooth weather rasters for Mapbox &amp; MapLibre GL JS" />
+  <meta name="twitter:description" content="Open-source custom layers for Mapbox GL JS and MapLibre GL JS — GPU wind particle animation and weather rasters from JPEG/PNG or GeoTIFF. Globe projection on MapLibre. Live demos, npm package, docs." />
+  <meta name="twitter:image"       content="https://www.mapbox-exif-layer.com/wind_example.png" />
+  <meta name="twitter:image:alt"   content="GPU-accelerated wind particle animation rendered on a Mapbox GL JS map" />
+
   <link rel="stylesheet" href="styles.css" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "mapbox-exif-layer",
+    "url": "https://www.mapbox-exif-layer.com/",
+    "downloadUrl": "https://www.npmjs.com/package/mapbox-exif-layer",
+    "codeRepository": "https://github.com/zwang-geog/mapbox-exif-layer",
+    "softwareVersion": "1.3.2",
+    "applicationCategory": "DeveloperApplication",
+    "operatingSystem": "Web",
+    "description": "Open-source custom layers for Mapbox GL JS and MapLibre GL JS — GPU wind particle animation and smooth weather rasters from JPEG/PNG or GeoTIFF. Supports globe projection on MapLibre.",
+    "author": {
+      "@type": "Person",
+      "name": "Zifan Wang"
+    }
+  }
+  </script>
 </head>
 <body>
   <header class="site-header">
@@ -168,7 +205,7 @@
     <div class="section-inner">
       <h2>Frequently asked questions</h2>
 
-      <div class="qa-block">
+      <div class="qa-block" id="faq-when-to-use">
         <h3>When should I use <code>mapbox-exif-layer</code>?</h3>
         <ul>
           <li>Map wind as a <strong>dynamic particle motion</strong> layer.</li>
@@ -177,7 +214,7 @@
         </ul>
       </div>
 
-      <div class="qa-block">
+      <div class="qa-block" id="faq-comparison">
         <h3>How does it differ from other wind-mapping solutions?</h3>
         <p>
           <strong>Mapbox Wind Layer</strong> relies on Mapbox’s proprietary Tiling Service to convert GRIB wind data into
@@ -255,7 +292,7 @@
         </p>
       </div>
 
-      <div class="qa-block">
+      <div class="qa-block" id="faq-image-encoding">
         <h3>How are JPEG/PNG image sources encoded?</h3>
         <p>
           A JPEG or PNG used as a source is <strong>not</strong> a normal photo — it stores a normalized weather grid in
@@ -286,7 +323,7 @@
         </p>
       </div>
 
-      <div class="qa-block">
+      <div class="qa-block" id="faq-jpeg-vs-geotiff">
         <h3>When should I use a JPEG/PNG image source vs GeoTIFF?</h3>
         <p>
           Properly encoded JPEG/PNG rasters are much smaller than GeoTIFFs. On this site’s NOAA NAM NEST CONUS demo grid
@@ -300,7 +337,7 @@
         </ul>
       </div>
 
-      <div class="qa-block">
+      <div class="qa-block" id="faq-leaflet-openlayers">
         <h3>Can this package be used with Leaflet or OpenLayers?</h3>
         <p>
           No. It targets <strong>Mapbox GL JS</strong> and <strong>MapLibre GL JS</strong> only — both WebGL map SDKs
