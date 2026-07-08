@@ -74,6 +74,20 @@ If Step 3 used **dataset-independent** JPEG/PNG, add `velocityRange` matching en
 velocityRange: [-50, 50],  // same as --min-value / --max-value in preprocessing
 ```
 
+In React, if the app allows switching between basemap styles (e.g. dark, light, satellite), wrap the layer instance in a `useRef` so the same object is re-added when `style.load` fires again after a style change — a new object would lose the current source and color state:
+
+```javascript
+const particleLayerRef = useRef(new ParticleMotion({
+  id: 'wind-particle',
+  source: 'path/to/your/wind.jpeg',
+  color: WIND_COLOR,
+  unit: 'mph',
+  bounds: [-121, 36, -117, 32],
+  mapRuntime: 'maplibre',
+  readyForDisplay: true
+}));
+```
+
 ## Add layer to map
 
 Prefer `style.load` when the basemap style can change; otherwise prefer `load`.
@@ -84,13 +98,16 @@ map.on('style.load', () => {
 });
 ```
 
-## Layer toggle (show after initial load)
+## Toggle layer using normal setLayoutProperty method
 
-Use this when the wind layer should **not** appear until the user turns it on, or when you need to turn it off and on again later.
+```javascript
+map.setLayoutProperty('wind-particle', 'visibility', 'visible');  // show
+map.setLayoutProperty('wind-particle', 'visibility', 'none');     // hide
+```
 
-### Start with the layer off
+## To keep the wind layer hidden/off when map load and visible only after user toggle on
 
-Omit `readyForDisplay` or set it to `false` when creating the layer. The layer is still **added to the map** on load — it simply does not render until you opt in:
+If the layer needs to be hidden/off when the map is initially loaded, the constructor needs to have `readyForDisplay` omitted or set to `false`.
 
 ```javascript
 const particleLayer = new ParticleMotion({
@@ -100,45 +117,29 @@ const particleLayer = new ParticleMotion({
   unit: 'mph',
   bounds: [-121, 36, -117, 32],
   mapRuntime: 'maplibre'
-  // no readyForDisplay — defaults to false
-});
-
-map.on('load', () => {
-  map.addLayer(particleLayer);
-  map.setLayoutProperty('wind-particle', 'visibility', 'none');
-  particleLayer.readyForDisplay = true;
+  // readyForDisplay is omitted, which then is assumed to false - layer not displayed on map load
 });
 ```
 
-### Two properties, two jobs
-
-| Property | Purpose |
-|----------|---------|
-| `readyForDisplay` | Whether the custom layer is **allowed to render**. Must be `true` before particles can appear. |
-| `map.setLayoutProperty(..., 'visibility', ...)` | Standard show/hide for **user-facing on/off** once `readyForDisplay` is `true`. |
-
-`readyForDisplay` only prevents rendering when the layer is first added. After you set it to `true`, use `setLayoutProperty` for routine toggling — do not flip `readyForDisplay` back to `false` to hide the layer.
-
-### Toggle handler
-
-Use one helper for button on/off (same pattern as `maplibre-gl-demo/maplibre-gl-demo`). It sets `readyForDisplay` on first show when needed, then uses `setLayoutProperty` for visibility:
+Once the layer is added to the map in `style.load` or `load` event listener, delegates the visibility control to MapLibre:
 
 ```javascript
-function setLayerVisibility(layerId, layerRef, visible) {
-  if (!map) return;
-  if (visible && layerRef.readyForDisplay !== true) {
-    layerRef.readyForDisplay = true;
-  }
-  map.setLayoutProperty(layerId, 'visibility', visible ? 'visible' : 'none');
-}
+map.on('style.load', () => {
+  map.addLayer(particleLayer);
 
-setLayerVisibility('wind-particle', particleLayer, true);   // turn on
-setLayerVisibility('wind-particle', particleLayer, false);  // turn off
+  map.setLayoutProperty('wind-particle', 'visibility', 'none');  // keep hidden until user toggles on
+  particleLayer.readyForDisplay = true;  // allow rendering; MapLibre visibility still controls what the user sees
+});
 ```
 
-If you already set `readyForDisplay = true` in `load`, the check on first show is a no-op.
+Then the layer can be toggled like other vector or raster layers:
 
-In React, keep the layer in a `useRef`, run the `style.load` setup before enabling controls, and disable the toggle until the map is ready.
+```javascript
+map.setLayoutProperty('wind-particle', 'visibility', 'visible');  // show
+map.setLayoutProperty('wind-particle', 'visibility', 'none');     // hide
+```
+
+Essentially, `readyForDisplay` is used to prevent rendering when the layer is first added. After you set it to `true`, use `setLayoutProperty` for routine toggling — do not flip `readyForDisplay` back to `false` to hide the layer.
 
 ## Change source (e.g. time slider)
 
