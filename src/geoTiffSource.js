@@ -167,6 +167,77 @@ export async function loadGeoTiffWind(arrayBuffer, {uBand = 0, vBand = 1, unit =
     };
 }
 
+
+/**
+ * Loads an RGB or RGBA GeoTIFF and returns a blob URL ready for use as a
+ * Mapbox/MapLibre `image` source. Only uint8 and uint16 bands are supported.
+ *
+ * The returned `url` is a `blob:` URL that keeps the PNG bytes alive in memory
+ * until released. Call `URL.revokeObjectURL(url)` when removing the source from
+ * the map to free that memory.
+ *
+ * @param {ArrayBuffer} arrayBuffer
+ * @returns {Promise<{ width: number, height: number, bounds: [number, number, number, number], url: string }>}
+ */
+export async function loadGeoTiffRgb(arrayBuffer) {
+    const {fromArrayBuffer} = await loadGeoTiffModule();
+    const tiff = await fromArrayBuffer(arrayBuffer);
+    const image = await tiff.getImage();
+    assertEpsg4326(image);
+
+    // geotiff.js v2 exposes tags as named properties on fileDirectory;
+    // geotiff.js v3 stores them in fileDirectory.actualizedFields (Map keyed by TIFF tag number).
+    // TIFF tag 262 = PhotometricInterpretation.
+    const piRaw = image.fileDirectory?.PhotometricInterpretation
+        ?? image.fileDirectory?.actualizedFields?.get(262);
+    const pi = Array.isArray(piRaw) ? piRaw[0] : piRaw;
+    if (pi !== 2) {
+        throw new Error(
+            `mapbox-exif-layer: loadGeoTiffRgb requires PhotometricInterpretation=2 (RGB) but got ${pi ?? 'undefined'}. ` +
+            'Run "gdalinfo your_file.tif | grep ColorInterp" to inspect the file. ' +
+            'Use loadGeoTiffScalar for single-band or multi-variable scalar data (PI=1).'
+        );
+    }
+
+    const width = image.getWidth();
+    const height = image.getHeight();
+    const hasAlpha = image.getSamplesPerPixel() >= 4;
+    const samples = hasAlpha ? [0, 1, 2, 3] : [0, 1, 2];
+    const raster = await image.readRasters({samples, interleave: true});
+
+    if (!(raster instanceof Uint8Array) && !(raster instanceof Uint16Array)) {
+        throw new Error('mapbox-exif-layer: RGB GeoTIFF must use uint8 or uint16 bands.');
+    }
+    const scale = raster instanceof Uint8Array ? 1 : 255 / 65535;
+
+    const canvas = new OffscreenCanvas(width, height);
+    const ctx = canvas.getContext('2d');
+    const imgData = ctx.createImageData(width, height);
+
+    if (hasAlpha) {
+        const pixelCount = raster.length / 4;
+        for (let i = 0; i < pixelCount; i++) {
+            imgData.data[i * 4]     = raster[i * 4]     * scale;
+            imgData.data[i * 4 + 1] = raster[i * 4 + 1] * scale;
+            imgData.data[i * 4 + 2] = raster[i * 4 + 2] * scale;
+            imgData.data[i * 4 + 3] = raster[i * 4 + 3] * scale;
+        }
+    } else {
+        for (let i = 0, j = 0; i < raster.length; i += 3, j += 4) {
+            imgData.data[j]     = raster[i]     * scale;
+            imgData.data[j + 1] = raster[i + 1] * scale;
+            imgData.data[j + 2] = raster[i + 2] * scale;
+            imgData.data[j + 3] = 255;
+        }
+    }
+
+    ctx.putImageData(imgData, 0, 0);
+    const blob = await canvas.convertToBlob({type: 'image/png'});
+    const url = URL.createObjectURL(blob);
+
+    return {width, height, bounds: boundsFromGeoTiffImage(image), url};
+}
+
 /**
  * @param {number} width
  * @param {number} height
