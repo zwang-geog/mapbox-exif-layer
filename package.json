@@ -1,6 +1,6 @@
 {
   "name": "mapbox-exif-layer",
-  "version": "1.3.2",
+  "version": "1.3.3",
   "description": "Wind particles, smooth weather raster display from JPEG/PNG, and GeoTIFF (scalar or RGB) visualization on Mapbox GL JS and MapLibre GL JS — no tile server",
   "type": "module",
   "main": "dist/index.js",
@@ -17,13 +17,18 @@
     "prepublishOnly": "npm run build"
   },
   "keywords": [
+    "mapbox",
     "mapbox-gl-js",
+    "maplibre",
     "maplibre-gl-js",
+    "custom-layer",
     "raster",
     "wind",
-    "velocity",
+    "wind-particles",
+    "velocity-layer",
     "weather",
-    "particle motion"
+    "geotiff",
+    "exif"
   ],
   "author": "Zifan Wang",
   "license": "MIT",

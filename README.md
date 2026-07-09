@@ -178,7 +178,7 @@ With a **GeoTIFF** source, a small single-band file (or one band from a multi-ba
 
 - `id` (string): **(required)** Unique layer ID
 - `source` (string): **(required)** URL of an JPEG/PNG image or GeoTIFF file (`.tif` / `.tiff`; GeoTIFF requires optional peer package dependency `geotiff`)
-- `color` (array): **(required)** Array of color stops `[value, [r, g, b]]`. Values do not have to be ordered since sorting is performed internally by the package. An optional A-band (opacity) value can also be specified, but interpolation will not be applied to A-band. A-band is useful for rendering precipitation by setting all zero or near-zero precipitation cells completely transparent (see [react-demo/real-time-example](https://github.com/zwang-geog/mapbox-exif-layer/blob/main/react-demo/real-time-example/util.jsx)).
+- `color` (array): **(required)** Array of color stops `[value, [r, g, b]]`. Values do not have to be ordered since sorting is performed internally by the package. An optional A-band (opacity) value can also be specified, but interpolation will not be applied to A-band. A-band is useful for rendering precipitation by setting all zero or near-zero precipitation cells completely transparent (see [react-demo/real-time-example](https://github.com/zwang-geog/mapbox-exif-layer/blob/main/react-demo/real-time-example/src/util.jsx)).
 - `bounds` (array): **JPEG/PNG image only (required).** Extent as `[minX, maxY, maxX, minY]` (longitude −180…180, latitude −90…90). GeoTIFF source will read bounds from the file directly and ignore this parameter.
 - `opacity` (number): Layer global opacity (default: 1.0)
 - `readyForDisplay` (bool): Preventing the layer from rendering when the layer is added to the map, if necessary (default: false)
