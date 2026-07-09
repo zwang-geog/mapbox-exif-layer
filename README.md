@@ -253,6 +253,24 @@ Although the color parameter defines an array of discrete value-RGB mappings, th
 
 **Note:** That smooth **visual** effect applies mainly to the **EXIF JPEG** path, where the source texture uses linear filtering between neighboring cells. With a **GeoTIFF** source, `SmoothRaster` uploads float32 data and samples with nearest filtering, so the layer tends to look **blockier** at native grid resolution even though colormap stops are still interpolated. See [`docs/geotiff-source.md`](docs/geotiff-source.md) (Smoothness vs JPEG).
 
+## TypeScript Usage
+
+`mapbox-exif-layer` ships a typed constructor so your options are checked at compile time. However, the current type declarations do not formally implement `CustomLayerInterface` from either `mapbox-gl` or `maplibre-gl` — because the `render` method signature differs between the two runtimes at runtime and cannot be expressed as a single static type without being incorrect for one of them.
+
+**Workaround:** cast the layer instance when passing it to `map.addLayer`:
+
+```typescript
+// MapLibre GL JS
+map.addLayer(particleLayer as unknown as maplibregl.CustomLayerInterface);
+map.addLayer(weatherLayer as unknown as maplibregl.CustomLayerInterface);
+
+// Mapbox GL JS
+map.addLayer(particleLayer as unknown as mapboxgl.CustomLayerInterface);
+map.addLayer(weatherLayer as unknown as mapboxgl.CustomLayerInterface);
+```
+
+This cast is safe — both `ParticleMotion` and `SmoothRaster` implement the interface correctly at runtime.
+
 ## Available Class Reference
 
 ### ParticleMotion
