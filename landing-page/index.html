@@ -3,15 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>mapbox-exif-layer — Wind particles &amp; smooth weather rasters for Mapbox &amp; MapLibre GL JS</title>
-  <meta name="description" content="Open-source custom layers for Mapbox GL JS and MapLibre GL JS — GPU wind particle animation and weather rasters displayed from JPEG/PNG images or GeoTIFF files. Globe projection on MapLibre. Live demos, npm package, and documentation." />
+  <title>mapbox-exif-layer — Wind particles, smooth weather rasters &amp; GeoTIFF | Mapbox &amp; MapLibre GL JS</title>
+  <meta name="description" content="Open-source Mapbox &amp; MapLibre GL JS custom layers: GPU wind particles, smooth weather rasters from JPEG/PNG, and client-side scalar or RGB GeoTIFF visualization. No tile server. Globe projection on MapLibre. Live demos and docs." />
   <link rel="canonical" href="https://www.mapbox-exif-layer.com/" />
 
   <!-- Open Graph -->
   <meta property="og:type"        content="website" />
   <meta property="og:url"         content="https://www.mapbox-exif-layer.com/" />
-  <meta property="og:title"       content="mapbox-exif-layer — Wind particles &amp; smooth weather rasters for Mapbox &amp; MapLibre GL JS" />
-  <meta property="og:description" content="Open-source custom layers for Mapbox GL JS and MapLibre GL JS — GPU wind particle animation and weather rasters from JPEG/PNG or GeoTIFF. Globe projection on MapLibre. Live demos, npm package, docs." />
+  <meta property="og:title"       content="mapbox-exif-layer — Wind particles, smooth weather rasters &amp; GeoTIFF | Mapbox &amp; MapLibre GL JS" />
+  <meta property="og:description" content="Open-source Mapbox &amp; MapLibre GL JS custom layers: GPU wind particles, smooth weather rasters from JPEG/PNG, and client-side scalar or RGB GeoTIFF visualization. No tile server. Globe projection on MapLibre. Live demos and docs." />
   <meta property="og:image"       content="https://www.mapbox-exif-layer.com/wind_example.png" />
   <meta property="og:image:alt"   content="GPU-accelerated wind particle animation rendered on a Mapbox GL JS map" />
   <meta property="og:image:width"  content="1200" />
@@ -19,8 +19,8 @@
 
   <!-- Twitter / X Card -->
   <meta name="twitter:card"        content="summary_large_image" />
-  <meta name="twitter:title"       content="mapbox-exif-layer — Wind particles &amp; smooth weather rasters for Mapbox &amp; MapLibre GL JS" />
-  <meta name="twitter:description" content="Open-source custom layers for Mapbox GL JS and MapLibre GL JS — GPU wind particle animation and weather rasters from JPEG/PNG or GeoTIFF. Globe projection on MapLibre. Live demos, npm package, docs." />
+  <meta name="twitter:title"       content="mapbox-exif-layer — Wind particles, smooth weather rasters &amp; GeoTIFF | Mapbox &amp; MapLibre GL JS" />
+  <meta name="twitter:description" content="Open-source Mapbox &amp; MapLibre GL JS custom layers: GPU wind particles, smooth weather rasters from JPEG/PNG, and client-side scalar or RGB GeoTIFF visualization. No tile server. Globe projection on MapLibre. Live demos and docs." />
   <meta name="twitter:image"       content="https://www.mapbox-exif-layer.com/wind_example.png" />
   <meta name="twitter:image:alt"   content="GPU-accelerated wind particle animation rendered on a Mapbox GL JS map" />
 
@@ -34,10 +34,10 @@
     "url": "https://www.mapbox-exif-layer.com/",
     "downloadUrl": "https://www.npmjs.com/package/mapbox-exif-layer",
     "codeRepository": "https://github.com/zwang-geog/mapbox-exif-layer",
-    "softwareVersion": "1.3.2",
+    "softwareVersion": "1.3.3",
     "applicationCategory": "DeveloperApplication",
     "operatingSystem": "Web",
-    "description": "Open-source custom layers for Mapbox GL JS and MapLibre GL JS — GPU wind particle animation and smooth weather rasters from JPEG/PNG or GeoTIFF. Supports globe projection on MapLibre.",
+    "description": "Open-source Mapbox & MapLibre GL JS custom layers: GPU wind particles, smooth weather rasters from JPEG/PNG, and client-side scalar or RGB GeoTIFF visualization. No tile server. Globe projection on MapLibre.",
     "author": {
       "@type": "Person",
       "name": "Zifan Wang"
@@ -60,7 +60,7 @@
   <section class="hero">
     <div class="hero-inner">
       <p class="eyebrow">An Open-source Mapbox GL JS &amp; MapLibre GL JS custom layers package</p>
-      <h1>Wind particles, smooth weather rasters, and single-band GeoTIFF visualization</h1>
+      <h1>Wind particles, smooth weather rasters, and GeoTIFF visualization</h1>
       <p class="lead">
         GPU-accelerated particle motion for wind: mapping wind is that easy and cost-effective.
       </p>
@@ -184,7 +184,7 @@
               <span class="layer-class-badge">Smooth Raster</span>
             </div>
             <p class="layer-card-desc">
-              Utilizing WebGL RGBA texture with linear filtering; the GPU bilinearly interpolates between adjacent texel values when sampling, producing a smooth gradient. Suitable for scalar (single-band) variables such as temperature and precipitation.
+              Utilizing WebGL RGBA texture with linear filtering; the GPU bilinearly interpolates between adjacent texel values when sampling, producing a smooth gradient. Suitable for scalar (grayscale) variables such as temperature and precipitation.
             </p>
             <div class="layer-card-meta">
               <div>
@@ -209,7 +209,7 @@
           <div class="layer-card-img">
             <img
               src="geotiff_temperature.png"
-              alt="Grayscale scalar GeoTIFF visualized as a smooth raster layer"
+              alt="Grayscale scalar GeoTIFF with temperature visualized; grid native resolution is visible"
               loading="lazy"
             />
           </div>
