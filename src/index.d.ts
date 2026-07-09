@@ -55,4 +55,49 @@ declare module 'mapbox-exif-layer' {
 
     setSource(source: string, percentReset?: number): void;
   }
+
+   /**
+   * Minimal structural type for a Mapbox GL JS or MapLibre GL JS map instance.
+   * Both runtimes satisfy this interface without any casting.
+   */
+   interface MapInstance {
+    addSource(id: string, source: object): unknown;
+    addLayer(layer: object, beforeId?: string): unknown;
+    getLayer(id: string): object | undefined;
+    getSource(id: string): object | undefined;
+    removeLayer(id: string): unknown;
+    removeSource(id: string): unknown;
+  }
+
+  /**
+   * Fetches an RGB or RGBA GeoTIFF (PhotometricInterpretation=2), decodes it, and adds
+   * a native `image` source + `raster` layer to a Mapbox GL JS or MapLibre GL JS map.
+   * Blob URL memory is automatically released on `remove()`.
+   *
+   * @example
+   * const layer = new RgbGeoTiff({ id: 'photo', source: 'photo.tif', opacity: 0.9 });
+   * map.on('load', () => layer.addTo(map));
+   * // later:
+   * layer.remove();
+   */
+  export class RgbGeoTiff {
+    constructor(options: {
+      id: string;
+      /** URL to an RGB or RGBA GeoTIFF (must be EPSG:4326, uint8 or uint16 bands). */
+      source: string;
+      opacity?: number;
+      cacheOption?: 'no-cache' | 'no-store' | 'reload' | 'default' | 'force-cache';
+      /** Mapbox v3 slot for layer ordering. */
+      slot?: string;
+      /** Insert the raster layer below this existing layer id in the stack. */
+      beforeLayerId?: string;
+    });
+
+    /** Fetch, decode, and add the layer to the map. Returns `this` for chaining. */
+    addTo(map: MapInstance): this;
+
+    /** Remove the layer and source from the map and revoke the internal blob URL. */
+    remove(): void;
+  }
+
 }

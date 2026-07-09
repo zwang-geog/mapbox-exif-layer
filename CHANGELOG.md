@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## v1.3.3
+
+- **RGB / RGBA GeoTIFF:** Added `RgbGeoTiff` — a helper (not a custom WebGL layer) that fetches an RGB or RGBA GeoTIFF in the browser, decodes it client-side, and adds a native Mapbox/MapLibre **`image` source** and **`raster` layer**. Geographic extent is read from the file; no `bounds` option is required. Supports EPSG:4326, PhotometricInterpretation **2** (RGB), uint8 or uint16 bands (16-bit normalized to 8-bit for display), and optional alpha (4-band RGBA). Use `addTo(map)` after the map loads and `remove()` to tear down the layer and revoke the internal blob URL. Requires the optional peer dependency `geotiff`.
+- **Docs:** Added [`docs/rgb-geotiff.md`](docs/rgb-geotiff.md). Updated [`docs/geotiff-source.md`](docs/geotiff-source.md) with a scalar vs RGB GeoTIFF decision table. README and official site updated for the four use-case layout.
+- **Demo:** Plain HTML example — [`maplibre-gl-demo/rgba-geotif-demo`](maplibre-gl-demo/rgba-geotif-demo/).
+
 ## v1.3.2
 
 - **JPEG/PNG without EXIF:** Added optional constructor parameters for sources that omit EXIF `ImageDescription` min/max metadata. `SmoothRaster` accepts `scalarValueRange` (`[min, max]`) to map encoded R-band values to physical units for the colormap. `ParticleMotion` accepts `velocityRange` (`[min, max]`, in the layer `unit`) to de-normalize u and v from the R and G bands; wind speed coloring without EXIF is inferred from `color` stops (as with GeoTIFF). When EXIF is present, it takes precedence over these options.

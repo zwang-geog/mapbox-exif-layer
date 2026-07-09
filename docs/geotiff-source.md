@@ -1,12 +1,33 @@
-# GeoTIFF source (float32, EPSG:4326)
+# GeoTIFF sources
 
-GeoTIFF is an optional source format alongside EXIF JPEG since v1.3.0+. It fits workflows that are already familiar in the GIS community: after a standard `gdalwarp` / `gdal_translate` step, float32 rasters in EPSG:4326 can be used **without** re-scaling or normalizing values into 8-bit JPEG bands — physical cell values go straight to the GPU, so you keep **higher precision** than the EXIF JPEG pipeline. The trade-off is **larger files** to store and transfer (uncompressed float32 is much bigger than JPEG), and the constraints in [Notes](#notes) below (texture size limits, nearest sampling / blocky `SmoothRaster` appearance, full-file browser download). 
+## Which GeoTIFF do you have?
 
-**Install the peer dependency when using GeoTIFF:**
+This package supports two different kinds of GeoTIFF. They use different layer classes and different rendering paths — pick the row that matches your file.
+
+| Kind of GeoTIFF | TIFF tag | Typical bands | Layer class | Documentation |
+|-----------------|----------|---------------|-------------|---------------|
+| **Scalar / grayscale** — each band is an independent numeric variable (temperature, wind u/v, elevation, …) | PhotometricInterpretation **1** (MinIsBlack); `gdalinfo` shows `ColorInterp=Gray` | 1 or more scalar bands | `SmoothRaster`, `ParticleMotion` | **This document** — [Scalar GeoTIFF](#scalar--grayscale-geotiff) below |
+| **RGB / RGBA imagery** — true-color photo, aerial, or satellite display | PhotometricInterpretation **2** (RGB); `gdalinfo` shows `ColorInterp=Red/Green/Blue` | 3 (RGB) or 4 (RGBA) | `RgbGeoTiff` | [`rgb-geotiff.md`](rgb-geotiff.md) |
+
+Check your file:
+
+```bash
+gdalinfo your_file.tif | grep ColorInterp
+```
+
+**Install the peer dependency for any GeoTIFF source:**
 
 ```bash
 npm install geotiff
 ```
+
+---
+
+## Scalar / grayscale GeoTIFF
+
+GeoTIFF is an optional source format alongside JPEG since v1.3.0+. It fits workflows that are already familiar in the GIS community: after a standard `gdalwarp` / `gdal_translate` step, float32 rasters in EPSG:4326 can be used **without** re-scaling or normalizing values into 8-bit JPEG bands — physical cell values go straight to the GPU, so you keep **higher precision** than the JPEG pipeline. The trade-off is **larger files** to store and transfer, and the constraints in [Notes](#notes) below (texture size limits, nearest sampling / blocky `SmoothRaster` appearance, full-file browser download).
+
+For **RGB or RGBA color imagery**, use [`RgbGeoTiff`](rgb-geotiff.md) instead — scalar GeoTIFF settings and `SmoothRaster` / `ParticleMotion` do not apply.
 
 ## Source data requirements
 

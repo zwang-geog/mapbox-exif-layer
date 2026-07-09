@@ -2,49 +2,41 @@
 
 [![npm version](https://img.shields.io/npm/v/mapbox-exif-layer)](https://www.npmjs.com/package/mapbox-exif-layer)
 
-Custom Mapbox GL JS / MapLibre GL JS layers for rendering particle motion (e.g., wind) or smooth raster (e.g., temperature, relative humidity, precipitation) from JPEG/PNG images or GeoTIFF files
-
-
-> **GeoTIFF support (v1.3.1+).** Despite the package name, `ParticleMotion` and `SmoothRaster` accept GeoTIFF sources (float32, EPSG:4326) in addition to JPEG/PNG (with or without EXIF). GeoTIFF rasters use physical cell values directly and do not require 0–255 normalization. See [`docs/geotiff-source.md`](https://github.com/zwang-geog/mapbox-exif-layer/blob/main/docs/geotiff-source.md). JPEG source requirements are documented in [`docs/jpeg-source.md`](https://github.com/zwang-geog/mapbox-exif-layer/blob/main/docs/jpeg-source.md).
-
-> **JPEG/PNG without EXIF (v1.3.2+).** For normalized JPEG or PNG files that omit EXIF `ImageDescription` min/max metadata, pass `scalarValueRange` on `SmoothRaster` or `velocityRange` on `ParticleMotion` in the constructor. When EXIF is present, EXIF `ImageDescription` takes precedence over these options. See [`docs/jpeg-source.md`](https://github.com/zwang-geog/mapbox-exif-layer/blob/main/docs/jpeg-source.md).
+Mapbox GL JS / MapLibre GL JS custom layers for wind particles, smooth weather rasters from JPEG/PNG, and client-side scalar or RGB GeoTIFF visualization — no tile server required.
 
 Official site: [https://www.mapbox-exif-layer.com/](https://www.mapbox-exif-layer.com/)
 
-**Feature Highlights**
-* A built-in [custom layer](https://docs.mapbox.com/mapbox-gl-js/api/properties/#customlayerinterface) (Mapbox GL JS or MapLibre GL JS) instead of a canvas overlay, so layers are natively integrated with the map
-* **New in v1.2.0+: MapLibre GL JS with globe projection** — set `mapRuntime: 'maplibre'` on `ParticleMotion` or `SmoothRaster` and use MapLibre's [globe projection](https://maplibre.org/maplibre-gl-js/docs/examples/add-a-simple-custom-layer-on-a-globe/) (`map.setProjection({ type: 'globe' })`); see [`maplibre-gl-demo`](https://github.com/zwang-geog/mapbox-exif-layer/blob/main/maplibre-gl-demo/maplibre-gl-demo/src/App.jsx) for a working example. Mapbox GL JS remains as the default mapRuntime and only supports mercator.
-* No tile server setup required: serve a GeoTIFF file or a **properly encoded** JPEG/PNG raster (normalized grid values in RGB bands per [`docs/jpeg-source.md`](https://github.com/zwang-geog/mapbox-exif-layer/blob/main/docs/jpeg-source.md) — not arbitrary photos) from a static URL such as a publicly accessible AWS S3 bucket
-* **WebGL GPU-accelerated** wind particles: position and age live in GPU buffers, each frame a dedicated vertex shader advances every particle via transform feedback — no per-frame CPU loop over hundreds of thousands of points
-* Works for browsers on both desktop/laptop and iPhone/iPad
-* Wind particles can have varying colors based on speed, and particle movement respect the relative u- and v-component velocity rather than moving at the same rate
-* Well-suited for displaying local, regional, or national weather forecast results
-* Method for updating the source url is available, so setting forecast for different timestamps can be done easily
+## At a glance
 
-[US wind & temperature demo (source: react-demo/react-demo)](https://www.us-wind-particle-map-demo.mapbox-exif-layer.com)
+Three layer classes, four use cases:
 
-[Weather map time slider demo (source: react-demo/real-time-example)](https://www.weather-map-time-slider-demo.mapbox-exif-layer.com)
+| Use case | Class | Data Source | Visual |
+| --- | --- | --- | --- |
+| Wind | `ParticleMotion` | [JPEG/PNG](https://github.com/zwang-geog/mapbox-exif-layer/tree/main/docs/jpeg-source.md), [scalar GeoTIFF](https://github.com/zwang-geog/mapbox-exif-layer/tree/main/docs/geotiff-source.md) | Flowing particle animation |
+| Smooth weather display | `SmoothRaster` | [JPEG/PNG](https://github.com/zwang-geog/mapbox-exif-layer/tree/main/docs/jpeg-source.md) only | Smooth gradients (linear texture filtering) |
+| Scalar GeoTIFF preview | `SmoothRaster` | [Scalar GeoTIFF](https://github.com/zwang-geog/mapbox-exif-layer/tree/main/docs/geotiff-source.md) | Native grid resolution; blocky when zoomed in |
+| RGB / RGBA GeoTIFF | `RgbGeoTiff` | [RGB GeoTIFF](https://github.com/zwang-geog/mapbox-exif-layer/tree/main/docs/rgb-geotiff.md) | True-color image layer |
 
-[Maplibre GL JS globe projection demo (source: maplibre-gl-demo/maplibre-gl-demo)](https://www.mapbox-exif-layer.com/maplibre-gl-js-globe-projection-demo/index.html)
+**Per-use-case quick starts:** [Wind (Mapbox)](https://github.com/zwang-geog/mapbox-exif-layer/tree/main/claude-skill-plugin/skills/wind-particles/references/add-wind-particle-mapbox.md) · [Wind (MapLibre)](https://github.com/zwang-geog/mapbox-exif-layer/tree/main/claude-skill-plugin/skills/wind-particles/references/add-wind-particle-maplibre.md) · [Weather raster (Mapbox)](https://github.com/zwang-geog/mapbox-exif-layer/tree/main/claude-skill-plugin/skills/weather-raster/references/add-weather-raster-mapbox.md) · [Weather raster (MapLibre)](https://github.com/zwang-geog/mapbox-exif-layer/tree/main/claude-skill-plugin/skills/weather-raster/references/add-weather-raster-maplibre.md) · [RGB GeoTIFF](https://github.com/zwang-geog/mapbox-exif-layer/tree/main/docs/rgb-geotiff.md)
 
-[Demo video — Southern California wind particles (earlier demo)](https://www.youtube.com/watch?v=HLu0Ylhu5x4)
+> **GeoTIFF support (v1.3.1+).** `ParticleMotion` and `SmoothRaster` accept scalar GeoTIFF sources (float32, EPSG:4326) in addition to JPEG/PNG. GeoTIFF rasters use physical cell values directly and do not require 0–255 normalization. See [docs/geotiff-source.md](https://github.com/zwang-geog/mapbox-exif-layer/tree/main/docs/geotiff-source.md). JPEG encoding is in [docs/jpeg-source.md](https://github.com/zwang-geog/mapbox-exif-layer/tree/main/docs/jpeg-source.md).
 
-[Demo video — US continental wind particle animation (v1.1.0)](https://www.youtube.com/watch?v=iWKjNriTW-U)
+> **JPEG/PNG without EXIF (v1.3.2+).** For normalized JPEG or PNG files that omit EXIF `ImageDescription` min/max metadata, pass `scalarValueRange` on `SmoothRaster` or `velocityRange` on `ParticleMotion`. When EXIF is present, EXIF takes precedence. See [docs/jpeg-source.md](https://github.com/zwang-geog/mapbox-exif-layer/tree/main/docs/jpeg-source.md).
 
-[Demo video - Maplibre GL JS globe projection (v1.3.1)](https://www.youtube.com/watch?v=SLPBfteIbRE)
+* Native [custom layer](https://docs.mapbox.com/mapbox-gl-js/api/properties/#customlayerinterface) integration (Mapbox GL JS or MapLibre GL JS) — not a canvas overlay
+* **No tile server** — serve a static JPEG/PNG or GeoTIFF from a URL (e.g. S3); JPEG/PNG must be a [properly encoded weather grid](https://github.com/zwang-geog/mapbox-exif-layer/tree/main/docs/jpeg-source.md), not an arbitrary photo
+* **MapLibre globe projection (v1.2.0+)** — set `mapRuntime: 'maplibre'` on each layer; see [maplibre-gl-demo](https://github.com/zwang-geog/mapbox-exif-layer/tree/main/maplibre-gl-demo/maplibre-gl-demo/src/App.jsx)
+* **GPU-accelerated** wind particles via transform feedback — no per-frame CPU loop over hundreds of thousands of points
 
-[Technique Explanation](https://medium.com/@zifanw9/a-low-cost-custom-wind-particle-motion-layer-in-mapbox-gl-js-9a51978e3ffb)
+**Demos**
 
-## Background and Data Requirement
-
-**Smooth raster layer** (a.k.a. sample fill in [windgl](https://github.com/astrosat/windgl/tree/master), colorize in [wind-layer](https://blog.sakitam.com/wind-layer/playgrounds/mapbox-gl/colorize.html)) is just a different way to render the classic raster data on the web browser. The raw raster data consist of a grid of cells with each cell has one or more bands storing some kind of values (e.g., temperature), and a cell has a size (1/4 degrees, 5 km, 500 m, etc) making it looks like a box. The conventional way to render such data on the web is to generate a set of images by assigning colors to each cell and serving those images via a tile server; the eventual result is blocky, coarse cells appearing as a layer, just like what you typically see on a desktop GIS software like QGIS. For certain data such as weather data, we would expect strong spatial autocorrelation, and a smooth display of such data will be desired. With WebGL's varyings and fragment shader, automatic linear interpolation of colors across the space on clientside is possible (see [WebGL fundamentals](https://webglfundamentals.org/webgl/lessons/webgl-fundamentals.html)), and we do not need to worry about doing interpolation or down-scaling of the raster data ourselves to make the layer looks smooth for web visualization.
-
-**Particle motion layer** is the companion approach for **vector fields** such as wind, where each grid cell stores u- and v-component velocity rather than a single scalar. A conventional web map might show wind with static arrows. A particle layer instead releases hundreds of thousands of short-lived points (with tails) into the field; each frame, every particle samples the local u/v at its position, moves a small step in that direction, and is recolored by speed at the new position. The effect is a continuous, flowing animation that makes direction and relative speed easy to read at a glance. This package runs that update on the GPU (transform feedback and a dedicated update vertex shader) rather than moving particles on the CPU each frame, and integrates the result as a Mapbox/MapLibre custom layer so pan and zoom stay in sync with the basemap or any other overlaid layers.
-
-Sources can be either **JPEG/PNG images with cell value normalized to uint8** or **GeoTIFF**. See [`docs/jpeg-source.md`](https://github.com/zwang-geog/mapbox-exif-layer/blob/main/docs/jpeg-source.md) for band encoding, supplying value ranges via constructor parameters or EXIF `ImageDescription`, and guides to the ready-to-use pipeline scripts. See [`docs/geotiff-source.md`](https://github.com/zwang-geog/mapbox-exif-layer/blob/main/docs/geotiff-source.md) for float32 GeoTIFF (EPSG:4326).
-
-**Map Projection Reminder**
-The use of **Mapbox GL JS:** requires setting projection to `'mercator'` when initializing the map — the default `mapRuntime: 'mapbox'` does not support globe. The use of **MapLibre GL JS:** requires setting `mapRuntime: 'maplibre'` on each layer - MapLibre's globe projection is supported in v1.2.0+ (see [`maplibre-gl-demo`](maplibre-gl-demo/maplibre-gl-demo/src/App.jsx)).
+* [US wind & temperature demo](https://www.us-wind-particle-map-demo.mapbox-exif-layer.com) ([source](react-demo/react-demo))
+* [Weather map time slider demo](https://www.weather-map-time-slider-demo.mapbox-exif-layer.com) ([source](react-demo/real-time-example))
+* [MapLibre GL JS globe projection demo](https://www.mapbox-exif-layer.com/maplibre-gl-js-globe-projection-demo/index.html) ([source](maplibre-gl-demo/maplibre-gl-demo))
+* [Demo video — Southern California wind particles](https://www.youtube.com/watch?v=HLu0Ylhu5x4)
+* [Demo video — US continental wind particle animation (v1.1.0)](https://www.youtube.com/watch?v=iWKjNriTW-U)
+* [Demo video — MapLibre GL JS globe projection (v1.3.1)](https://www.youtube.com/watch?v=SLPBfteIbRE)
+* [Technique explanation (Medium)](https://medium.com/@zifanw9/a-low-cost-custom-wind-particle-motion-layer-in-mapbox-gl-js-9a51978e3ffb)
 
 ## Installation
 
@@ -62,6 +54,8 @@ npm install mapbox-gl
 npm install maplibre-gl
 ```
 
+> **Map projection.** **Mapbox GL JS** — set `projection: 'mercator'` when initializing the map (default `mapRuntime: 'mapbox'` does not support globe). **MapLibre GL JS** — set `mapRuntime: 'maplibre'` on every layer; globe projection (v1.2.1+) via `map.setProjection({ type: 'globe' })`. See [`maplibre-gl-demo`](maplibre-gl-demo/maplibre-gl-demo/src/App.jsx).
+
 Then install this package:
 
 ```bash
@@ -78,180 +72,43 @@ JPEG-only setups do not need `geotiff`.
 
 Then import the layer classes in your JavaScript code:
 ```javascript
-import { ParticleMotion, SmoothRaster } from 'mapbox-exif-layer';
+import { ParticleMotion, SmoothRaster, RgbGeoTiff } from 'mapbox-exif-layer';
 ```
 
-## Usage
+## Quick start
 
-The following example assumes the source JPEG has EXIF `ImageDescription` encoding the value range of the source data ([learn more](https://github.com/zwang-geog/mapbox-exif-layer/blob/main/docs/jpeg-source.md#method-2-dynamic-dataset-dependent-minmax-values)). For images without EXIF, pass `scalarValueRange` or `velocityRange` instead — see [Method 1](https://github.com/zwang-geog/mapbox-exif-layer/blob/main/docs/jpeg-source.md#method-1-constant-dataset-independent-minmax-values) in the same doc.
+Minimal wind layer example (assumes EXIF `ImageDescription` on the JPEG — see [docs/jpeg-source.md](https://github.com/zwang-geog/mapbox-exif-layer/tree/main/docs/jpeg-source.md#method-2-dynamic-dataset-dependent-minmax-values); without EXIF, pass `velocityRange` per [Method 1](https://github.com/zwang-geog/mapbox-exif-layer/tree/main/docs/jpeg-source.md#method-1-constant-dataset-independent-minmax-values)):
 
 ```javascript
-// Initialize a map
 const map = new mapboxgl.Map({
   container: 'map',
   style: 'mapbox://styles/mapbox/dark-v11',
   zoom: 7,
-  center: [-119.699944,34.432546],
-  projection: 'mercator'  // For mapbox-gl-js only: projection must always be explicitly set to mercator (not globe which is the default for many mapbox styles)
+  center: [-119.699944, 34.432546],
+  projection: 'mercator'  // mapbox-gl-js: use mercator (not globe)
 });
 
-// Defining particle motion layer for wind
-const particleLayer = new ParticleMotion({
+const windLayer = new ParticleMotion({
   id: 'wind-particle',
-  source: 'path/to/your/exif/image.jpeg',    // Alternatively, source can be a GeoTIFF file with .tif or .tiff file extension
-  color: [[0, [0, 195, 255]],
-          [2, [0, 228, 248]],
-          [4, [26, 255, 221]],
-          [6, [53, 255, 194]],
-          [8, [80, 255, 167]],
-          [10, [109, 255, 138]],
-          [12, [137, 255, 110]],
-          [14, [165, 255, 82]],
-          [16, [193, 255, 54]],
-          [18, [219, 255, 27]],
-          [20, [249, 243, 1]],
-          [22, [255, 212, 0]],
-          [24, [255, 182, 0]],
-          [26, [255, 151, 0]],
-          [28, [255, 120, 0]],
-          [30, [255, 89, 0]],
-          [32, [255, 55, 0]],
-          [34, [255, 21, 0]],
-          [36, [220, 0, 0]],
-          [38, [182, 0, 0]],
-          [40, [144, 0, 0]],
-          [42, [128, 0, 0]]],   // [ [Wind speed in the same unit as input source data, [R, G, B]] ...]
-  unit: 'mph',  // When GeoTIFF file is the source, this is the unit of the u- and v-component velocities stored in the bands; when EXIF-JPEG is the source, this is the unit of the min and max velocity/speed values in the EXIF information. The unit should be consistent with the color parameter above as well
-  bounds: [-121, 36, -117, 32],    // [minX, maxY, maxX, minY] ; this parameter is mandatory for EXIF-JPEG source, but optional for GeoTIFF source (GeoTIFF source will always uses bounds stored in the file)
-  readyForDisplay: true  // Only set this parameter to true if you want this layer to show up when the map is initially loaded. Otherwise (you have many layers but this layer is not to be shown up without toggeling), you do not need to specify this parameter
-});
-
-// Defining smooth raster layer for relative humidity 
-const relativeHumidityLayer = new SmoothRaster({
-  id: 'relative-humidity',
-  source: 'path/to/your/exif/image.jpeg',   // Alternatively, source can be a GeoTIFF file with .tif or .tiff file extension
-  color: [  [5, [149, 89, 16]],    // value less than 5 will have the same color as a pixel with value 5
-            [10, [169, 107, 30]],
-            [15, [190, 128, 45]],
-            [20, [203, 154, 75]],
-            [25, [215, 181, 109]],
-            [30, [227, 202, 138]],
-            [35, [238, 216, 166]],
-            [40, [246, 232, 195]],
-            [45, [245, 237, 214]],
-            [50, [245, 242, 235]],
-            [55, [237, 243, 243]],
-            [60, [217, 237, 235]],
-            [65, [197, 233, 229]],
-            [70, [171, 222, 215]],
-            [75, [140, 210, 200]],
-            [80, [113, 195, 183]],
-            [85, [81, 171, 162]],  
-            [90, [52, 149, 142]],
-            [95, [30, 130, 122]],
-            [100, [10, 111, 103]]
-          ],
-  bounds: [-121, 36, -117, 32],
-  readyForDisplay: true,
-  opacity: 0.6
-});
-
-// Defining smooth raster layer for hourly precipitation amount
-const precipitationLayer = new SmoothRaster({
-  id: 'precipitation',
-  source: 'path/to/your/exif/image.jpeg',
-  color: [ [0.249999, [4, 232, 231, 0]],  // this line ensures any pixel with precipitation less than 0.25 will be shown as transparent
-            [0.25, [4, 232, 231]],
-            [1, [4, 159, 243]],
-            [2, [4, 0, 243]],
-            [4, [2, 253, 2]],
-            [6, [1, 197, 1]],
-            [8, [0, 141, 0]],
-            [10, [253, 247, 1]],
-            [12, [229, 188, 0]],
-            [14, [253, 149, 0]],
-            [15, [253, 1, 0]],
-            [20, [212, 0, 0]],
-            [30, [188, 0, 0]],
-            [40, [247, 0, 254]],
-            [50, [152, 83, 199]] 
-          ],   // Note that the value intervals do not have to be the same/constant (1-2 vs 2-4 vs 15-20)
-  bounds: [-121, 36, -117, 32],
-  opacity: 0.6
-  // Note that I did not add readyForDisplay: true to this layer so it will not be rendered when map is loaded initially
-});
-
-map.on('load', () => {
-  // Add the custom layers like what you typically will do for other layers
-  // If readyForDisplay is not set to true, the custom layers in this package will not render until you set it to true
-  map.addLayer(relativeHumidityLayer, 'road-label-simple');
-  map.addLayer(precipitationLayer, 'road-label-simple');
-  map.addLayer(particleLayer, 'road-label-simple');  // the second argument 'road-label-simple' is a layer name in Mapbox style dark-v11, and it is optional. I specify this parameter to ensure the custom layer will be below all the map labels; other Mapbox styles do not necessarily have a layer with name 'road-label-simple'
-});
-```
-
-If you would like to make the layer appear on the map sometimes after initial map load (e.g., an user clicks a button to try to turn on the layer), you can directly modify the object's corresponding property
-```javascript
-precipitationLayer.readyForDisplay = true;
-```
-
-It is possible to control the custom layers' visibility via map's conventional setLayoutProperty method like you will do when working with other layers, but readyForDisplay property always needs to be true for the layer to be visible. readyForDisplay property is just a mechanism to prevent rendering when the layer is initially added to the map, and once it is set to true we should use setLayoutProperty method of map object to control its visibility.
-```javascript
-map.setLayoutProperty('precipitation','visibility','none');
-map.setLayoutProperty('precipitation','visibility','visible');
-```
-
-For both smooth raster and particle motion layers, you can change their sources to match a different timestamp, and the layers will update automatically:
-```javascript
-precipitationLayer.setSource("url/to/a/different/precipitation/img.jpeg");
-particleLayer.setSource("url/to/a/different/wind/img.jpeg");
-```
-
-For the smooth raster layer, there is an optional second argument for color, which enables simultaneous updates on both source url and color schema. This optional argument is useful when you have only one smooth raster layer added to the map, but the content of the layer can be any of temperature, relatively humidity, or precipitation, in which each has its own color schema; in such a case, both color schema and source url will need to be updated.
-```javascript
-precipitationLayer.setSource("url/to/a/different/relativehumidity/img.jpeg", relativeHumidityColorArray);
-```
-
-For the particle motion layer, there is also an optional second argument specifying the proportion of particles whose positions must be randomly reset when the source is changed (default 0.5). This argument aims to reduce the new source particle initial positions' dependency on the previous state.
-```javascript
-particleLayer.setSource("url/to/a/different/wind/img.jpeg", 0.7);
-```
-
-With **MapLibre GL JS**, set `mapRuntime: 'maplibre'` on each layer (required for globe projection in v1.2.0+):
-```javascript
-import maplibregl from 'maplibre-gl';
-import { ParticleMotion, SmoothRaster } from 'mapbox-exif-layer';
-
-const map = new maplibregl.Map({
-  container: 'map',
-  style: 'https://tiles.openfreemap.org/styles/dark',
-  zoom: 7,
-  center: [-119.699944, 34.432546]
-});
-
-const particleLayer = new ParticleMotion({
-  id: 'wind-particle',
-  source: 'path/to/wind.tif',
-  color: WIND_COLOR,
-  // bounds parameter is not mandatory when you expect source is always tif
-  mapRuntime: 'maplibre',
+  source: 'path/to/wind.jpeg',  // or a .tif / .tiff GeoTIFF URL
+  color: [[0, [0, 195, 255]], [20, [249, 243, 1]], [42, [128, 0, 0]]],  // [speed, [r,g,b]] — see react-demo for full palettes
+  unit: 'mph',
+  bounds: [-121, 36, -117, 32],  // required for JPEG/PNG; optional for GeoTIFF (read from file)
   readyForDisplay: true
 });
 
-map.on('load', () => {
-  map.addLayer(particleLayer);
-});
-
-map.on('style.load', () => {
-  map.setProjection({ type: 'globe' });
-});
+map.on('load', () => map.addLayer(windLayer));
 ```
 
-**Aside**
+**More examples**
 
-Although the color parameter defines an array of discrete value-RGB mappings, the package will always interpolate based on the given mappings and the min/max info in EXIF to create a texture with a total of 256 discrete color steps, and the final effect will be a color schema that seems to be continuous. If you want to color the raster in a complete discrete manner, this package will not be suitable. A continuous color schema is important in helping smooth raster layer look smooth.
+* **Per use case** — quick-start guides linked in [At a glance](#at-a-glance) above
+* **Multi-layer app** — [`react-demo/react-demo`](react-demo/react-demo) (wind + temperature + humidity + precipitation)
+* **Time slider** — [`react-demo/real-time-example`](react-demo/real-time-example)
+* **MapLibre globe + GeoTIFF** — [`maplibre-gl-demo/maplibre-gl-demo`](maplibre-gl-demo/maplibre-gl-demo) (set `mapRuntime: 'maplibre'` on each layer)
+* **RGB GeoTIFF** — [`RgbGeoTiff`](#rgbgeotiff) below and [`docs/rgb-geotiff.md`](docs/rgb-geotiff.md)
 
-**Note:** That smooth **visual** effect applies mainly to the **EXIF JPEG** path, where the source texture uses linear filtering between neighboring cells. With a **GeoTIFF** source, `SmoothRaster` uploads float32 data and samples with nearest filtering, so the layer tends to look **blockier** at native grid resolution even though colormap stops are still interpolated. See [`docs/geotiff-source.md`](docs/geotiff-source.md) (Smoothness vs JPEG).
+For `readyForDisplay`, `setSource`, visibility toggling, and MapLibre globe setup, see the [API reference](#available-class-reference) below and quick-start guides linked in [At a glance](#at-a-glance) above.
 
 ## TypeScript Usage
 
@@ -275,7 +132,7 @@ This cast is safe — both `ParticleMotion` and `SmoothRaster` implement the int
 
 ### ParticleMotion
 
-A particle-based visualization layer that creates animated particles, suitable for wind direction and speed visualization
+A particle-based visualization layer that creates animated particles for wind direction and speed visualization. Supports **JPEG/PNG image** sources with u/v velocities encoded in the R and G bands (see [docs/jpeg-source.md](https://github.com/zwang-geog/mapbox-exif-layer/blob/main/docs/jpeg-source.md)), and **GeoTIFF** sources with u- and v-component velocity stored in separate bands (see [docs/geotiff-source.md](https://github.com/zwang-geog/mapbox-exif-layer/blob/main/docs/geotiff-source.md)).
 
 #### Options
 
@@ -301,7 +158,7 @@ A particle-based visualization layer that creates animated particles, suitable f
 - `cacheOption` (string): [Cache option](https://developer.mozilla.org/en-US/docs/Web/API/Request/cache) to use when fetching the source image. It can be one of no-cache (default), no-store, reload, default, or force-cache.
 - `slot` (string): Optional [slot](https://docs.mapbox.com/style-spec/reference/slots/) identifier for the layer (used by Mapbox GL JS for [layer ordering](https://docs.mapbox.com/mapbox-gl-js/api/map/#addlayer-parameters-layer-slot)); typical values may include "top", "middle" (recommended), "bottom".
 - `mapRuntime` (string): **(required for MapLibre)** `'mapbox'` (default) or `'maplibre'`. This parameter must be explicitly set to `'maplibre'` if maplibre-gl-js SDK is used. Only `'maplibre'` with [MapLibre GL JS](https://maplibre.org/projects/gl-js/) supports globe projection.
-- `sourceType` (string): `'auto'` (default), `'jpeg'`, or `'geotiff'`. GeoTIFF requires optional peer package dependency [`geotiff`](https://www.npmjs.com/package/geotiff); see [geotiff-source.md](https://github.com/zwang-geog/mapbox-exif-layer/blob/main/docs/geotiff-source.md).
+- `sourceType` (string): `'auto'` (default), `'jpeg'`, or `'geotiff'`. GeoTIFF requires optional peer package dependency [geotiff](https://www.npmjs.com/package/geotiff); see [geotiff-source.md](https://github.com/zwang-geog/mapbox-exif-layer/blob/main/docs/geotiff-source.md).
 - `uBand` (number): **GeoTIFF only.** GeoTIFF sample index for the u component (default: `0`, first band).
 - `vBand` (number): **GeoTIFF only.** GeoTIFF sample index for the v component (default: `1`, second band).
 
@@ -311,26 +168,78 @@ A particle-based visualization layer that creates animated particles, suitable f
 
 ### SmoothRaster
 
-A raster visualization layer that provides a smooth display of the data.
+A custom raster layer for scalar fields (temperature, humidity, precipitation, etc.). 
+
+With a **JPEG/PNG image** source, the grid is uploaded as an RGBA texture with linear filtering; the GPU bilinearly interpolates between adjacent texel values when sampling, producing a smooth, non-blocky gradient. See [docs/jpeg-source.md](https://github.com/zwang-geog/mapbox-exif-layer/blob/main/docs/jpeg-source.md).
+
+With a **GeoTIFF** source, a small single-band file (or one band from a multi-band file) is read directly in the browser and colormapped via the shader — useful when you want a GIS-friendly pipeline without custom image encoding, though the display tends to look blockier at native grid resolution than the image path. See [docs/geotiff-source.md](https://github.com/zwang-geog/mapbox-exif-layer/blob/main/docs/geotiff-source.md).
 
 #### Options
 
-- `id` (string): Unique layer ID
-- `source` (string): URL of an EXIF-enabled JPEG image or GeoTIFF file (`.tif` / `.tiff`; GeoTIFF requires optional peer package dependency `geotiff`)
-- `color` (array): Array of color stops `[value, [r, g, b]]`. Values do not have to be ordered since sorting is performed internally by the package. An optional A-band (opacity) value can also be specified, but interpolation will not be applied to A-band. A-band is useful for rendering precipitation by setting all zero or near-zero precipitation cells completely transparent (see Usage example).
-- `bounds` (array): Extent as `[minX, maxY, maxX, minY]` (longitude −180…180, latitude −90…90). **Required for EXIF JPEG** (extent is not stored in the image). **Optional for GeoTIFF** — bounds are read from the file; supply `bounds` only if you may later call `setSource` with a JPEG URL that leads to a different extent.
+- `id` (string): **(required)** Unique layer ID
+- `source` (string): **(required)** URL of an JPEG/PNG image or GeoTIFF file (`.tif` / `.tiff`; GeoTIFF requires optional peer package dependency `geotiff`)
+- `color` (array): **(required)** Array of color stops `[value, [r, g, b]]`. Values do not have to be ordered since sorting is performed internally by the package. An optional A-band (opacity) value can also be specified, but interpolation will not be applied to A-band. A-band is useful for rendering precipitation by setting all zero or near-zero precipitation cells completely transparent (see [react-demo/real-time-example](https://github.com/zwang-geog/mapbox-exif-layer/blob/main/react-demo/real-time-example/util.jsx)).
+- `bounds` (array): **JPEG/PNG image only (required).** Extent as `[minX, maxY, maxX, minY]` (longitude −180…180, latitude −90…90). GeoTIFF source will read bounds from the file directly and ignore this parameter.
 - `opacity` (number): Layer global opacity (default: 1.0)
 - `readyForDisplay` (bool): Preventing the layer from rendering when the layer is added to the map, if necessary (default: false)
 - `cacheOption` (string): [Cache option](https://developer.mozilla.org/en-US/docs/Web/API/Request/cache) to use when fetching the source image. It can be one of no-cache (default in 1.0.3), no-store (default in 1.0.2), reload, default, or force-cache.
 - `slot` (string): Optional [slot](https://docs.mapbox.com/style-spec/reference/slots/) identifier for the layer (used by Mapbox GL JS for [layer ordering](https://docs.mapbox.com/mapbox-gl-js/api/map/#addlayer-parameters-layer-slot)); typical values may include "top", "middle" (recommended), "bottom".
-- `mapRuntime` (string): `'mapbox'` (default) or `'maplibre'`. This parameter must be explicitly set to `'maplibre'` if maplibre-gl-js SDK is used. Only `'maplibre'` with [MapLibre GL JS](https://maplibre.org/projects/gl-js/) supports globe projection.
-- `sourceType` (string): `'auto'` (default), `'jpeg'`, or `'geotiff'`. GeoTIFF requires optional peer package dependency [`geotiff`](https://www.npmjs.com/package/geotiff); see [`docs/geotiff-source.md`](docs/geotiff-source.md).
-- `scalarBand` (number): **GeoTIFF only.** GeoTIFF sample index (0-based band index) for scalar data (default: `0`, first band).
-- `scalarValueRange` (array): **JPEG/PNG only.** Optional `[min, max]` matching the physical range used when encoding the R band; maps encoded values to physical units for the colormap when EXIF scalar metadata is absent from JPEG/PNG image soruce (this parameter is ignored when EXIF is present). `color` stop values should use the same physical units. See [`docs/jpeg-source.md`](docs/jpeg-source.md).
+- `mapRuntime` (string): **(required for MapLibre)** `'mapbox'` (default) or `'maplibre'`. This parameter must be explicitly set to `'maplibre'` if maplibre-gl-js SDK is used. Only `'maplibre'` with [MapLibre GL JS](https://maplibre.org/projects/gl-js/) supports globe projection.
+- `sourceType` (string): `'auto'` (default), `'jpeg'`, or `'geotiff'`. GeoTIFF requires optional peer package dependency [geotiff](https://www.npmjs.com/package/geotiff); see [`docs/geotiff-source.md`](docs/geotiff-source.md).
+- `scalarBand` (number): **GeoTIFF only.** Optional GeoTIFF sample index (0-based band index) for scalar data (default: `0`, first band).
+- `scalarValueRange` (array): **Dataset-independent normalized JPEG/PNG only (required).** Two-element `[min, max]` matching the physical range used when encoding the R band; maps encoded values to physical units for the colormap when EXIF scalar metadata is absent from JPEG/PNG image soruce (this parameter is ignored when EXIF is present). `color` stop values should use the same physical units. See [docs/jpeg-source.md](https://github.com/zwang-geog/mapbox-exif-layer/blob/main/docs/jpeg-source.md).
 
 #### Methods
 
 - `setSource(source, color=null)` : Changes the source URL (JPEG or GeoTIFF), and optionally color array (default is to use the same color array as before). The layer will repaint automatically.
+
+### RgbGeoTiff
+
+Displays an **RGB or RGBA GeoTIFF (PhotometricInterpretation=2)** as a native Mapbox/MapLibre `image` source and `raster` layer. Unlike `ParticleMotion` and `SmoothRaster`, this is not a custom WebGL layer — the GeoTIFF is decoded client-side into a PNG blob URL, then added to the map with the built-in raster layer type. Bounds are read from the file; no `bounds` option is required.
+
+**Requirements:** EPSG:4326, uint8 or uint16 bands, peer package [geotiff](https://www.npmjs.com/package/geotiff). See [docs/rgb-geotiff.md](https://github.com/zwang-geog/mapbox-exif-layer/blob/main/docs/rgb-geotiff.md).
+
+```javascript
+import { RgbGeoTiff } from 'mapbox-exif-layer';
+
+const rgbLayer = new RgbGeoTiff({
+  id: 'aerial-photo',
+  source: 'path/to/photo.tif',
+  opacity: 0.9
+});
+
+map.on('load', () => {
+  rgbLayer.addTo(map);
+});
+
+// later:
+rgbLayer.remove();
+```
+
+#### Options
+
+- `id` (string): **(required)** Layer ID. Also used as the base for the internal image source ID (`${id}-rgb-source`).
+- `source` (string): **(required)** URL of an RGB or RGBA GeoTIFF file (`.tif` / `.tiff`; requires optional peer package `geotiff`).
+- `opacity` (number): Raster layer opacity (default: `1.0`).
+- `cacheOption` (string): [Cache option](https://developer.mozilla.org/en-US/docs/Web/API/Request/cache) to use when fetching the GeoTIFF. Can be one of `no-cache` (default), `no-store`, `reload`, `default`, or `force-cache`.
+- `slot` (string): Optional [slot](https://docs.mapbox.com/style-spec/reference/slots/) identifier for the layer (Mapbox GL JS v3 layer ordering); typical values include `"top"`, `"middle"`, `"bottom"`.
+- `beforeLayerId` (string): Optional existing layer ID. When set, the raster layer is inserted below that layer in the stack (same as the second argument to `map.addLayer`).
+
+#### Methods
+
+- `addTo(map)` : Fetches the GeoTIFF, decodes it, and adds the `image` source and `raster` layer to the map. Returns `this` for chaining. Call after the map has loaded (e.g. inside `map.on('load', ...)`).
+- `remove()` : Removes the raster layer and image source from the map and revokes the internal blob URL to free memory.
+
+Once added, the layer is a normal `raster` layer on the map. Use its `id` with the usual Mapbox/MapLibre APIs:
+
+```javascript
+// Toggle visibility
+map.setLayoutProperty('aerial-photo', 'visibility', 'none');
+map.setLayoutProperty('aerial-photo', 'visibility', 'visible');
+
+// Change opacity at runtime
+map.setPaintProperty('aerial-photo', 'raster-opacity', 0.5);
+```
 
 ## Acknowledgement
 
