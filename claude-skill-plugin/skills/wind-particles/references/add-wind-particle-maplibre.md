@@ -98,6 +98,14 @@ map.on('style.load', () => {
 });
 ```
 
+**TypeScript projects:** `mapbox-exif-layer`'s `.d.ts` does not formally declare `ParticleMotion` as implementing `maplibregl.CustomLayerInterface`, though it does so at runtime. Cast to suppress the type error:
+
+```typescript
+map.on('style.load', () => {
+  map.addLayer(particleLayer as unknown as maplibregl.CustomLayerInterface);
+});
+```
+
 ## Toggle layer using normal setLayoutProperty method
 
 ```javascript
@@ -129,6 +137,17 @@ map.on('style.load', () => {
 
   map.setLayoutProperty('wind-particle', 'visibility', 'none');  // keep hidden until user toggles on
   particleLayer.readyForDisplay = true;  // allow rendering; MapLibre visibility still controls what the user sees
+});
+```
+
+**TypeScript:** use the same cast described in the "Add layer to map" section:
+
+```typescript
+map.on('style.load', () => {
+  map.addLayer(particleLayer as unknown as maplibregl.CustomLayerInterface);
+
+  map.setLayoutProperty('wind-particle', 'visibility', 'none');
+  particleLayer.readyForDisplay = true;
 });
 ```
 

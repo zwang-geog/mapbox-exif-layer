@@ -73,8 +73,12 @@ Read and follow [wind-data-checklist.md](references/wind-data-checklist.md) when
 
 Resolve the frontend project in this order:
 
-1. **Project already exists** → inspect the codebase (`package.json`, framework config, existing map setup). **Keep the framework in use.** Install any missing npm packages below; do not re-scaffold.
-2. **New project** → **ask the user** which **framework** (e.g. React, Vue, Svelte) and **CSS library** (e.g. Tailwind, MUI) they want, then initialize the project.
+1. **Project already exists** → inspect the codebase (`package.json`, framework config, existing map setup, presence of `tsconfig.json` or `.ts`/`.tsx` files). **Keep the framework and language in use.** Record whether the project uses **TypeScript or JavaScript**. Install any missing npm packages below; do not re-scaffold.
+2. **New project** → **ask the user**:
+   - Which **framework** (e.g. React, Vue, Svelte) and **CSS library** (e.g. Tailwind, MUI) they want
+   - **TypeScript or JavaScript?**
+
+   Then initialize the project accordingly. Record the language choice for Step 6.
 
 Use the **Map SDK from Step 1** to choose the map package. Use **Step 3** to decide whether `geotiff` is needed.
 
@@ -119,6 +123,10 @@ JPEG/PNG-only setups do **not** need `geotiff`.
 | Mapbox GL JS | [add-wind-particle-mapbox.md](references/add-wind-particle-mapbox.md) |
 | MapLibre GL JS | [add-wind-particle-maplibre.md](references/add-wind-particle-maplibre.md) |
 
-To fine-tune particle appearance or behavior (`particleCount`, `velocityFactor`, `updateInterval`, `trailLength`, GeoTIFF band indices, etc.), see [particle_motion_layer_options.md](references/particle_motion_layer_options.md).
+**TypeScript projects:** If the project uses TypeScript (e.g. `.ts`/`.tsx` files, `tsconfig.json`), apply the `as unknown as CustomLayerInterface` cast on every `map.addLayer(particleLayer …)` call — the cast is shown in the reference above. Do **not** use it in plain JavaScript projects.
+
+**Once the code builds successfully**, do not attempt to open or check the browser yourself. Instead, tell the user to run `npm run dev` and verify the result in their own browser. Browser automation in this context is unreliable and unnecessary — the user is best placed to confirm the layer renders correctly.
+
+If the user requests to fine-tune particle appearance or behavior (`particleCount`, `velocityFactor`, `updateInterval`, `trailLength`, GeoTIFF band indices, etc.), see [particle_motion_layer_options.md](references/particle_motion_layer_options.md).
 
 ---

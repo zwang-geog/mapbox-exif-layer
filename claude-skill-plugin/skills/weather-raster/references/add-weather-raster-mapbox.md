@@ -161,6 +161,14 @@ map.on('style.load', () => {
 });
 ```
 
+**TypeScript projects:** `mapbox-exif-layer`'s `.d.ts` does not formally declare `SmoothRaster` as implementing `mapboxgl.CustomLayerInterface`, though it does so at runtime. Cast to suppress the type error:
+
+```typescript
+map.on('style.load', () => {
+  map.addLayer(weatherLayer as unknown as mapboxgl.CustomLayerInterface, 'road-label-simple');
+});
+```
+
 ## Radio variable switcher
 
 When the user selects a different variable, call `setSource` with both the new URL and the new color array — both update atomically and the layer repaints:
@@ -208,6 +216,17 @@ map.on('style.load', () => {
 
   map.setLayoutProperty('weather', 'visibility', 'none');  // keep hidden until user toggles on
   weatherLayer.readyForDisplay = true;  // allow rendering; Mapbox visibility still controls what the user sees
+});
+```
+
+**TypeScript:** use the same cast described in the "Add layer to map" section:
+
+```typescript
+map.on('style.load', () => {
+  map.addLayer(weatherLayer as unknown as mapboxgl.CustomLayerInterface, 'road-label-simple');
+
+  map.setLayoutProperty('weather', 'visibility', 'none');
+  weatherLayer.readyForDisplay = true;
 });
 ```
 
