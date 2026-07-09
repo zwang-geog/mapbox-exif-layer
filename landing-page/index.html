@@ -162,8 +162,8 @@
               <div>
                 <p class="layer-card-section-label">Sources Supported</p>
                 <div class="source-tags">
-                  <span class="source-tag">Image</span>
-                  <span class="source-tag">GeoTIFF</span>
+                  <a class="source-tag" href="https://github.com/zwang-geog/mapbox-exif-layer/blob/main/docs/jpeg-source.md" target="_blank" rel="noopener">Image</a>
+                  <a class="source-tag" href="https://github.com/zwang-geog/mapbox-exif-layer/blob/main/docs/geotiff-source.md" target="_blank" rel="noopener">Scalar GeoTIFF</a>
                 </div>
               </div>
             </div>
@@ -198,7 +198,7 @@
               <div>
                 <p class="layer-card-section-label">Sources Supported</p>
                 <div class="source-tags">
-                  <span class="source-tag">Image</span>
+                  <a class="source-tag" href="https://github.com/zwang-geog/mapbox-exif-layer/blob/main/docs/jpeg-source.md" target="_blank" rel="noopener">Image</a>
                 </div>
               </div>
             </div>
@@ -219,7 +219,7 @@
               <span class="layer-class-badge">Smooth Raster</span>
             </div>
             <p class="layer-card-desc">
-              Visualize a small single-band GeoTIFF directly in the browser. Multi-band GeoTIFFs (each band holding a different scalar variable) are also accepted; just pick one band to display. Grid size should be no more than 4096x4096.
+              Visualize a small single-band GeoTIFF directly in the browser. Multi-band GeoTIFFs (each band holding a different scalar variable) are also accepted; just pick one band to display. Grid size should be no more than 4096x4096. (v1.3.1+)
             </p>
             <div class="layer-card-meta">
               <div>
@@ -233,7 +233,7 @@
               <div>
                 <p class="layer-card-section-label">Sources Supported</p>
                 <div class="source-tags">
-                  <span class="source-tag">GeoTIFF</span>
+                  <a class="source-tag" href="https://github.com/zwang-geog/mapbox-exif-layer/blob/main/docs/geotiff-source.md" target="_blank" rel="noopener">Scalar GeoTIFF</a>
                 </div>
               </div>
             </div>
@@ -254,7 +254,7 @@
               <span class="layer-class-badge">RgbGeoTiff</span>
             </div>
             <p class="layer-card-desc">
-              Display a true-color (RGB) or transparent (RGBA) GeoTIFF as a native map image layer. The file is decoded client-side and added as a Mapbox/MapLibre image source. Supports uint8 and uint16 bands.
+              Display a true-color (RGB) or transparent (RGBA) GeoTIFF as a native map image layer. The file is decoded client-side and added as a Mapbox/MapLibre image source. Supports uint8 and uint16 bands. (v1.3.3+)
             </p>
             <div class="layer-card-meta">
               <div>
@@ -264,7 +264,7 @@
               <div>
                 <p class="layer-card-section-label">Sources Supported</p>
                 <div class="source-tags">
-                  <span class="source-tag">GeoTIFF</span>
+                  <a class="source-tag" href="https://github.com/zwang-geog/mapbox-exif-layer/blob/main/docs/rgb-geotiff.md" target="_blank" rel="noopener">RGB GeoTIFF</a>
                 </div>
               </div>
             </div>
@@ -277,20 +277,19 @@
 
   <section class="resource-links" id="resources">
     <div class="section-inner">
-      <h2>Documentation &amp; sample code</h2>
-
-      <a class="btn btn-secondary resource-btn resource-btn-primary" href="https://github.com/zwang-geog/mapbox-exif-layer/tree/main#usage" target="_blank" rel="noopener">Usage quick start</a>
 
       <p class="resource-group-label">Featured sample code</p>
       <div class="resource-button-grid">
         <a class="btn btn-secondary resource-btn" href="https://github.com/zwang-geog/mapbox-exif-layer/blob/main/react-demo/real-time-example/src/App.jsx" target="_blank" rel="noopener">Timeslider</a>
-        <a class="btn btn-secondary resource-btn" href="https://github.com/zwang-geog/mapbox-exif-layer/blob/main/maplibre-gl-demo/geotif-demo/src/App.jsx" target="_blank" rel="noopener">MapLibre globe projection &amp; GeoTIFF</a>
+        <a class="btn btn-secondary resource-btn" href="https://github.com/zwang-geog/mapbox-exif-layer/blob/main/maplibre-gl-demo/geotif-demo/src/App.jsx" target="_blank" rel="noopener">MapLibre globe projection &amp; Grayscale GeoTIFF</a>
+        <a class="btn btn-secondary resource-btn" href="https://github.com/zwang-geog/mapbox-exif-layer/blob/main/maplibre-gl-demo/rgba-geotif-demo/index.html" target="_blank" rel="noopener">RGB GeoTIFF (no npm)</a>
       </div>
 
-      <p class="resource-group-label">Two supported data sources</p>
+      <p class="resource-group-label">Three possible sources (by use case)</p>
       <div class="resource-button-grid">
-        <a class="btn btn-secondary resource-btn" href="https://github.com/zwang-geog/mapbox-exif-layer/blob/main/docs/geotiff-source.md" target="_blank" rel="noopener">GeoTIFF</a>
         <a class="btn btn-secondary resource-btn" href="https://github.com/zwang-geog/mapbox-exif-layer/blob/main/docs/jpeg-source.md" target="_blank" rel="noopener">Properly encoded JPEG/PNG image</a>
+        <a class="btn btn-secondary resource-btn" href="https://github.com/zwang-geog/mapbox-exif-layer/blob/main/docs/geotiff-source.md" target="_blank" rel="noopener">Scalar GeoTIFF</a>
+        <a class="btn btn-secondary resource-btn" href="https://github.com/zwang-geog/mapbox-exif-layer/blob/main/docs/rgb-geotiff.md" target="_blank" rel="noopener">RGB GeoTIFF</a>
       </div>
     </div>
   </section>
@@ -298,15 +297,6 @@
   <section class="use-cases" id="use-cases">
     <div class="section-inner">
       <h2>Frequently asked questions</h2>
-
-      <div class="qa-block" id="faq-when-to-use">
-        <h3>When should I use <code>mapbox-exif-layer</code>?</h3>
-        <ul>
-          <li>Map wind as a <strong>dynamic particle motion</strong> layer.</li>
-          <li>Map weather (temperature, humidity, precipitation) — or any scalar field — where you want a <strong>smooth, non-blocky</strong> look via client-side linear interpolation (best with JPEG/PNG image sources).</li>
-          <li><strong>Visualize a small single-band GeoTIFF</strong> in the browser without setting up a raster tile server. Multi-band GeoTIFFs (where each band holds a different scalar variable) are also accepted — just pick one band to display.</li>
-        </ul>
-      </div>
 
       <div class="qa-block" id="faq-comparison">
         <h3>How does it differ from other wind-mapping solutions?</h3>

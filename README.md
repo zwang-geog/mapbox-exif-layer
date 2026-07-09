@@ -275,7 +275,7 @@ This cast is safe — both `ParticleMotion` and `SmoothRaster` implement the int
 
 ### ParticleMotion
 
-A particle-based visualization layer that creates animated particles, suitable for wind direction and speed visualization
+A particle-based visualization layer that creates animated particles for wind direction and speed visualization. Supports **JPEG/PNG image** sources with u/v velocities encoded in the R and G bands (see [`docs/jpeg-source.md`](https://github.com/zwang-geog/mapbox-exif-layer/blob/main/docs/jpeg-source.md)), and **GeoTIFF** sources with u- and v-component velocity stored in separate bands (see [`docs/geotiff-source.md`](https://github.com/zwang-geog/mapbox-exif-layer/blob/main/docs/geotiff-source.md)).
 
 #### Options
 
@@ -313,9 +313,9 @@ A particle-based visualization layer that creates animated particles, suitable f
 
 A custom raster layer for scalar fields (temperature, humidity, precipitation, etc.). 
 
-With a **JPEG/PNG image** source, the grid is uploaded as an RGBA texture with linear filtering; the GPU bilinearly interpolates between adjacent texel values when sampling, producing a smooth, non-blocky gradient. 
+With a **JPEG/PNG image** source, the grid is uploaded as an RGBA texture with linear filtering; the GPU bilinearly interpolates between adjacent texel values when sampling, producing a smooth, non-blocky gradient. See [`docs/jpeg-source.md`](https://github.com/zwang-geog/mapbox-exif-layer/blob/main/docs/jpeg-source.md).
 
-With a **GeoTIFF** source, a small single-band file (or one band from a multi-band file) is read directly in the browser and colormapped via the shader — useful when you want a GIS-friendly pipeline without custom image encoding, though the display tends to look blockier at native grid resolution than the image path.
+With a **GeoTIFF** source, a small single-band file (or one band from a multi-band file) is read directly in the browser and colormapped via the shader — useful when you want a GIS-friendly pipeline without custom image encoding, though the display tends to look blockier at native grid resolution than the image path. See [`docs/geotiff-source.md`](https://github.com/zwang-geog/mapbox-exif-layer/blob/main/docs/geotiff-source.md).
 
 #### Options
 
@@ -340,7 +340,7 @@ With a **GeoTIFF** source, a small single-band file (or one band from a multi-ba
 
 Displays an **RGB or RGBA GeoTIFF (PhotometricInterpretation=2)** as a native Mapbox/MapLibre `image` source and `raster` layer. Unlike `ParticleMotion` and `SmoothRaster`, this is not a custom WebGL layer — the GeoTIFF is decoded client-side into a PNG blob URL, then added to the map with the built-in raster layer type. Bounds are read from the file; no `bounds` option is required.
 
-**Requirements:** EPSG:4326, uint8 or uint16 bands, peer package [`geotiff`](https://www.npmjs.com/package/geotiff).
+**Requirements:** EPSG:4326, uint8 or uint16 bands, peer package [`geotiff`](https://www.npmjs.com/package/geotiff). See [`docs/rgb-geotiff.md`](https://github.com/zwang-geog/mapbox-exif-layer/blob/main/docs/rgb-geotiff.md).
 
 ```javascript
 import { RgbGeoTiff } from 'mapbox-exif-layer';

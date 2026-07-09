@@ -463,6 +463,13 @@ a:hover {
   border: 1px solid var(--border);
   padding: 0.18rem 0.5rem;
   border-radius: 4px;
+  text-decoration: none;
+  display: inline-block;
+}
+
+a.source-tag:hover {
+  color: var(--accent);
+  border-color: var(--accent);
 }
 
 /* Documentation & sample code links */
@@ -487,13 +494,19 @@ a:hover {
 
 .resource-button-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 0.75rem;
+  max-width: 42rem;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .resource-btn {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 100%;
+  min-height: 2.75rem;
   text-align: center;
   color: var(--text);
 }
