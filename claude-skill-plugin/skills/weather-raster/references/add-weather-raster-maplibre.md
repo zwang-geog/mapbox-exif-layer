@@ -131,7 +131,7 @@ const weatherLayer = new SmoothRaster({
   bounds: [-121, 36, -117, 32],  // [minX, maxY, maxX, minY] — required for JPEG/PNG; optional for GeoTIFF
   mapRuntime: 'maplibre',  // This must be specified for MapLibre
   opacity: 0.6,
-  readyFOrDisplay: true  // true to show on initial load; omit or false if toggled on later
+  readyForDisplay: true  // true to show on initial load; omit or false if toggled on later
 });
 ```
 
@@ -157,7 +157,7 @@ const weatherLayerRef = useRef(new SmoothRaster({
   bounds: [-121, 36, -117, 32],
   mapRuntime: 'maplibre',
   opacity: 0.6,
-  readyFOrDisplay: true
+  readyForDisplay: true
 }));
 ```
 
@@ -168,6 +168,14 @@ Prefer `style.load` when the basemap style can change or MapLibre globe projecti
 ```javascript
 map.on('style.load', () => {
   map.addLayer(weatherLayer);
+});
+```
+
+**TypeScript projects:** `mapbox-exif-layer`'s `.d.ts` does not formally declare `SmoothRaster` as implementing `maplibregl.CustomLayerInterface`, though it does so at runtime. Cast to suppress the type error:
+
+```typescript
+map.on('style.load', () => {
+  map.addLayer(weatherLayer as unknown as maplibregl.CustomLayerInterface);
 });
 ```
 
@@ -219,6 +227,17 @@ map.on('style.load', () => {
 
   map.setLayoutProperty('weather', 'visibility', 'none');  // keep hidden until user toggles on
   weatherLayer.readyForDisplay = true;  // allow rendering; MapLibre visibility still controls what the user sees
+});
+```
+
+**TypeScript:** use the same cast described in the "Add layer to map" section:
+
+```typescript
+map.on('style.load', () => {
+  map.addLayer(weatherLayer as unknown as maplibregl.CustomLayerInterface);
+
+  map.setLayoutProperty('weather', 'visibility', 'none');
+  weatherLayer.readyForDisplay = true;
 });
 ```
 

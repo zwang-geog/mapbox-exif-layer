@@ -9,6 +9,7 @@ Run this **before** Step 4 preprocessing when Python pipeline scripts or GDAL ar
 | **GDAL** (`gdalwarp`, `gdalinfo`; Python `osgeo` for pipeline scripts) | All Step 4 paths |
 | `numpy`, `Pillow` | JPEG/PNG image pipeline scripts |
 | `piexif` | Dataset-dependent JPEG path (`grib2_to_image.py`) only |
+| `libgdal-grib` | GRIB/GRIB2 file support in GDAL |
 
 **Explain this list to the user** before installing. GeoTIFF-only preprocessing uses GDAL command-line tools; JPEG/PNG paths also need the Python packages above.
 
@@ -23,7 +24,7 @@ Use the environment they name. If they have **no preference**, create a **Python
 Use an existing Conda env or create one:
 
 ```bash
-conda create -n wind-pipeline -c conda-forge gdal numpy pillow piexif
+conda create -n wind-pipeline -c conda-forge gdal libgdal-grib numpy pillow piexif
 conda activate wind-pipeline
 ```
 
@@ -39,12 +40,12 @@ source .venv-wind-pipeline/bin/activate
 Windows: `.venv-wind-pipeline\Scripts\activate`
 
 ```bash
-pip install numpy pillow piexif
+pip install numpy pillow piexif libgdal-grib
 ```
 
 Omit `piexif` if not using the EXIF JPEG path.
 
-GDAL Python bindings (`osgeo`) often install most reliably via **Conda**. If `pip install gdal` fails in `venv`, **tell the user** and recommend Conda (`conda install -c conda-forge gdal`) or a system GDAL build with Python bindings.
+GDAL Python bindings (`osgeo`) often install most reliably via **Conda**. If `pip install gdal` fails in `venv`, **tell the user** and recommend Conda (`conda install -c conda-forge gdal libgdal-grib`) or a system GDAL build with Python bindings.
 
 ## 5. Verify
 
@@ -53,6 +54,10 @@ gdalwarp --version
 python -c "from osgeo import gdal; import numpy; from PIL import Image"
 ```
 
-Add `import piexif` when using the dataset-dependent JPEG path.
+Add `import piexif` when using the dataset-dependent JPEG path. To confirm GRIB support is active:
+
+```bash
+python -c "from osgeo import gdal; drivers = [gdal.GetDriver(i).ShortName for i in range(gdal.GetDriverCount())]; print('GRIB' in drivers)"
+```
 
 Run all Step 4 `python pipeline/...` commands with this environment activated.
