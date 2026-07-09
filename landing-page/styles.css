@@ -335,50 +335,134 @@ a:hover {
   font-size: 1.35rem;
 }
 
+
 .layer-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 1.5rem;
+  align-items: start;
 }
 
+/* Card: image top, body below */
 .layer-card {
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: 10px;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
-.layer-card img {
+.layer-card-img img {
   display: block;
   width: 100%;
   height: auto;
   border-bottom: 1px solid var(--border);
 }
 
-.layer-card h3 {
-  margin: 1rem 1.25rem 0.5rem;
-  font-size: 1.1rem;
-  color: var(--text);
+.layer-card-body {
+  padding: 1rem 1.25rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  flex: 1;
 }
 
-.layer-card p {
-  margin: 0 1.25rem 0.75rem;
-  font-size: 0.9rem;
+/* Header row: title + badge, wraps on narrow screens */
+.layer-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+}
+
+.layer-card-header h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--text);
+  line-height: 1.3;
+}
+
+.layer-class-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--accent);
+  background: rgba(59, 157, 221, 0.12);
+  border: 1px solid rgba(59, 157, 221, 0.25);
+  padding: 0.18rem 0.5rem;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+
+.layer-card-desc {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.layer-card-coming-soon {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* Options row: Quick Start left, Sources right */
+.layer-card-meta {
+  display: flex;
+  flex-direction: row;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  padding-top: 0.25rem;
+  border-top: 1px solid var(--border);
+}
+
+.layer-card-section-label {
+  margin: 0 0 0.35rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
   color: var(--text-muted);
 }
 
-.layer-card a:not(.btn) {
-  font-weight: 600;
+.layer-card-btns {
+  display: flex;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.45rem;
 }
 
-.layer-card-actions {
-  margin: 0 1.25rem 1.25rem;
+.layer-card-btns .btn,
+.layer-card-ref-btn {
+  font-size: 0.8rem;
+  padding: 0.35rem 0.75rem;
 }
 
-.layer-api-btn {
-  display: inline-block;
-  width: 100%;
+.layer-card-ref-btn {
+  display: block;
   text-align: center;
+}
+
+.source-tags {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.source-tag {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  padding: 0.18rem 0.5rem;
+  border-radius: 4px;
 }
 
 /* Documentation & sample code links */
@@ -428,11 +512,12 @@ a:hover {
   }
 }
 
-@media (max-width: 720px) {
+@media (max-width: 860px) {
   .layer-grid {
     grid-template-columns: 1fr;
   }
 }
+
 
 /* When to use */
 .use-cases {

@@ -8,7 +8,7 @@ export default class RgbGeoTiff {
      * @param {number} [options.opacity=1.0]
      * @param {string} [options.cacheOption='no-cache']
      * @param {string} [options.slot]      Mapbox v3 slot for layer ordering.
-     * @param {string} [options.beforeLayerId]  Insert the raster layer before this existing layer id.
+     * @param {string} [options.beforeLayerId]  Insert the raster layer below this existing layer id in the stack.
      */
     constructor({id, source, opacity = 1.0, cacheOption = 'no-cache', slot, beforeLayerId} = {}) {
         this.id = id;

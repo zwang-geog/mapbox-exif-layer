@@ -311,7 +311,11 @@ A particle-based visualization layer that creates animated particles, suitable f
 
 ### SmoothRaster
 
-A raster visualization layer that provides a smooth display of the data.
+A custom raster layer for scalar fields (temperature, humidity, precipitation, etc.). 
+
+With a **JPEG/PNG image** source, the grid is uploaded as an RGBA texture with linear filtering; the GPU bilinearly interpolates between adjacent texel values when sampling, producing a smooth, non-blocky gradient. 
+
+With a **GeoTIFF** source, a small single-band file (or one band from a multi-band file) is read directly in the browser and colormapped via the shader — useful when you want a GIS-friendly pipeline without custom image encoding, though the display tends to look blockier at native grid resolution than the image path.
 
 #### Options
 
@@ -331,6 +335,54 @@ A raster visualization layer that provides a smooth display of the data.
 #### Methods
 
 - `setSource(source, color=null)` : Changes the source URL (JPEG or GeoTIFF), and optionally color array (default is to use the same color array as before). The layer will repaint automatically.
+
+### RgbGeoTiff
+
+Displays an **RGB or RGBA GeoTIFF (PhotometricInterpretation=2)** as a native Mapbox/MapLibre `image` source and `raster` layer. Unlike `ParticleMotion` and `SmoothRaster`, this is not a custom WebGL layer — the GeoTIFF is decoded client-side into a PNG blob URL, then added to the map with the built-in raster layer type. Bounds are read from the file; no `bounds` option is required.
+
+**Requirements:** EPSG:4326, uint8 or uint16 bands, peer package [`geotiff`](https://www.npmjs.com/package/geotiff).
+
+```javascript
+import { RgbGeoTiff } from 'mapbox-exif-layer';
+
+const rgbLayer = new RgbGeoTiff({
+  id: 'aerial-photo',
+  source: 'path/to/photo.tif',
+  opacity: 0.9
+});
+
+map.on('load', () => {
+  rgbLayer.addTo(map);
+});
+
+// later:
+rgbLayer.remove();
+```
+
+#### Options
+
+- `id` (string): **(required)** Layer ID. Also used as the base for the internal image source ID (`${id}-rgb-source`).
+- `source` (string): **(required)** URL of an RGB or RGBA GeoTIFF file (`.tif` / `.tiff`; requires optional peer package `geotiff`).
+- `opacity` (number): Raster layer opacity (default: `1.0`).
+- `cacheOption` (string): [Cache option](https://developer.mozilla.org/en-US/docs/Web/API/Request/cache) to use when fetching the GeoTIFF. Can be one of `no-cache` (default), `no-store`, `reload`, `default`, or `force-cache`.
+- `slot` (string): Optional [slot](https://docs.mapbox.com/style-spec/reference/slots/) identifier for the layer (Mapbox GL JS v3 layer ordering); typical values include `"top"`, `"middle"`, `"bottom"`.
+- `beforeLayerId` (string): Optional existing layer ID. When set, the raster layer is inserted below that layer in the stack (same as the second argument to `map.addLayer`).
+
+#### Methods
+
+- `addTo(map)` : Fetches the GeoTIFF, decodes it, and adds the `image` source and `raster` layer to the map. Returns `this` for chaining. Call after the map has loaded (e.g. inside `map.on('load', ...)`).
+- `remove()` : Removes the raster layer and image source from the map and revokes the internal blob URL to free memory.
+
+Once added, the layer is a normal `raster` layer on the map. Use its `id` with the usual Mapbox/MapLibre APIs:
+
+```javascript
+// Toggle visibility
+map.setLayoutProperty('aerial-photo', 'visibility', 'none');
+map.setLayoutProperty('aerial-photo', 'visibility', 'visible');
+
+// Change opacity at runtime
+map.setPaintProperty('aerial-photo', 'raster-opacity', 0.5);
+```
 
 ## Acknowledgement
 

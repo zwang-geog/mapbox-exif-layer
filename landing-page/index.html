@@ -131,52 +131,146 @@
 
   <section class="layer-types" id="layer-types">
     <div class="section-inner">
-      <h2>Two layer classes supplied by this package</h2>
+      <h2>Three Layer Classes, Four Use Cases</h2>
       <div class="layer-grid">
+
         <article class="layer-card">
-          <img
-            src="temperature_example.png"
-            alt="Smooth raster temperature layer example over a regional map"
-            loading="lazy"
-            width="640"
-            height="360"
-          />
-          <h3>Smooth raster layer</h3>
-          <p>
-            A.k.a. sample fill in <a href="https://github.com/astrosat/windgl/tree/master" target="_blank" rel="noopener">windgl</a>,
-            colorize in <a href="https://blog.sakitam.com/wind-layer/playgrounds/mapbox-gl/colorize.html" target="_blank" rel="noopener">wind-layer</a> —
-            a different way to render classic raster data in the browser. Each grid cell holds one or more bands (e.g. temperature) and
-            has a fixed size (¼°, 5&nbsp;km, 500&nbsp;m, etc.), so it looks like a box. The usual web approach is to color each cell,
-            serve tiles, and get a blocky layer like QGIS at native resolution. Weather fields are spatially smooth, so we want a softer
-            display. With WebGL varyings and a fragment shader, colors interpolate across space on the client
-            (<a href="https://webglfundamentals.org/webgl/lessons/webgl-fundamentals.html" target="_blank" rel="noopener">WebGL fundamentals</a>)
-            without hand-built downsampling. (Note: to achieve a good smoothing effect, using JPEG/PNG image source instead of GeoTIFF is recommended.)
-          </p>
-          <p class="layer-card-actions">
-            <a class="btn btn-secondary layer-api-btn" href="https://github.com/zwang-geog/mapbox-exif-layer/tree/main#smoothraster" target="_blank" rel="noopener">API reference</a>
-          </p>
+          <div class="layer-card-img">
+            <img
+              src="wind_example.png"
+              alt="Particle motion wind layer example with colored wind streaks"
+              loading="lazy"
+            />
+          </div>
+          <div class="layer-card-body">
+            <div class="layer-card-header">
+              <h3>Wind</h3>
+              <span class="layer-class-badge">Particle Motion</span>
+            </div>
+            <p class="layer-card-desc">
+              Particles sample local u/v-component velocity, move a small displacement, and are re-colored by local speed at each update interval. A flowing animation that makes direction and relative speed easy to read.
+            </p>
+            <div class="layer-card-meta">
+              <div>
+                <p class="layer-card-section-label">Quick Start</p>
+                <div class="layer-card-btns">
+                  <a class="btn btn-secondary" href="https://github.com/zwang-geog/mapbox-exif-layer/blob/main/claude-skill-plugin/skills/wind-particles/references/add-wind-particle-mapbox.md" target="_blank" rel="noopener">Mapbox</a>
+                  <a class="btn btn-secondary" href="https://github.com/zwang-geog/mapbox-exif-layer/blob/main/claude-skill-plugin/skills/wind-particles/references/add-wind-particle-maplibre.md" target="_blank" rel="noopener">MapLibre</a>
+                </div>
+                <a class="btn btn-secondary layer-card-ref-btn" href="https://github.com/zwang-geog/mapbox-exif-layer/tree/main#particlemotion" target="_blank" rel="noopener">Options &amp; Methods</a>
+              </div>
+              <div>
+                <p class="layer-card-section-label">Sources Supported</p>
+                <div class="source-tags">
+                  <span class="source-tag">Image</span>
+                  <span class="source-tag">GeoTIFF</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </article>
+
         <article class="layer-card">
-          <img
-            src="wind_example.png"
-            alt="Particle motion wind layer example with colored wind streaks"
-            loading="lazy"
-            width="640"
-            height="360"
-          />
-          <h3>Particle motion layer</h3>
-          <p>
-            The companion approach for <strong>vector fields</strong> such as wind, where each cell stores u- and v-component velocity
-            rather than a single scalar. A conventional map might use static arrows. A particle layer releases hundreds of thousands of
-            short-lived points (with tails); each frame, every particle samples local u/v, moves a small step, and is recolored by speed.
-            The result is a flowing animation that makes direction and relative speed easy to read. Updates run on the GPU (transform
-            feedback and a dedicated update vertex shader), integrated as a Mapbox/MapLibre custom layer so pan and zoom stay in sync with
-            the basemap and other layers.
-          </p>
-          <p class="layer-card-actions">
-            <a class="btn btn-secondary layer-api-btn" href="https://github.com/zwang-geog/mapbox-exif-layer/tree/main#particlemotion" target="_blank" rel="noopener">API reference</a>
-          </p>
+          <div class="layer-card-img">
+            <img
+              src="temperature_example.png"
+              alt="Smooth raster temperature layer example over a regional map"
+              loading="lazy"
+            />
+          </div>
+          <div class="layer-card-body">
+            <div class="layer-card-header">
+              <h3>Smooth, non-blocky weather display</h3>
+              <span class="layer-class-badge">Smooth Raster</span>
+            </div>
+            <p class="layer-card-desc">
+              Utilizing WebGL RGBA texture with linear filtering; the GPU bilinearly interpolates between adjacent texel values when sampling, producing a smooth gradient. Suitable for scalar (single-band) variables such as temperature and precipitation.
+            </p>
+            <div class="layer-card-meta">
+              <div>
+                <p class="layer-card-section-label">Quick Start</p>
+                <div class="layer-card-btns">
+                  <a class="btn btn-secondary" href="https://github.com/zwang-geog/mapbox-exif-layer/blob/main/claude-skill-plugin/skills/weather-raster/references/add-weather-raster-mapbox.md" target="_blank" rel="noopener">Mapbox</a>
+                  <a class="btn btn-secondary" href="https://github.com/zwang-geog/mapbox-exif-layer/blob/main/claude-skill-plugin/skills/weather-raster/references/add-weather-raster-maplibre.md" target="_blank" rel="noopener">MapLibre</a>
+                </div>
+                <a class="btn btn-secondary layer-card-ref-btn" href="https://github.com/zwang-geog/mapbox-exif-layer/tree/main#smoothraster" target="_blank" rel="noopener">Options &amp; Methods</a>
+              </div>
+              <div>
+                <p class="layer-card-section-label">Sources Supported</p>
+                <div class="source-tags">
+                  <span class="source-tag">Image</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </article>
+
+        <article class="layer-card">
+          <div class="layer-card-img">
+            <img
+              src="geotiff_temperature.png"
+              alt="Grayscale scalar GeoTIFF visualized as a smooth raster layer"
+              loading="lazy"
+            />
+          </div>
+          <div class="layer-card-body">
+            <div class="layer-card-header">
+              <h3>Grayscale, Scalar GeoTIFF</h3>
+              <span class="layer-class-badge">Smooth Raster</span>
+            </div>
+            <p class="layer-card-desc">
+              Visualize a small single-band GeoTIFF directly in the browser. Multi-band GeoTIFFs (each band holding a different scalar variable) are also accepted; just pick one band to display. Grid size should be no more than 4096x4096.
+            </p>
+            <div class="layer-card-meta">
+              <div>
+                <p class="layer-card-section-label">Quick Start</p>
+                <div class="layer-card-btns">
+                  <a class="btn btn-secondary" href="https://github.com/zwang-geog/mapbox-exif-layer/blob/main/claude-skill-plugin/skills/weather-raster/references/add-weather-raster-mapbox.md" target="_blank" rel="noopener">Mapbox</a>
+                  <a class="btn btn-secondary" href="https://github.com/zwang-geog/mapbox-exif-layer/blob/main/claude-skill-plugin/skills/weather-raster/references/add-weather-raster-maplibre.md" target="_blank" rel="noopener">MapLibre</a>
+                </div>
+                <a class="btn btn-secondary layer-card-ref-btn" href="https://github.com/zwang-geog/mapbox-exif-layer/tree/main#smoothraster" target="_blank" rel="noopener">Options &amp; Methods</a>
+              </div>
+              <div>
+                <p class="layer-card-section-label">Sources Supported</p>
+                <div class="source-tags">
+                  <span class="source-tag">GeoTIFF</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="layer-card">
+          <div class="layer-card-img">
+            <img
+              src="rgba_geotif.png"
+              alt="RGB GeoTIFF displayed as a true-color image layer on a map"
+              loading="lazy"
+            />
+          </div>
+          <div class="layer-card-body">
+            <div class="layer-card-header">
+              <h3>RGB or RGBA GeoTIFF</h3>
+              <span class="layer-class-badge">RgbGeoTiff</span>
+            </div>
+            <p class="layer-card-desc">
+              Display a true-color (RGB) or transparent (RGBA) GeoTIFF as a native map image layer. The file is decoded client-side and added as a Mapbox/MapLibre image source. Supports uint8 and uint16 bands.
+            </p>
+            <div class="layer-card-meta">
+              <div>
+                <p class="layer-card-section-label">Quick Start</p>
+                <a class="btn btn-secondary layer-card-ref-btn" href="https://github.com/zwang-geog/mapbox-exif-layer/tree/main#rgbgeotiff" target="_blank" rel="noopener">README</a>
+              </div>
+              <div>
+                <p class="layer-card-section-label">Sources Supported</p>
+                <div class="source-tags">
+                  <span class="source-tag">GeoTIFF</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+
       </div>
     </div>
   </section>

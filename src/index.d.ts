@@ -89,7 +89,7 @@ declare module 'mapbox-exif-layer' {
       cacheOption?: 'no-cache' | 'no-store' | 'reload' | 'default' | 'force-cache';
       /** Mapbox v3 slot for layer ordering. */
       slot?: string;
-      /** Insert the raster layer before this existing layer id. */
+      /** Insert the raster layer below this existing layer id in the stack. */
       beforeLayerId?: string;
     });
 
