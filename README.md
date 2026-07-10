@@ -17,6 +17,21 @@ Three layer classes, four use cases:
 | Scalar GeoTIFF preview | `SmoothRaster` | [Scalar GeoTIFF](https://github.com/zwang-geog/mapbox-exif-layer/tree/main/docs/geotiff-source.md) | Native grid resolution; blocky when zoomed in |
 | RGB / RGBA GeoTIFF | `RgbGeoTiff` | [RGB GeoTIFF](https://github.com/zwang-geog/mapbox-exif-layer/tree/main/docs/rgb-geotiff.md) | True-color image layer |
 
+* Native [custom layer](https://docs.mapbox.com/mapbox-gl-js/api/properties/#customlayerinterface) integration (Mapbox GL JS or MapLibre GL JS) — not a canvas overlay
+* **No tile server** — serve a static JPEG/PNG or GeoTIFF from a URL (e.g. S3); JPEG/PNG must be a [properly encoded weather grid](https://github.com/zwang-geog/mapbox-exif-layer/tree/main/docs/jpeg-source.md), not an arbitrary photo
+* **MapLibre globe projection (v1.2.0+)** — set `mapRuntime: 'maplibre'` on each layer; see [maplibre-gl-demo](https://github.com/zwang-geog/mapbox-exif-layer/tree/main/maplibre-gl-demo/maplibre-gl-demo/src/App.jsx)
+* **GPU-accelerated** wind particles via transform feedback — no per-frame CPU loop over hundreds of thousands of points
+
+### Demos
+
+* [US wind & temperature demo](https://www.us-wind-particle-map-demo.mapbox-exif-layer.com) ([source](react-demo/react-demo))
+* [Weather map time slider demo](https://www.weather-map-time-slider-demo.mapbox-exif-layer.com) ([source](react-demo/real-time-example))
+* [MapLibre GL JS globe projection demo](https://www.mapbox-exif-layer.com/maplibre-gl-js-globe-projection-demo/index.html) ([source](maplibre-gl-demo/maplibre-gl-demo))
+* [Demo video — Southern California wind particles](https://www.youtube.com/watch?v=HLu0Ylhu5x4)
+* [Demo video — US continental wind particle animation (v1.1.0)](https://www.youtube.com/watch?v=iWKjNriTW-U)
+* [Demo video — MapLibre GL JS globe projection (v1.3.1)](https://www.youtube.com/watch?v=SLPBfteIbRE)
+* [Technique explanation (Medium)](https://medium.com/@zifanw9/a-low-cost-custom-wind-particle-motion-layer-in-mapbox-gl-js-9a51978e3ffb)
+
 ### Quick starts
 
 Step-by-step guides by use case and map runtime:
@@ -27,30 +42,9 @@ Step-by-step guides by use case and map runtime:
 | Smooth weather / scalar GeoTIFF | [Guide](https://github.com/zwang-geog/mapbox-exif-layer/tree/main/claude-skill-plugin/skills/weather-raster/references/add-weather-raster-mapbox.md) | [Guide](https://github.com/zwang-geog/mapbox-exif-layer/tree/main/claude-skill-plugin/skills/weather-raster/references/add-weather-raster-maplibre.md) |
 | RGB GeoTIFF | [Guide](https://github.com/zwang-geog/mapbox-exif-layer/tree/main/docs/rgb-geotiff.md) | [Guide](https://github.com/zwang-geog/mapbox-exif-layer/tree/main/docs/rgb-geotiff.md) |
 
-> **Production note (scalar GeoTIFF preview & RGB GeoTIFF).** Loading the entire GeoTIFF in the browser is intended for **quick previews and small rasters** — not production maps at many zoom levels or over large extents. For production, add a standard Mapbox/MapLibre **raster tile source** instead:
->
-> - **Pre-generated MBTiles** — build tiles with [rio-mbtiles](https://github.com/mapbox/rio-mbtiles) or QGIS **Raster → Generate XYZ Tiles (MBTiles)**, then serve with [mbtileserver](https://github.com/consbio/mbtileserver). For scalar GeoTIFF, assign RGB(A) colors from the attribute first (e.g. rasterio + NumPy) before generating the tileset.
-> - **COG + tile server** — [TiTiler](https://github.com/developmentseed/titiler) (or GeoServer / similar) serves tiles directly from a Cloud Optimized GeoTIFF without pre-generating MBTiles.
-> - **MapLibre serverless COG** — host a COG on static storage and use [maplibre-cog-protocol](https://github.com/geomatico/maplibre-cog-protocol) for range-request tiling in the client (no tile server).
-
 > **GeoTIFF support (v1.3.1+).** `ParticleMotion` and `SmoothRaster` accept scalar GeoTIFF sources (float32, EPSG:4326) in addition to JPEG/PNG. GeoTIFF rasters use physical cell values directly and do not require 0–255 normalization. See [docs/geotiff-source.md](https://github.com/zwang-geog/mapbox-exif-layer/tree/main/docs/geotiff-source.md). JPEG encoding is in [docs/jpeg-source.md](https://github.com/zwang-geog/mapbox-exif-layer/tree/main/docs/jpeg-source.md).
 
 > **JPEG/PNG without EXIF (v1.3.2+).** For normalized JPEG or PNG files that omit EXIF `ImageDescription` min/max metadata, pass `scalarValueRange` on `SmoothRaster` or `velocityRange` on `ParticleMotion`. When EXIF is present, EXIF takes precedence. See [docs/jpeg-source.md](https://github.com/zwang-geog/mapbox-exif-layer/tree/main/docs/jpeg-source.md).
-
-* Native [custom layer](https://docs.mapbox.com/mapbox-gl-js/api/properties/#customlayerinterface) integration (Mapbox GL JS or MapLibre GL JS) — not a canvas overlay
-* **No tile server** — serve a static JPEG/PNG or GeoTIFF from a URL (e.g. S3); JPEG/PNG must be a [properly encoded weather grid](https://github.com/zwang-geog/mapbox-exif-layer/tree/main/docs/jpeg-source.md), not an arbitrary photo
-* **MapLibre globe projection (v1.2.0+)** — set `mapRuntime: 'maplibre'` on each layer; see [maplibre-gl-demo](https://github.com/zwang-geog/mapbox-exif-layer/tree/main/maplibre-gl-demo/maplibre-gl-demo/src/App.jsx)
-* **GPU-accelerated** wind particles via transform feedback — no per-frame CPU loop over hundreds of thousands of points
-
-**Demos**
-
-* [US wind & temperature demo](https://www.us-wind-particle-map-demo.mapbox-exif-layer.com) ([source](react-demo/react-demo))
-* [Weather map time slider demo](https://www.weather-map-time-slider-demo.mapbox-exif-layer.com) ([source](react-demo/real-time-example))
-* [MapLibre GL JS globe projection demo](https://www.mapbox-exif-layer.com/maplibre-gl-js-globe-projection-demo/index.html) ([source](maplibre-gl-demo/maplibre-gl-demo))
-* [Demo video — Southern California wind particles](https://www.youtube.com/watch?v=HLu0Ylhu5x4)
-* [Demo video — US continental wind particle animation (v1.1.0)](https://www.youtube.com/watch?v=iWKjNriTW-U)
-* [Demo video — MapLibre GL JS globe projection (v1.3.1)](https://www.youtube.com/watch?v=SLPBfteIbRE)
-* [Technique explanation (Medium)](https://medium.com/@zifanw9/a-low-cost-custom-wind-particle-motion-layer-in-mapbox-gl-js-9a51978e3ffb)
 
 ## Installation
 
@@ -152,23 +146,23 @@ A particle-based visualization layer that creates animated particles for wind di
 
 - `id` (string): **(required)** Unique layer ID
 - `source` (string): **(required)** URL of JPEG/PNG image or GeoTIFF file (`.tif` / `.tiff`; GeoTIFF requires optional peer package dependency `geotiff`)
-- `color` (array): **(required)** Array of color stops `[value, [r, g, b]]`. Values do not have to be ordered since sorting is performed internally by the package.
 - `bounds` (array): **JPEG/PNG image only (required).** Extent as `[minX, maxY, maxX, minY]` (longitude −180…180, latitude −90…90). GeoTIFF source will read bounds from the file directly and ignore this parameter.
-- `readyForDisplay` (bool): Preventing the layer from rendering when the layer is added to the map, if necessary (default: false)
-- `particleCount` (number): Number of particles to render (default: 5000)
-- `velocityFactor` (number): Speed multiplier for particle motion (default: 0.05)
-- `updateInterval` (number): Minimum time between particle updates in ms (default: 50)
-- `pointSize` (number): Size of particles in pixels (default: 5.0)
-- `fadeOpacity` (number): Global opacity for particles (default: 0.9)
-- `trailLength` (number): Number of trailing particles (default: 3)
-- `trailSizeDecay` (number): How quickly point size decreases for trail particles (default: 0.8)
-- `ageThreshold` (number): Age threshold before particle position reset probability increases. This prevents particles from degenerating to some circular/looped pattern (default: 500)
-- `maxAge` (number): Maximum age before particle position is forced to reset. This prevents particles from degenerating to some circular/looped pattern (default: 1000)
+- `color` (array): **(required)** Array of color stops `[value, [r, g, b]]`. Values do not have to be ordered since sorting is performed internally by the package.
 - `unit` (string): **(required)** When the source is a **GeoTIFF** file, the unit of the u- and v-component velocities stored in the bands. When the source is **EXIF JPEG**, the unit of the min/max velocity and speed values in the EXIF information. Must be consistent with the wind-speed units in the `color` parameter. Can be one of:
   - `'mph'` (default): Miles per hour
   - `'kph'`: Kilometers per hour
   - `'mps'`: Meters per second
 - `velocityRange` (array): **Dataset-independent normalized JPEG/PNG only (required).** Two-element `[min, max]` in the layer `unit` option. Used to de-normalize u and v from the R and G bands when the JPEG/PNG source has no EXIF velocity metadata; applied to both u- and v- components. Ignored when valid EXIF metadata is present. Speed coloring without EXIF is inferred from `color` stops, not from this range. See [jpeg-source.md](https://github.com/zwang-geog/mapbox-exif-layer/blob/main/docs/jpeg-source.md).
+- `readyForDisplay` (bool): Preventing the layer from rendering when the layer is added to the map, if necessary (default: false)
+- `particleCount` (number): Number of particles to render (default: 5000). Suggested values by extent: ~5000 for a small area (e.g. Southern California), ~10000 for the continental United States, ~100000 for global coverage.
+- `ageThreshold` (number): Age threshold before particle position reset probability increases, in **position-update steps** (default: 500), not seconds. Age increments once each time the update shader runs; real-world timing depends on `updateInterval` (e.g. 500 steps at 50 ms ≈ 25 s, but at 20 ms ≈ 10 s). A smaller `updateInterval` makes this threshold take effect sooner unless you raise `ageThreshold` proportionally. For global wind patterns, use a larger value than the default. This prevents particles from degenerating into circular/looped patterns.
+- `maxAge` (number): Maximum age before a particle position is forced to reset, in **position-update steps** (default: 1000), with the same `updateInterval` dependency as `ageThreshold`. If you decrease `updateInterval`, increase `maxAge` accordingly to preserve similar lifetimes; for global wind patterns, use a larger value than the default. This prevents particles from degenerating into circular/looped patterns.
+- `updateInterval` (number): Minimum time between particle position updates, in ms (default: 50, i.e. ~20 updates per second). Lower values update positions more often, increasing apparent motion speed. Prefer tuning this before `velocityFactor`. Because it is a plain instance property, you can also adjust it at runtime — for example in a map `zoomend` listener: use a smaller `updateInterval` at lower zoom levels (larger visible extent) so particles update more times per second and flow patterns remain readable when zoomed out.
+- `velocityFactor` (number): Multiplier applied to each particle's normalized displacement on every position update (default: 0.05). It scales step size per update, not per render frame; velocity is sampled once at the particle's current grid cell each step. Values that are too large can make particles jump across multiple grid cells and miss intermediate flow detail.
+- `pointSize` (number): Size of particles in pixels (default: 5.0)
+- `fadeOpacity` (number): Global opacity for particles (default: 0.9)
+- `trailLength` (number): Number of trailing particles (default: 3)
+- `trailSizeDecay` (number): How quickly point size decreases for trail particles (default: 0.8)
 - `cacheOption` (string): [Cache option](https://developer.mozilla.org/en-US/docs/Web/API/Request/cache) to use when fetching the source image. It can be one of no-cache (default), no-store, reload, default, or force-cache.
 - `slot` (string): Optional [slot](https://docs.mapbox.com/style-spec/reference/slots/) identifier for the layer (used by Mapbox GL JS for [layer ordering](https://docs.mapbox.com/mapbox-gl-js/api/map/#addlayer-parameters-layer-slot)); typical values may include "top", "middle" (recommended), "bottom".
 - `mapRuntime` (string): **(required for MapLibre)** `'mapbox'` (default) or `'maplibre'`. This parameter must be explicitly set to `'maplibre'` if maplibre-gl-js SDK is used. Only `'maplibre'` with [MapLibre GL JS](https://maplibre.org/projects/gl-js/) supports globe projection.
@@ -254,6 +248,14 @@ map.setLayoutProperty('aerial-photo', 'visibility', 'visible');
 // Change opacity at runtime
 map.setPaintProperty('aerial-photo', 'raster-opacity', 0.5);
 ```
+
+### GeoTIFF: preview vs production
+
+> **Production note (scalar GeoTIFF preview & RGB GeoTIFF).** Loading the entire GeoTIFF in the browser is intended for **quick previews and small rasters** — not production maps at many zoom levels or over large extents. For production raster data display, recommend adding a standard Mapbox/MapLibre **raster tile source** instead:
+>
+> - **Pre-generated MBTiles** — build tiles with [rio-mbtiles](https://github.com/mapbox/rio-mbtiles) or QGIS **Raster → Generate XYZ Tiles (MBTiles)**, then serve with [mbtileserver](https://github.com/consbio/mbtileserver). For scalar GeoTIFF, assign RGB(A) colors from the attribute first (e.g. rasterio + NumPy) before generating the tileset.
+> - **COG + tile server** — [TiTiler](https://github.com/developmentseed/titiler) (or GeoServer / similar) serves tiles directly from a Cloud Optimized GeoTIFF without pre-generating MBTiles.
+> - **MapLibre serverless COG** — host a COG on static storage and use [maplibre-cog-protocol](https://github.com/geomatico/maplibre-cog-protocol) for range-request tiling in the client (no tile server).
 
 ## Acknowledgement
 
