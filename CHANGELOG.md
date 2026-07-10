@@ -2,6 +2,10 @@
 
 All notable changes to this project are documented in this file.
 
+## v1.3.4
+
+- **ParticleMotion dateline handling:** For global wind extents whose longitude span rounds to at least 360° (e.g. `[-180.5, 90.5, 179.5, -90.5]`), particles now wrap east/west across the antimeridian instead of resetting to a random position. Regional extents (span < 360°) still reset at left/right boundaries. Wrap behavior is auto-detected from bounds when the source is set and passed to the update shader via `wrapLongitude`.
+
 ## v1.3.3
 
 - **RGB / RGBA GeoTIFF:** Added `RgbGeoTiff` — a helper (not a custom WebGL layer) that fetches an RGB or RGBA GeoTIFF in the browser, decodes it client-side, and adds a native Mapbox/MapLibre **`image` source** and **`raster` layer**. Geographic extent is read from the file; no `bounds` option is required. Supports EPSG:4326, PhotometricInterpretation **2** (RGB), uint8 or uint16 bands (16-bit normalized to 8-bit for display), and optional alpha (4-band RGBA). Use `addTo(map)` after the map loads and `remove()` to tear down the layer and revoke the internal blob URL. Requires the optional peer dependency `geotiff`.

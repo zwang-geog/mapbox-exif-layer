@@ -5,7 +5,7 @@ import { createTexture, createRg32FTexture } from './textureUtils.js';
 import { loadGeoTiffWind, assertTextureDimensions, kphToMph, mpsToMph, isSourceFormatGeotiff } from './geoTiffSource.js';
 
 // B channel: 0 = no-data (new pipeline), 255 = valid
-const NODATA_B_THRESHOLD = 0.08;
+const NODATA_B_THRESHOLD = 0.5;
 const MIN_WIND_SPEED_MPH = 1.5;
 
 
@@ -52,6 +52,7 @@ const vertexShader =
     uniform mediump float u_max_age;         // Maximum age before forced reset
     uniform mediump float u_percent_reset;   // Percentage of particles to reset on source update
     uniform bool u_should_reset;     // Flag to indicate if we should apply the percentage reset
+    uniform bool u_wrap_longitude;   // True when bounds span wraps east/west across the dateline
     ${velocityUniformGlsl}
     ${velocityDecodeGlsl}
     
@@ -134,8 +135,16 @@ const vertexShader =
         // Get current age of particle and increment
         float age = a_age + 1.0;
         
-        // Reset if out of bounds, no-data, or very low wind speed
-        if (newPos.x < 0.0 || newPos.x > 1.0 || newPos.y < 0.0 || newPos.y > 1.0 || velocityIsInvalid(velocity) || windSpeed < ${MIN_WIND_SPEED_MPH}) {
+        // Reset if out of bounds, no-data, or very low wind speed.
+        // Global extents wrap east/west instead of resetting (see u_wrap_longitude).
+        bool outOfBoundsX = newPos.x < 0.0 || newPos.x > 1.0;
+        bool outOfBoundsY = newPos.y < 0.0 || newPos.y > 1.0;
+
+        if (u_wrap_longitude && outOfBoundsX) {
+            newPos.x = fract(newPos.x);
+        }
+
+        if (outOfBoundsY || (!u_wrap_longitude && outOfBoundsX) || velocityIsInvalid(velocity) || windSpeed < ${MIN_WIND_SPEED_MPH}) {
             shouldReset = true;
         }
         
@@ -449,6 +458,13 @@ function boundsEqual(a, b, epsilon = 1e-7) {
     return a.every((value, index) => Math.abs(value - b[index]) <= epsilon);
 }
 
+function computeWrapLongitude(bounds) {
+    if (!bounds || bounds.length < 4) {
+        return false;
+    }
+    return Math.round(bounds[2] - bounds[0]) >= 360;
+}
+
 function convertVelocityBoundsToMph(min, max, unit) {
     if (unit === 'kph') {
         return [kphToMph(min), kphToMph(max)];
@@ -480,6 +496,7 @@ export default class ParticleMotion {
         this.color = color;
         this.layerBounds = normalizeBounds(bounds); // User-supplied extent for JPEG; restored when switching back from GeoTIFF
         this.bounds = this.layerBounds;      // Active extent used by shaders (from layerBounds or GeoTIFF file)
+        this.wrapLongitude = computeWrapLongitude(this.bounds);
         this.particleCount = particleCount;
         
         this.sourceLoaded = false;
@@ -588,12 +605,14 @@ export default class ParticleMotion {
 
         if (!this.bounds) {
             this.bounds = bounds;
+            this.wrapLongitude = computeWrapLongitude(bounds);
             return false;
         }
 
         const extentChanged = !boundsEqual(this.bounds, bounds);
         if (extentChanged) {
             this.bounds = bounds;
+            this.wrapLongitude = computeWrapLongitude(bounds);
             this.shouldResetParticles = true;
             this.percentParticleWhenSetSource = 1.0;
         }
@@ -836,6 +855,7 @@ export default class ParticleMotion {
         // Set new uniforms for particle reset
         gl.uniform1f(this.updateProgram.u_percent_reset, this.percentParticleWhenSetSource || 0.0);
         gl.uniform1i(this.updateProgram.u_should_reset, this.shouldResetParticles ? 1 : 0);
+        gl.uniform1i(this.updateProgram.u_wrap_longitude, this.wrapLongitude ? 1 : 0);
         gl.uniform1i(this.updateProgram.u_physical_velocity, this.physicalVelocity ? 1 : 0);  // 1 correspond to geotif that has unnormalized velocity values
         // Reset the flag after setting it
         this.shouldResetParticles = false;
