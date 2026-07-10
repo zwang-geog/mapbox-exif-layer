@@ -17,7 +17,21 @@ Three layer classes, four use cases:
 | Scalar GeoTIFF preview | `SmoothRaster` | [Scalar GeoTIFF](https://github.com/zwang-geog/mapbox-exif-layer/tree/main/docs/geotiff-source.md) | Native grid resolution; blocky when zoomed in |
 | RGB / RGBA GeoTIFF | `RgbGeoTiff` | [RGB GeoTIFF](https://github.com/zwang-geog/mapbox-exif-layer/tree/main/docs/rgb-geotiff.md) | True-color image layer |
 
-**Per-use-case quick starts:** [Wind (Mapbox)](https://github.com/zwang-geog/mapbox-exif-layer/tree/main/claude-skill-plugin/skills/wind-particles/references/add-wind-particle-mapbox.md) · [Wind (MapLibre)](https://github.com/zwang-geog/mapbox-exif-layer/tree/main/claude-skill-plugin/skills/wind-particles/references/add-wind-particle-maplibre.md) · [Weather raster (Mapbox)](https://github.com/zwang-geog/mapbox-exif-layer/tree/main/claude-skill-plugin/skills/weather-raster/references/add-weather-raster-mapbox.md) · [Weather raster (MapLibre)](https://github.com/zwang-geog/mapbox-exif-layer/tree/main/claude-skill-plugin/skills/weather-raster/references/add-weather-raster-maplibre.md) · [RGB GeoTIFF](https://github.com/zwang-geog/mapbox-exif-layer/tree/main/docs/rgb-geotiff.md)
+### Quick starts
+
+Step-by-step guides by use case and map runtime:
+
+| Use case | Mapbox GL JS | MapLibre GL JS |
+| --- | --- | --- |
+| Wind | [Guide](https://github.com/zwang-geog/mapbox-exif-layer/tree/main/claude-skill-plugin/skills/wind-particles/references/add-wind-particle-mapbox.md) | [Guide](https://github.com/zwang-geog/mapbox-exif-layer/tree/main/claude-skill-plugin/skills/wind-particles/references/add-wind-particle-maplibre.md) |
+| Smooth weather / scalar GeoTIFF | [Guide](https://github.com/zwang-geog/mapbox-exif-layer/tree/main/claude-skill-plugin/skills/weather-raster/references/add-weather-raster-mapbox.md) | [Guide](https://github.com/zwang-geog/mapbox-exif-layer/tree/main/claude-skill-plugin/skills/weather-raster/references/add-weather-raster-maplibre.md) |
+| RGB GeoTIFF | [Guide](https://github.com/zwang-geog/mapbox-exif-layer/tree/main/docs/rgb-geotiff.md) | [Guide](https://github.com/zwang-geog/mapbox-exif-layer/tree/main/docs/rgb-geotiff.md) |
+
+> **Production note (scalar GeoTIFF preview & RGB GeoTIFF).** Loading the entire GeoTIFF in the browser is intended for **quick previews and small rasters** — not production maps at many zoom levels or over large extents. For production, add a standard Mapbox/MapLibre **raster tile source** instead:
+>
+> - **Pre-generated MBTiles** — build tiles with [rio-mbtiles](https://github.com/mapbox/rio-mbtiles) or QGIS **Raster → Generate XYZ Tiles (MBTiles)**, then serve with [mbtileserver](https://github.com/consbio/mbtileserver). For scalar GeoTIFF, assign RGB(A) colors from the attribute first (e.g. rasterio + NumPy) before generating the tileset.
+> - **COG + tile server** — [TiTiler](https://github.com/developmentseed/titiler) (or GeoServer / similar) serves tiles directly from a Cloud Optimized GeoTIFF without pre-generating MBTiles.
+> - **MapLibre serverless COG** — host a COG on static storage and use [maplibre-cog-protocol](https://github.com/geomatico/maplibre-cog-protocol) for range-request tiling in the client (no tile server).
 
 > **GeoTIFF support (v1.3.1+).** `ParticleMotion` and `SmoothRaster` accept scalar GeoTIFF sources (float32, EPSG:4326) in addition to JPEG/PNG. GeoTIFF rasters use physical cell values directly and do not require 0–255 normalization. See [docs/geotiff-source.md](https://github.com/zwang-geog/mapbox-exif-layer/tree/main/docs/geotiff-source.md). JPEG encoding is in [docs/jpeg-source.md](https://github.com/zwang-geog/mapbox-exif-layer/tree/main/docs/jpeg-source.md).
 
@@ -102,13 +116,13 @@ map.on('load', () => map.addLayer(windLayer));
 
 **More examples**
 
-* **Per use case** — quick-start guides linked in [At a glance](#at-a-glance) above
+* **Per use case** — [Quick starts](#quick-starts) table above
 * **Multi-layer app** — [`react-demo/react-demo`](react-demo/react-demo) (wind + temperature + humidity + precipitation)
 * **Time slider** — [`react-demo/real-time-example`](react-demo/real-time-example)
 * **MapLibre globe + GeoTIFF** — [`maplibre-gl-demo/maplibre-gl-demo`](maplibre-gl-demo/maplibre-gl-demo) (set `mapRuntime: 'maplibre'` on each layer)
 * **RGB GeoTIFF** — [`RgbGeoTiff`](#rgbgeotiff) below and [`docs/rgb-geotiff.md`](docs/rgb-geotiff.md)
 
-For `readyForDisplay`, `setSource`, visibility toggling, and MapLibre globe setup, see the [API reference](#available-class-reference) below and quick-start guides linked in [At a glance](#at-a-glance) above.
+For `readyForDisplay`, `setSource`, visibility toggling, and MapLibre globe setup, see the [API reference](#available-class-reference) below and [Quick starts](#quick-starts) above.
 
 ## TypeScript Usage
 

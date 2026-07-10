@@ -407,18 +407,57 @@
         </p>
       </div>
 
-      <div class="qa-block" id="faq-jpeg-vs-geotiff">
-        <h3>When should I use a JPEG/PNG image source vs GeoTIFF?</h3>
+      <div class="qa-block" id="faq-geotiff-visualization">
+        <h3>I would like to visualize a GeoTIFF file — can I use this package?</h3>
+        <p>
+          <strong>Yes.</strong> The package supports GeoTIFF in the browser with no tile server — which kind depends on your file:
+        </p>
+        <ul>
+          <li><strong>Scalar / grayscale</strong> (temperature, elevation, wind u/v, …) — <code>SmoothRaster</code> or <code>ParticleMotion</code>. See <a href="https://github.com/zwang-geog/mapbox-exif-layer/blob/main/docs/geotiff-source.md" target="_blank" rel="noopener">scalar GeoTIFF docs</a>.</li>
+          <li><strong>RGB / RGBA imagery</strong> (aerial, orthomosaic, true-color satellite) — <code>RgbGeoTiff</code>. See <a href="https://github.com/zwang-geog/mapbox-exif-layer/blob/main/docs/rgb-geotiff.md" target="_blank" rel="noopener">RGB GeoTIFF docs</a>.</li>
+        </ul>
+        <p>
+          That path is best for <strong>small grids</strong>, <strong>demos</strong>, <strong>data previews</strong>, and other
+          <strong>non-production</strong> use. The layer downloads the <strong>entire GeoTIFF</strong> on load (no COG range requests or tiling), so large files or maps at many zoom levels are a poor fit.
+        </p>
+        <p>For production, use a standard Mapbox/MapLibre <strong>raster tile source</strong> instead:</p>
+        <ul>
+          <li><strong>Pre-generated MBTiles</strong> — build tiles with <a href="https://github.com/mapbox/rio-mbtiles" target="_blank" rel="noopener">rio-mbtiles</a> or QGIS <strong>Raster → Generate XYZ Tiles (MBTiles)</strong>, then serve with <a href="https://github.com/consbio/mbtileserver" target="_blank" rel="noopener">mbtileserver</a>. For scalar GeoTIFF, assign RGB(A) colors from the attribute first (e.g. rasterio + NumPy) before generating the tileset.</li>
+          <li><strong>COG + tile server</strong> — <a href="https://github.com/developmentseed/titiler" target="_blank" rel="noopener">TiTiler</a> (or GeoServer / similar) serves tiles directly from a Cloud Optimized GeoTIFF without pre-generating MBTiles.</li>
+          <li><strong>MapLibre serverless COG</strong> — host a COG on static storage and use <a href="https://github.com/geomatico/maplibre-cog-protocol" target="_blank" rel="noopener">maplibre-cog-protocol</a> for range-request tiling in the client (no tile server).</li>
+        </ul>
+      </div>
+
+      <div class="qa-block" id="faq-wind-jpeg-vs-geotiff">
+        <h3>For wind maps, should I use JPEG/PNG or GeoTIFF?</h3>
         <p>
           Properly encoded JPEG/PNG rasters are much smaller than GeoTIFFs. On this site’s NOAA NAM NEST CONUS demo grid
           (2269×976), wind is <strong>~332&nbsp;KB</strong> as JPEG vs <strong>~8.9&nbsp;MB</strong> as
           ZSTD-compressed float32 GeoTIFF — a big difference for storage and download when you serve many forecast
           timesteps.
+          GeoTIFF is still a practical <strong>starting point</strong>: a familiar <code>gdalwarp</code> step gets you a map without learning custom JPEG band encoding — a quick way to validate the layer and build confidence before moving to encoded images for production.
         </p>
         <ul>
-          <li><strong>Prefer JPEG/PNG</strong> when you need many timesteps (multi-hour forecasts), want minimal hosting cost, or want the smoothest <code>SmoothRaster</code> look (linear texture filtering on 8-bit RGB). Min/max metadata can come from EXIF or constructor <code>scalarValueRange</code> / <code>velocityRange</code>.</li>
-          <li><strong>Prefer GeoTIFF</strong> (EPSG:4326, Float32, compressed) when you want a GIS-friendly pipeline without custom image encoding, have a smaller study area, or only a few timesteps. Extra float precision is often not visible in everyday visualization.</li>
+          <li><strong>Prefer JPEG/PNG</strong> when you need many timesteps (multi-hour forecasts), a large grid, or want minimal hosting cost. Min/max velocity metadata can come from EXIF or constructor <code>velocityRange</code>.</li>
+          <li><strong>Prefer GeoTIFF</strong> (EPSG:4326, float32 u/v bands, compressed) when you want a GIS-friendly pipeline without custom image encoding, have a smaller study area, and only a few timesteps. Extra float precision is often not visible in everyday visualization though.</li>
         </ul>
+      </div>
+
+      <div class="qa-block" id="faq-geotiff-smooth-display">
+        <h3>Can GeoTIFF be used for smooth, non-blocky, linear-interpolated display?</h3>
+        <p>
+          <strong>No</strong> — not with <code>SmoothRaster</code> in this package. For smooth weather display (temperature, humidity, precipitation, …), use a
+          <a href="https://github.com/zwang-geog/mapbox-exif-layer/blob/main/docs/jpeg-source.md" target="_blank" rel="noopener">properly encoded JPEG/PNG</a>
+          source. The grid is uploaded as an 8-bit RGBA texture with <strong>linear</strong> filtering, so the GPU bilinearly blends between neighboring cells and the layer looks smooth when zoomed in.
+        </p>
+        <p>
+          Scalar GeoTIFF on <code>SmoothRaster</code> is a separate use case: a <strong>preview</strong> path with native grid resolution and
+          <strong>nearest</strong> sampling on float32 data (WebGL does not reliably support linear filtering on float textures). Cell edges stay visible when zoomed in even though colormap stops are interpolated. See
+          <a href="https://github.com/zwang-geog/mapbox-exif-layer/blob/main/docs/geotiff-source.md" target="_blank" rel="noopener">scalar GeoTIFF docs</a>
+          and the
+          <a href="#faq-geotiff-visualization">GeoTIFF production note above</a>
+          for alternatives at scale.
+        </p>
       </div>
 
       <div class="qa-block" id="faq-leaflet-openlayers">
@@ -465,7 +504,7 @@
 
       <div class="install-block">
         <h3>Import</h3>
-        <pre><code>import { ParticleMotion, SmoothRaster } from 'mapbox-exif-layer';</code></pre>
+        <pre><code>import { ParticleMotion, SmoothRaster, RgbGeoTiff } from 'mapbox-exif-layer';</code></pre>
       </div>
     </div>
   </section>
