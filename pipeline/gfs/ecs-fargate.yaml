@@ -1,0 +1,232 @@
+# EventBridge → ECS Fargate (on-demand) for pipeline/gfs/run_gfs.py
+#
+# Subnets must be public (AssignPublicIp ENABLED). A NAT gateway is unnecessary
+# and would dominate cost. Deploy in us-east-1 next to NOAA Open Data.
+#
+#   aws cloudformation deploy \
+#     --region us-east-1 \
+#     --stack-name gfs-wind-pipeline \
+#     --template-file pipeline/gfs/ecs-fargate.yaml \
+#     --capabilities CAPABILITY_NAMED_IAM \
+#     --parameter-overrides \
+#       ImageUri=ACCOUNT.dkr.ecr.us-east-1.amazonaws.com/gfs-wind-pipeline:latest \
+#       OverlayBucket=your-bucket \
+#       VpcId=vpc-... \
+#       SubnetIds=subnet-aaa,subnet-bbb
+
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Scheduled GFS JPEG overlay pipeline on ECS Fargate (ARM64).
+
+Parameters:
+  ImageUri:
+    Type: String
+    Description: ECR image URI (include tag or digest), linux/arm64.
+
+  OverlayBucket:
+    Type: String
+    Description: S3 bucket for overlay JPEGs and status.json.
+
+  OverlayPrefix:
+    Type: String
+    Default: gfs/0p25
+    Description: Key prefix without leading/trailing slash (GFS_WIND_S3_PREFIX).
+
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC for the task ENI (default VPC is fine).
+
+  SubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: Public subnets in at least one AZ.
+
+  ScheduleExpression:
+    Type: String
+    Default: cron(5 0,6,12,18 * * ? *)
+    Description: UTC EventBridge schedule. Default is 5 minutes after each 6-hour mark.
+
+  TaskCpu:
+    Type: String
+    Default: "2048"
+    AllowedValues: ["1024", "2048", "4096"]
+    Description: Fargate CPU units (1024 = 1 vCPU).
+
+  TaskMemory:
+    Type: String
+    Default: "4096"
+    Description: Fargate memory in MiB. Must be valid for TaskCpu (2048 CPU → 4–16 GB).
+
+  IdxTries:
+    Type: String
+    Default: "3"
+    Description: GFS_IDX_TRIES — HTTP attempts per forecast-hour .idx.
+
+  IdxSleep:
+    Type: String
+    Default: "60"
+    Description: GFS_IDX_SLEEP — seconds between .idx retries.
+
+Resources:
+  Cluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: !Ref AWS::StackName
+      CapacityProviders:
+        - FARGATE
+
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /ecs/${AWS::StackName}
+      RetentionInDays: 14
+
+  ExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${AWS::StackName}-execution
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+
+  TaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${AWS::StackName}-task
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: overlay-s3
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: OverlayObjects
+                Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                Resource: !Sub arn:aws:s3:::${OverlayBucket}/${OverlayPrefix}/*
+
+  TaskSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Sub ${AWS::StackName} egress HTTPS
+      VpcId: !Ref VpcId
+      SecurityGroupEgress:
+        - IpProtocol: "-1"
+          CidrIp: 0.0.0.0/0
+          Description: NOAA HTTPS, ECR, S3, CloudWatch
+
+  TaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Ref AWS::StackName
+      RequiresCompatibilities:
+        - FARGATE
+      NetworkMode: awsvpc
+      Cpu: !Ref TaskCpu
+      Memory: !Ref TaskMemory
+      ExecutionRoleArn: !GetAtt ExecutionRole.Arn
+      TaskRoleArn: !GetAtt TaskRole.Arn
+      RuntimePlatform:
+        CpuArchitecture: ARM64
+        OperatingSystemFamily: LINUX
+      ContainerDefinitions:
+        - Name: pipeline
+          Image: !Ref ImageUri
+          Essential: true
+          Environment:
+            - Name: GFS_WIND_S3_BUCKET
+              Value: !Ref OverlayBucket
+            - Name: GFS_WIND_S3_PREFIX
+              Value: !Ref OverlayPrefix
+            - Name: GFS_IDX_TRIES
+              Value: !Ref IdxTries
+            - Name: GFS_IDX_SLEEP
+              Value: !Ref IdxSleep
+            - Name: AWS_DEFAULT_REGION
+              Value: !Ref AWS::Region
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref LogGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: gfs
+
+  SchedulerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${AWS::StackName}-events
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: run-fargate-task
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: ecs:RunTask
+                Resource: !Sub arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:task-definition/${AWS::StackName}:*
+                Condition:
+                  ArnLike:
+                    ecs:cluster: !GetAtt Cluster.Arn
+              - Effect: Allow
+                Action: iam:PassRole
+                Resource:
+                  - !GetAtt ExecutionRole.Arn
+                  - !GetAtt TaskRole.Arn
+                Condition:
+                  StringEquals:
+                    iam:PassedToService: ecs-tasks.amazonaws.com
+              - Effect: Allow
+                Action: ecs:TagResource
+                Resource: "*"
+
+  ScheduleRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub ${AWS::StackName}-schedule
+      Description: Run GFS overlay after each cycle plus 6 hours (UTC).
+      ScheduleExpression: !Ref ScheduleExpression
+      State: ENABLED
+      Targets:
+        - Id: RunPipeline
+          Arn: !GetAtt Cluster.Arn
+          RoleArn: !GetAtt SchedulerRole.Arn
+          EcsParameters:
+            TaskCount: 1
+            TaskDefinitionArn: !Ref TaskDefinition
+            LaunchType: FARGATE
+            PlatformVersion: "1.4.0"
+            NetworkConfiguration:
+              AwsVpcConfiguration:
+                AssignPublicIp: ENABLED
+                SecurityGroups:
+                  - !Ref TaskSecurityGroup
+                Subnets: !Ref SubnetIds
+
+Outputs:
+  ClusterName:
+    Value: !Ref Cluster
+  TaskDefinitionArn:
+    Value: !Ref TaskDefinition
+  LogGroupName:
+    Value: !Ref LogGroup
+  ScheduleRuleName:
+    Value: !Ref ScheduleRule
+  OverlayUri:
+    Value: !Sub s3://${OverlayBucket}/${OverlayPrefix}/

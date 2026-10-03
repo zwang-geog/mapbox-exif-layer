@@ -1,0 +1,5 @@
+# Pip packages for GFS wind JPEG conversion (grib2_to_image.py).
+# GDAL/osgeo is not listed: match the native libgdal in the venv or Docker image.
+numpy>=1.26
+pillow>=10.0
+piexif>=1.1.3

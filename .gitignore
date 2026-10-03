@@ -4,4 +4,9 @@ dist/
 *.log
 .env
 .env.local
-.env.*.local 
+.env.*.local
+*.pyc
+__pycache__/
+pipeline/gfs/.venv/ 
+docs/GFS_open_data.md
+gfs_wind_out/

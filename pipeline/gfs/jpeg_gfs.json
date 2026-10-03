@@ -1,0 +1,14 @@
+{
+  "wind": {
+    "band": ["GRIB_ELEMENT=UGRD", "GRIB_ELEMENT=VGRD"],
+    "to_mph": false,
+    "to_kph": false
+  },
+  "temperature": {
+    "band": "GRIB_ELEMENT=TMP",
+    "to_fahrenheit": false
+  },
+  "rh": {
+    "band": "GRIB_ELEMENT=RH"
+  }
+}
