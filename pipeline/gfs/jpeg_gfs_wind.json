@@ -1,0 +1,7 @@
+{
+  "wind": {
+    "band": ["GRIB_ELEMENT=UGRD", "GRIB_ELEMENT=VGRD"],
+    "to_mph": false,
+    "to_kph": false
+  }
+}

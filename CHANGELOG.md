@@ -2,6 +2,10 @@
 
 All notable changes to this project are documented in this file.
 
+## v1.3.5
+
+- **Peer dependency:** Bumped `maplibre-gl` to include v6 (`^4.0.0 || ^5.0.0 || ^6.0.0`).
+
 ## v1.3.4
 
 - **ParticleMotion dateline handling:** For global wind extents whose longitude span rounds to at least 360° (e.g. `[-180.5, 90.5, 179.5, -90.5]`), particles now wrap east/west across the antimeridian instead of resetting to a random position. Regional extents (span < 360°) still reset at left/right boundaries. Wrap behavior is auto-detected from bounds when the source is set and passed to the update shader via `wrapLongitude`.

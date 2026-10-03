@@ -1,0 +1,16 @@
+.git
+.github
+node_modules
+dist
+landing-page
+react-demo
+maplibre-gl-demo
+claude-skill-plugin
+src
+docs
+**/.venv
+**/gfs_wind_out
+**/.DS_Store
+**/*.log
+.env
+.env.*

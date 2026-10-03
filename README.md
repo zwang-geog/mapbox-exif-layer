@@ -46,6 +46,51 @@ Step-by-step guides by use case and map runtime:
 
 > **JPEG/PNG without EXIF (v1.3.2+).** For normalized JPEG or PNG files that omit EXIF `ImageDescription` min/max metadata, pass `scalarValueRange` on `SmoothRaster` or `velocityRange` on `ParticleMotion`. When EXIF is present, EXIF takes precedence. See [docs/jpeg-source.md](https://github.com/zwang-geog/mapbox-exif-layer/tree/main/docs/jpeg-source.md).
 
+## GFS 0.25° Free Open Data (update every 6 hours)
+
+I process and distribute global weather forecasts of wind (m/s), temperature (°C), and relative humidity (%) EXIF JPEGs for free public use (both non-commercial and commercial, with attribution). The raw forecast data come from [NOAA GFS](https://www.ncei.noaa.gov/products/weather-climate-models/global-forecast), and anyone using those EXIF JPEGs should add custom attribution to credit NOAA and mapbox-exif-layer.
+
+**Base URL:** `https://www.mapbox-exif-layer.com/gfs/0p25`
+
+| Subfolder (var) | NOAA field | Layer | Units |
+| --- | --- | --- | --- |
+| `wind/` | 10 m UGRD + VGRD | `ParticleMotion` (`unit: 'mps'`) | m/s |
+| `temperature/` | 2 m TMP | `SmoothRaster` | °C |
+| `rh/` | 2 m RH | `SmoothRaster` | % |
+
+JPEG file names use `{var}_{YYYYMMDDHH}.jpeg`, where `HH` is 00–23 UTC. The URL pattern is:
+
+```
+https://www.mapbox-exif-layer.com/gfs/0p25/{wind|temperature|rh}/{var}_{YYYYMMDDHH}.jpeg
+```
+
+Example: `https://www.mapbox-exif-layer.com/gfs/0p25/rh/rh_2026100305.jpeg`
+
+GFS 0.25° consists of hourly forecast for hours 0–120 (121 timesteps) and 3-hour forecast for hours 123–384 (88 timesteps). It updates every 6 hours. `status.json` encodes which hourly vs 3-hour valid times are in the current cycle, which is useful for a time slider:
+
+```
+https://www.mapbox-exif-layer.com/gfs/0p25/status.json
+```
+
+| Field | Meaning |
+| --- | --- |
+| `status` | `"complete"` when `f384` is present, otherwise `"partial"` |
+| `grid` | `"0p25"` |
+| `cadence` | `"hourly-then-3-hourly"` |
+| `variables` | `["wind", "temperature", "rh"]` |
+| `units` | `wind`: `m s-1`, `temperature`: `degC`, `rh`: `%` |
+| `available_from` / `_unix` | Cycle `init` minus 96 h (suggested lookback, not an object inventory) |
+| `init` / `init_unix` | Cycle initialization time (UTC) |
+| `hourly_until` / `_unix` | Last **hourly** valid time (`f120` when the cycle is complete) |
+| `three_hourly_until` / `_unix` | Last valid time written for this cycle (`f384` when complete) |
+| `bounds` | `[-180, 90, 180, -90]` |
+
+The pipeline does not delete old JPEGs. An S3 lifecycle rule expires objects about 6 days after last modification, so valid times before `init` are not guaranteed.
+
+Build slider timestamps as hourly steps from `init_unix` through `hourly_until_unix`. A MapLibre globe demo is [`maplibre-gl-demo/global-gfs-slider`](maplibre-gl-demo/global-gfs-slider/src/App.jsx).
+
+To run the same NOAA → JPEG conversion on your own schedule (cron, EventBridge, or similar), see [`pipeline/gfs`](pipeline/gfs) (`run_gfs.py`, plus `ecs-fargate.yaml` if you want a Fargate example).
+
 ## Installation
 
 This package does not include a map SDK. Install **one** of the following, depending on which runtime you use:
@@ -112,8 +157,8 @@ map.on('load', () => map.addLayer(windLayer));
 
 * **Per use case** — [Quick starts](#quick-starts) table above
 * **Multi-layer app** — [`react-demo/react-demo`](react-demo/react-demo) (wind + temperature + humidity + precipitation)
-* **Time slider** — [`react-demo/real-time-example`](react-demo/real-time-example)
-* **MapLibre globe + GeoTIFF** — [`maplibre-gl-demo/maplibre-gl-demo`](maplibre-gl-demo/maplibre-gl-demo) (set `mapRuntime: 'maplibre'` on each layer)
+* **Time slider** — [`maplibre-gl-demo/global-gfs-slider`](maplibre-gl-demo/global-gfs-slider/src/App.jsx) (GFS 0.25° on MapLibre globe)
+* **MapLibre globe + GeoTIFF** — [`maplibre-gl-demo/maplibre-gl-demo`](maplibre-gl-demo/maplibre-gl-demo/src/App.jsx) (set `mapRuntime: 'maplibre'` on each layer)
 * **RGB GeoTIFF** — [`RgbGeoTiff`](#rgbgeotiff) below and [`docs/rgb-geotiff.md`](docs/rgb-geotiff.md)
 
 For `readyForDisplay`, `setSource`, visibility toggling, and MapLibre globe setup, see the [API reference](#available-class-reference) below and [Quick starts](#quick-starts) above.
