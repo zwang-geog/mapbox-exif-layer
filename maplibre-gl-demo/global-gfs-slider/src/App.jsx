@@ -21,7 +21,6 @@ import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
 maplibregl.setWorkerUrl(workerUrl)
 import {
   Slider,
-  IconButton,
   FormGroup,
   FormControlLabel,
   Checkbox,
@@ -48,6 +47,25 @@ const DEFAULT_BOUNDS = [-180, 90, 180, -90]
 function wrapIndex(index, length) {
   if (length <= 0) return 0
   return ((index % length) + length) % length
+}
+
+/** Unix-hour delta to the destination frame, or null if the step would wrap. */
+function hourDeltaForStep(frames, currentIndex, delta) {
+  const length = frames.length
+  if (length <= 0) return null
+  const next = currentIndex + delta
+  if (next < 0 || next >= length) return null
+  const from = frames[currentIndex]
+  const to = frames[next]
+  if (!Number.isFinite(from) || !Number.isFinite(to)) return null
+  return Math.round((to - from) / 3600)
+}
+
+function formatHourStepLabel(hours) {
+  if (hours == null) return 'loop'
+  if (hours === 0) return '0 h'
+  const sign = hours > 0 ? '+' : '−'
+  return `${sign}${Math.abs(hours)} h`
 }
 
 function App() {
@@ -106,7 +124,7 @@ function App() {
 
   const sliderMarks = useMemo(() => {
     if (!status || !frames.length) return []
-    const keys = ['available_from_unix', 'init_unix', 'hourly_until_unix', 'three_hourly_until_unix']
+    const keys = ['init_unix', 'hourly_until_unix', 'three_hourly_until_unix']
     const seen = new Set()
     const marks = []
     for (const key of keys) {
@@ -293,6 +311,11 @@ function App() {
     goToFrame(frameIndexRef.current + delta)
   }
 
+  const back3Label = formatHourStepLabel(hourDeltaForStep(frames, frameIndex, -3))
+  const back1Label = formatHourStepLabel(hourDeltaForStep(frames, frameIndex, -1))
+  const fwd1Label = formatHourStepLabel(hourDeltaForStep(frames, frameIndex, 1))
+  const fwd3Label = formatHourStepLabel(hourDeltaForStep(frames, frameIndex, 3))
+
   return (
     <>
       <div id="map-container" ref={mapContainerRef} />
@@ -346,22 +369,57 @@ function App() {
           />
         </Box>
 
-        <Box sx={{ display: 'flex', justifyContent: 'center', mb: 0.5 }}>
-          <IconButton size="small" disabled={!frames.length} onClick={() => stepFrame(-3)}>
-            <FastRewind />
-          </IconButton>
-          <IconButton disabled={!frames.length} onClick={() => stepFrame(-1)}>
-            <SkipPrevious />
-          </IconButton>
-          <IconButton disabled={!frames.length} onClick={() => setIsPlaying(!isPlaying)}>
-            {isPlaying ? <Pause /> : <PlayArrow />}
-          </IconButton>
-          <IconButton disabled={!frames.length} onClick={() => stepFrame(1)}>
-            <SkipNext />
-          </IconButton>
-          <IconButton disabled={!frames.length} onClick={() => stepFrame(3)}>
-            <FastForward />
-          </IconButton>
+        <Box sx={{ display: 'flex', justifyContent: 'center', mb: 0.5, gap: 0.25 }}>
+          <Button
+            size="small"
+            disabled={!frames.length}
+            onClick={() => stepFrame(-3)}
+            aria-label={back3Label === 'loop' ? 'Loop to end' : `Back ${back3Label}`}
+            sx={{ minWidth: 52, px: 0.5, flexDirection: 'column', lineHeight: 1.15 }}
+          >
+            <FastRewind fontSize="small" />
+            {back3Label}
+          </Button>
+          <Button
+            size="small"
+            disabled={!frames.length}
+            onClick={() => stepFrame(-1)}
+            aria-label={back1Label === 'loop' ? 'Loop to end' : `Back ${back1Label}`}
+            sx={{ minWidth: 52, px: 0.5, flexDirection: 'column', lineHeight: 1.15 }}
+          >
+            <SkipPrevious fontSize="small" />
+            {back1Label}
+          </Button>
+          <Button
+            size="small"
+            disabled={!frames.length}
+            onClick={() => setIsPlaying(!isPlaying)}
+            aria-label={isPlaying ? 'Pause' : 'Play'}
+            sx={{ minWidth: 52, px: 0.5, flexDirection: 'column', lineHeight: 1.15 }}
+          >
+            {isPlaying ? <Pause fontSize="small" /> : <PlayArrow fontSize="small" />}
+            {isPlaying ? 'Pause' : 'Play'}
+          </Button>
+          <Button
+            size="small"
+            disabled={!frames.length}
+            onClick={() => stepFrame(1)}
+            aria-label={fwd1Label === 'loop' ? 'Loop to start' : `Forward ${fwd1Label}`}
+            sx={{ minWidth: 52, px: 0.5, flexDirection: 'column', lineHeight: 1.15 }}
+          >
+            <SkipNext fontSize="small" />
+            {fwd1Label}
+          </Button>
+          <Button
+            size="small"
+            disabled={!frames.length}
+            onClick={() => stepFrame(3)}
+            aria-label={fwd3Label === 'loop' ? 'Loop to start' : `Forward ${fwd3Label}`}
+            sx={{ minWidth: 52, px: 0.5, flexDirection: 'column', lineHeight: 1.15 }}
+          >
+            <FastForward fontSize="small" />
+            {fwd3Label}
+          </Button>
         </Box>
 
         <Box

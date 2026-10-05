@@ -131,10 +131,10 @@ function fetchGfsStatus() {
   });
 }
 
-/** Hourly available_from…hourly_until, then 3-hourly through three_hourly_until. */
+/** Hourly init…hourly_until, then 3-hourly through three_hourly_until. */
 function expandForecastUnix(status) {
   const hour = 3600;
-  const from = status.available_from_unix;
+  const from = status.init_unix;
   const hourlyUntil = status.hourly_until_unix;
   const threeUntil = status.three_hourly_until_unix;
   const frames = [];

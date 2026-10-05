@@ -24,9 +24,9 @@ Three layer classes, four use cases:
 
 ### Demos
 
-* [US wind & temperature demo](https://www.us-wind-particle-map-demo.mapbox-exif-layer.com) ([source](react-demo/react-demo))
-* [Weather map time slider demo](https://www.weather-map-time-slider-demo.mapbox-exif-layer.com) ([source](react-demo/real-time-example))
-* [MapLibre GL JS globe projection demo](https://www.mapbox-exif-layer.com/maplibre-gl-js-globe-projection-demo/index.html) ([source](maplibre-gl-demo/maplibre-gl-demo))
+* [Weather map time slider demo](https://www.weather-map-time-slider-demo.mapbox-exif-layer.com) ([source](maplibre-gl-demo/global-gfs-slider/src/App.jsx))
+* [MapLibre country-scale globe demo (masked no-data cells)](https://www.mapbox-exif-layer.com/maplibre-gl-js-globe-projection-demo/index.html) ([source](maplibre-gl-demo/maplibre-gl-demo/src/App.jsx))
+* [US wind & temperature demo with Mapbox](https://www.us-wind-particle-map-demo.mapbox-exif-layer.com) ([source](react-demo/react-demo/src/App.jsx))
 * [Demo video — Southern California wind particles](https://www.youtube.com/watch?v=HLu0Ylhu5x4)
 * [Demo video — US continental wind particle animation (v1.1.0)](https://www.youtube.com/watch?v=iWKjNriTW-U)
 * [Demo video — MapLibre GL JS globe projection (v1.3.1)](https://www.youtube.com/watch?v=SLPBfteIbRE)
@@ -48,7 +48,7 @@ Step-by-step guides by use case and map runtime:
 
 ## GFS 0.25° Free Open Data (update every 6 hours)
 
-I process and distribute global weather forecasts of wind (m/s), temperature (°C), and relative humidity (%) EXIF JPEGs for free public use (both non-commercial and commercial, with attribution). The raw forecast data come from [NOAA GFS](https://www.ncei.noaa.gov/products/weather-climate-models/global-forecast), and anyone using those EXIF JPEGs should add custom attribution to credit NOAA and mapbox-exif-layer.
+Today's new release represents a significant jump that competes with commercial wind map providers like [Windy](https://www.windy.com/) and [Xweather](https://www.xweather.com/). I process and distribute global weather forecasts of wind (m/s), temperature (°C), and relative humidity (%) EXIF JPEGs for free public use (both non-commercial and commercial, with attribution). The raw forecast data come from [NOAA GFS](https://www.ncei.noaa.gov/products/weather-climate-models/global-forecast), and anyone using those EXIF JPEGs should add custom attribution to credit NOAA and mapbox-exif-layer.
 
 **Base URL:** `https://www.mapbox-exif-layer.com/gfs/0p25`
 

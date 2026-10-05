@@ -107,22 +107,22 @@
     <div class="section-inner">
       <h2>Live demos</h2>
       <div class="demo-grid">
+        <a class="demo-card" href="https://www.weather-map-time-slider-demo.mapbox-exif-layer.com" target="_blank" rel="noopener">
+          <span class="demo-tag">MapLibre · Global</span>
+          <h3>Weather map time slider</h3>
+          <p>NOAA GFS 0.25° forecast — wind, temperature, and relative humidity with timestep controls - on MapLibre's globe projection.</p>
+          <span class="demo-link">Open demo →</span>
+        </a>
         <a class="demo-card" href="https://www.mapbox-exif-layer.com/maplibre-gl-js-globe-projection-demo/index.html" target="_blank" rel="noopener">
           <span class="demo-tag">MapLibre · CONUS</span>
-          <h3>MapLibre GL JS demo</h3>
-          <p>Interactive US wind particles and temperature raster on MapLibre’s globe projection (v1.2.0+).</p>
+          <h3>Country-scale forecast on a globe</h3>
+          <p>A large-country (CONUS) wind and temperature overlay on the globe. No-data cells are masked, unlike a full-Earth GFS grid.</p>
           <span class="demo-link">Open demo →</span>
         </a>
         <a class="demo-card" href="https://www.us-wind-particle-map-demo.mapbox-exif-layer.com" target="_blank" rel="noopener">
           <span class="demo-tag">Mapbox · CONUS</span>
-          <h3>US wind &amp; temperature</h3>
+          <h3>Country-scale forecast on Mapbox (mercator)</h3>
           <p>Contiguous United States wind particle animation and temperature smooth raster. Toggle each layer on and off.</p>
-          <span class="demo-link">Open demo →</span>
-        </a>
-        <a class="demo-card" href="https://www.weather-map-time-slider-demo.mapbox-exif-layer.com" target="_blank" rel="noopener">
-          <span class="demo-tag">Mapbox · Southern California</span>
-          <h3>Weather map time slider</h3>
-          <p>NOAA NAM NEST forecast over Southern California — wind, temperature, humidity, precipitation with timestep controls.</p>
           <span class="demo-link">Open demo →</span>
         </a>
       </div>
@@ -280,7 +280,7 @@
 
       <p class="resource-group-label">Featured sample code</p>
       <div class="resource-button-grid">
-        <a class="btn btn-secondary resource-btn" href="https://github.com/zwang-geog/mapbox-exif-layer/blob/main/react-demo/real-time-example/src/App.jsx" target="_blank" rel="noopener">Timeslider</a>
+        <a class="btn btn-secondary resource-btn" href="https://github.com/zwang-geog/mapbox-exif-layer/blob/main/maplibre-gl-demo/global-gfs-slider/src/App.jsx" target="_blank" rel="noopener">Timeslider</a>
         <a class="btn btn-secondary resource-btn" href="https://github.com/zwang-geog/mapbox-exif-layer/blob/main/maplibre-gl-demo/geotif-demo/src/App.jsx" target="_blank" rel="noopener">MapLibre globe projection &amp; Grayscale GeoTIFF</a>
         <a class="btn btn-secondary resource-btn" href="https://github.com/zwang-geog/mapbox-exif-layer/blob/main/maplibre-gl-demo/rgba-geotif-demo/index.html" target="_blank" rel="noopener">RGB GeoTIFF (no npm)</a>
       </div>
@@ -320,8 +320,8 @@
             </thead>
             <tbody>
               <tr>
-                <th scope="row">MapLibre v5 support</th>
-                <td>Yes (with <code>mapRuntime</code> set to <code>maplibre</code> in constructor; v1.2.1+)</td>
+                <th scope="row">MapLibre v5 / v6 support</th>
+                <td>Yes (with <code>mapRuntime</code> set to <code>maplibre</code> in constructor; v5 from v1.2.1+, v6 from v1.3.5)</td>
                 <td>Yes (via MapboxOverlay of deck.gl)</td>
                 <td>No (only works for MapLibre v3)</td>
               </tr>
@@ -466,6 +466,52 @@
           No. It targets <strong>Mapbox GL JS</strong> and <strong>MapLibre GL JS</strong> only — both WebGL map SDKs
           with a similar custom-layer API that this package implements. Leaflet and OpenLayers use a different rendering
           model and are not supported.
+        </p>
+      </div>
+
+      <div class="qa-block" id="faq-gfs-open-data">
+        <h3>Do you provide ready-to-map wind data?</h3>
+        <p>
+          <strong>Yes.</strong> Global NOAA GFS 0.25° forecasts are published as EXIF JPEGs you can pass straight to
+          <code>ParticleMotion</code> and <code>SmoothRaster</code> — no tile server. They are free for non-commercial
+          and commercial use; add custom attribution for
+          <a href="https://www.ncei.noaa.gov/products/weather-climate-models/global-forecast" target="_blank" rel="noopener">NOAA GFS</a>
+          and mapbox-exif-layer. The product updates every 6 hours (00 / 06 / 12 / 18 UTC cycles).
+        </p>
+        <p>Layer URLs (copy one per source; <code>HH</code> is 00–23 UTC):</p>
+        <pre><code>https://www.mapbox-exif-layer.com/gfs/0p25/wind/wind_{YYYYMMDDHH}.jpeg</code></pre>
+        <ul>
+          <li>10 m UGRD + VGRD, m/s (<code>ParticleMotion</code>, <code>unit: 'mps'</code>)</li>
+        </ul>
+        <pre><code>https://www.mapbox-exif-layer.com/gfs/0p25/temperature/temperature_{YYYYMMDDHH}.jpeg</code></pre>
+        <ul>
+          <li>2 m TMP, °C (<code>SmoothRaster</code>)</li>
+        </ul>
+        <pre><code>https://www.mapbox-exif-layer.com/gfs/0p25/rh/rh_{YYYYMMDDHH}.jpeg</code></pre>
+        <ul>
+          <li>2 m RH, % (<code>SmoothRaster</code>)</li>
+        </ul>
+        <br>
+        <p>
+          Catalog for a time slider (copy this URL; hourly <code>f000</code>–<code>f120</code>, then 3-hourly through
+          <code>f384</code>):
+        </p>
+        <pre><code>https://www.mapbox-exif-layer.com/gfs/0p25/status.json</code></pre>
+        <p>
+          Build slider timestamps as hourly steps from <code>init_unix</code> through <code>hourly_until_unix</code>.
+          <code>available_from</code> is only a lookback stamp (init minus 96 h), not an inventory. Old JPEGs are not
+          deleted by the pipeline; an S3 lifecycle rule expires them about 6 days after last modification, so times
+          before <code>init</code> are not guaranteed.
+        </p>
+        <p>
+          Globe time-slider demo:
+          <a href="https://www.weather-map-time-slider-demo.mapbox-exif-layer.com" target="_blank" rel="noopener">live</a>
+          ·
+          <a href="https://github.com/zwang-geog/mapbox-exif-layer/blob/main/maplibre-gl-demo/global-gfs-slider/src/App.jsx" target="_blank" rel="noopener">source</a>.
+          To run the same NOAA → JPEG conversion on your own schedule, see
+          <a href="https://github.com/zwang-geog/mapbox-exif-layer/tree/main/pipeline/gfs" target="_blank" rel="noopener">pipeline/gfs</a>.
+          Field-by-field <code>status.json</code> notes are in the
+          <a href="https://github.com/zwang-geog/mapbox-exif-layer/blob/main/README.md#gfs-025-free-open-data-update-every-6-hours" target="_blank" rel="noopener">README GFS section</a>.
         </p>
       </div>
     </div>
