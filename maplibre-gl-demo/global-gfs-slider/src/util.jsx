@@ -209,11 +209,11 @@ function WeatherColorbar({ colors }) {
 const BASEMAP_STYLES = {
   dark: {
     url: MAP_STYLES.dark,
-    thumb: 'url(/satellite-streets-v12.png)',
+    thumb: 'url(/dark.png)',
   },
   streets: {
     url: MAP_STYLES.streets,
-    thumb: 'url(/streets-v12.png)',
+    thumb: 'url(/streets.png)',
   },
 };
 
