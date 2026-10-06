@@ -11,3 +11,4 @@ pipeline/gfs/.venv/
 docs/GFS_open_data.md
 gfs_wind_out/
 maplibre-gl-demo/maplibre-gl-demo/public/wind_01.jpeg
+docs/viewport-particle-motion.md
