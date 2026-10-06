@@ -502,7 +502,7 @@ function computeWrapLongitude(bounds) {
     return Math.round(bounds[2] - bounds[0]) >= 360;
 }
 
-const VIEWPORT_PADDING = 0.15;
+const VIEWPORT_PADDING = 0.08;
 // Default live count, log-interpolated between these stops. Zoom at or above
 // the first stop stays on that count. Zoom at or below the last stop stays on
 // that count. The zoom-12 stop keeps 8–12 near 5000; the drop to 10 is the
@@ -1022,10 +1022,6 @@ export default class NewParticleMotion {
             this.reseedViewport = false;
             const zoom = typeof this.map.getZoom === 'function' ? this.map.getZoom() : 0;
             this.liveCount = liveCountForZoom(this.particleCountForZoom, zoom, this.bufferCapacity);
-            console.log('NewParticleMotion zoom count', {
-                zoom,
-                liveCount: this.liveCount,
-            });
         }
 
         gl.uniform4fv(this.updateProgram.u_viewport, viewport.window);
