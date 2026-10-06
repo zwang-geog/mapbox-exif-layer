@@ -56,6 +56,41 @@ declare module 'mapbox-exif-layer' {
     setSource(source: string, percentReset?: number): void;
   }
 
+  export class NewParticleMotion {
+    constructor(options: {
+      id: string;
+      source: string;
+      color: Array<[number, number[]]>;
+      /** Required for JPEG; optional for GeoTIFF (read from file). */
+      bounds?: [number, number, number, number];
+      /** Fixed count, or (zoom) => count. Omitted: log-interpolated default stops. */
+      particleCount?: number | ((zoom: number) => number);
+      readyForDisplay?: boolean;
+      velocityFactor?: number;
+      pointSize?: number;
+      fadeOpacity?: number;
+      updateInterval?: number;
+      trailLength?: number;
+      trailSizeDecay?: number;
+      ageThreshold?: number;
+      maxAge?: number;
+      unit?: 'mph' | 'kph' | 'mps';
+      /** Fixed [min, max] for u/v denormalization when JPEG/PNG has no EXIF velocity metadata. */
+      velocityRange?: [number, number];
+      cacheOption?: 'no-cache' | 'no-store' | 'reload' | 'default' | 'force-cache';
+      slot?: string;
+      mapRuntime?: 'mapbox' | 'maplibre';
+      /** 'auto' detects .tif/.tiff URLs; GeoTIFF requires optional peer `geotiff` */
+      sourceType?: 'auto' | 'jpeg' | 'geotiff';
+      /** GeoTIFF sample index for u component (0 = first band). Default 0. */
+      uBand?: number;
+      /** GeoTIFF sample index for v component (0 = first band). Default 1. */
+      vBand?: number;
+    });
+
+    setSource(source: string, percentReset?: number): void;
+  }
+
    /**
    * Minimal structural type for a Mapbox GL JS or MapLibre GL JS map instance.
    * Both runtimes satisfy this interface without any casting.

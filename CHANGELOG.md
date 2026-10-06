@@ -2,6 +2,10 @@
 
 All notable changes to this project are documented in this file.
 
+## v1.4.0
+
+- **NewParticleMotion (beta):** A new wind-particle class. `ParticleMotion` is unchanged. It differs in three ways: particle positions follow the viewport, `particleCount` defaults to a function of zoom, and trail length is uniform.
+
 ## v1.3.5
 
 - **Peer dependency:** Bumped `maplibre-gl` to include v6 (`^4.0.0 || ^5.0.0 || ^6.0.0`).
