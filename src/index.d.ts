@@ -63,7 +63,8 @@ declare module 'mapbox-exif-layer' {
       color: Array<[number, number[]]>;
       /** Required for JPEG; optional for GeoTIFF (read from file). */
       bounds?: [number, number, number, number];
-      particleCount?: number;
+      /** Fixed count, or (zoom) => count. Omitted: log-interpolated default stops. */
+      particleCount?: number | ((zoom: number) => number);
       readyForDisplay?: boolean;
       velocityFactor?: number;
       pointSize?: number;

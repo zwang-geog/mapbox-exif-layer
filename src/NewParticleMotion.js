@@ -281,8 +281,8 @@ const renderVertexShaderInner =
     
     uniform mediump vec4 u_bounds;         // [minX, maxY, maxX, minY]
     uniform mediump float u_point_size;    // Base point size
-    uniform mediump float u_speed_factor;  // Speed multiplier
     uniform mediump float u_trail_size_decay; // Size decay rate for trail particles
+    uniform highp vec2 u_viewport_px;      // Drawing buffer size, for a fixed-length trail
     uniform sampler2D u_velocity_texture;  // Velocity texture
     uniform mediump vec2 u_value_range_u;  // Wind U component range
     uniform mediump vec2 u_value_range_v;  // Wind V component range
@@ -316,6 +316,12 @@ const renderVertexShaderInner =
         float latScale = cos(lat * 3.14159 / 180.0);  // Latitude scaling for longitude
         return vec2(mph.x * kmh_to_degrees / latScale, -mph.y * kmh_to_degrees);
     }
+
+    vec4 projectMercator(vec2 lngLat) {
+        vec2 mercator = latLngToMercator(lngLat);
+        {{PROJECTION}}
+        return gl_Position;
+    }
     
     void main() {
         // Trail offset (0 = main particle, >0 = trail segment)
@@ -324,39 +330,43 @@ const renderVertexShaderInner =
         // Main particle position from buffer
         vec2 mainPos = a_position;
         
-        // Current position is main position for main particle (offset=0)
-        vec2 currentPos = mainPos;
-        
         // Sample velocity at the main particle's position
         vec4 velocityData = texture(u_velocity_texture, mainPos);
         vec2 wind = decodeVelocity(velocityData);
-        float u = wind.x;
-        float v = wind.y;
         
-        // Calculate velocity in normalized coordinates
+        // Project the head, then place each trail dot a fixed number of pixels upwind.
+        // Spacing does not depend on wind speed, so every tail has the same screen length.
         vec2 geo = positionToGeo(mainPos);
-        vec2 degrees = mphToDegreesPerFrame(vec2(u, v), geo.y);
-        vec2 velocity = vec2(
-            degrees.x / (u_bounds[2] - u_bounds[0]),
-            degrees.y / (u_bounds[1] - u_bounds[3])
-        );
-        
-        if (trailOffset > 0.0) {
-            // Compute trail position by moving backwards from main particle along its velocity path
-            // The strength of the offset is based on trail segment position
-            currentPos = mainPos - velocity * u_speed_factor * trailOffset * 1.5;
+        highp vec4 clipHead = projectMercator(geo);
+        highp vec4 clip = clipHead;
+
+        if (trailOffset > 0.0 && clipHead.w != 0.0) {
+            vec2 degrees = mphToDegreesPerFrame(wind, geo.y);
+            vec2 span = vec2(u_bounds[2] - u_bounds[0], u_bounds[1] - u_bounds[3]);
+            vec2 velocity = vec2(degrees.x / span.x, degrees.y / span.y);
+            float speed = length(velocity);
+            if (speed > 1e-6) {
+                vec2 uvDir = velocity / speed;
+                vec2 degreeStep = vec2(uvDir.x * span.x, -uvDir.y * span.y);
+                float degreeLen = max(length(degreeStep), 1e-4);
+                vec2 probePos = mainPos - uvDir / degreeLen;
+                highp vec4 clipProbe = projectMercator(positionToGeo(probePos));
+                if (clipProbe.w != 0.0) {
+                    vec2 viewportPx = max(u_viewport_px, vec2(1.0));
+                    vec2 pixelDelta = (clipProbe.xy / clipProbe.w - clipHead.xy / clipHead.w) * viewportPx * 0.5;
+                    float pixelLen = length(pixelDelta);
+                    if (pixelLen > 0.25) {
+                        vec2 ndc = clipHead.xy / clipHead.w + pixelDelta / pixelLen * (u_point_size * 0.8 * trailOffset) / (viewportPx * 0.5);
+                        clip = vec4(ndc * clipHead.w, clipHead.z, clipHead.w);
+                    }
+                }
+            }
         }
+
+        gl_Position = clip;
         
-        // Convert normalized position to geographic coordinates
-        float lng = mix(u_bounds[0], u_bounds[2], currentPos.x);
-        float lat = mix(u_bounds[3], u_bounds[1], 1.0 - currentPos.y);
-        
-        // Project to Web Mercator in [0,1] world coordinates
-        vec2 mercator = latLngToMercator(vec2(lng, lat));
-        {{PROJECTION}}
-        
-        // Pass position to fragment shader
-        v_position = currentPos;
+        // Color the whole tail from the head, so a streak stays one color.
+        v_position = mainPos;
         
         // Compute opacity for trail particles (1.0 for main particle, decreasing for trail)
         // v_opacity = trailOffset == 0.0 ? 1.0 : 1.0 - (trailOffset / float(3));
@@ -493,6 +503,20 @@ function computeWrapLongitude(bounds) {
 }
 
 const VIEWPORT_PADDING = 0.15;
+// Default live count, log-interpolated between these stops. Zoom at or above
+// the first stop stays on that count. Zoom at or below the last stop stays on
+// that count. The zoom-12 stop keeps 8–12 near 5000; the drop to 10 is the
+// last level. Integer zooms:
+// 13→10, 12→4000, 11→4229, 10→4472, 9→4729, 8→5000,
+// 7→5946, 6→7071, 5→8409, 4→10000, 3→31623, 2 and below→100000.
+const DEFAULT_PARTICLE_COUNT_STOPS = [
+    { zoom: 13, count: 10 },
+    { zoom: 12, count: 4000 },
+    { zoom: 8, count: 5000 },
+    { zoom: 4, count: 10000 },
+    { zoom: 2, count: 100000 },
+];
+const PARTICLE_ZOOM_SAMPLE_MAX = 24;
 
 // Raw camera window in degrees: [west, south, east, north].
 // Longitude is not folded into [-180, 180]. A mercator camera with west > east
@@ -538,6 +562,52 @@ function cameraLngLatWindow(map, bounds, padding = VIEWPORT_PADDING) {
     };
 }
 
+function normalizeParticleCount(count) {
+    const value = Math.round(Number(count));
+    if (!Number.isFinite(value)) {
+        return 1;
+    }
+    return Math.max(1, value);
+}
+
+function logCountBetween(zoom, highZoom, highCount, lowZoom, lowCount) {
+    const t = (highZoom - zoom) / (highZoom - lowZoom);
+    const logCount = Math.log(highCount) + t * (Math.log(lowCount) - Math.log(highCount));
+    return normalizeParticleCount(Math.exp(logCount));
+}
+
+function defaultParticleCountForZoom(zoom) {
+    const stops = DEFAULT_PARTICLE_COUNT_STOPS;
+    if (!Number.isFinite(zoom) || zoom <= stops[stops.length - 1].zoom) {
+        return stops[stops.length - 1].count;
+    }
+    if (zoom >= stops[0].zoom) {
+        return stops[0].count;
+    }
+    for (let i = 0; i < stops.length - 1; i++) {
+        const high = stops[i];
+        const low = stops[i + 1];
+        if (zoom >= low.zoom) {
+            return logCountBetween(zoom, high.zoom, high.count, low.zoom, low.count);
+        }
+    }
+    return stops[stops.length - 1].count;
+}
+
+// Buffer size is the largest count the function returns on integer zooms 0..24.
+function bufferCapacityFor(countForZoom) {
+    let capacity = 1;
+    for (let zoom = 0; zoom <= PARTICLE_ZOOM_SAMPLE_MAX; zoom += 1) {
+        capacity = Math.max(capacity, normalizeParticleCount(countForZoom(zoom)));
+    }
+    return capacity;
+}
+
+function liveCountForZoom(countForZoom, zoom, capacity) {
+    const count = normalizeParticleCount(countForZoom(Number.isFinite(zoom) ? zoom : 0));
+    return Math.min(capacity, count);
+}
+
 function convertVelocityBoundsToMph(min, max, unit) {
     if (unit === 'kph') {
         return [kphToMph(min), kphToMph(max)];
@@ -549,7 +619,7 @@ function convertVelocityBoundsToMph(min, max, unit) {
 }
 
 export default class NewParticleMotion {
-    constructor({id, source, color, bounds, particleCount = 5000, readyForDisplay = false, ageThreshold = 500, maxAge = 1000,
+    constructor({id, source, color, bounds, particleCount = defaultParticleCountForZoom, readyForDisplay = false, ageThreshold = 500, maxAge = 1000,
         velocityFactor = 0.05, fadeOpacity = 0.9, updateInterval = 50, pointSize = 5.0, trailLength = 3, trailSizeDecay = 0.8, 
         unit = 'mph', cacheOption = 'no-cache', slot, mapRuntime = 'mapbox', sourceType = 'auto', uBand = 0, vBand = 1,
         velocityRange}) {
@@ -570,7 +640,13 @@ export default class NewParticleMotion {
         this.layerBounds = normalizeBounds(bounds); // User-supplied extent for JPEG; restored when switching back from GeoTIFF
         this.bounds = this.layerBounds;      // Active extent used by shaders (from layerBounds or GeoTIFF file)
         this.wrapLongitude = computeWrapLongitude(this.bounds);
-        this.particleCount = particleCount;
+        // A number keeps a fixed count. A function maps zoom to the live count.
+        // The buffer is allocated once, to the largest sampled value of that function.
+        this.particleCountForZoom = typeof particleCount === 'function'
+            ? particleCount
+            : () => normalizeParticleCount(particleCount);
+        this.bufferCapacity = bufferCapacityFor(this.particleCountForZoom);
+        this.liveCount = liveCountForZoom(this.particleCountForZoom, 0, this.bufferCapacity);
         
         this.sourceLoaded = false;
         this.readyForDisplay = readyForDisplay;
@@ -611,6 +687,8 @@ export default class NewParticleMotion {
     onAdd(map, gl) {
         this.map = map;
         this.gl = gl;
+        const zoom = typeof map.getZoom === 'function' ? map.getZoom() : 0;
+        this.liveCount = liveCountForZoom(this.particleCountForZoom, zoom, this.bufferCapacity);
 
         // Create programs with appropriate fragment shaders
         this.updateProgram = createProgram(gl, vertexShader, updateFragmentShader);
@@ -619,11 +697,11 @@ export default class NewParticleMotion {
         }
 
         // Initialize particle positions with a uniform grid distribution
-        const positions = new Float32Array(this.particleCount * 2);
-        const ages = new Float32Array(this.particleCount);
-        const gridSize = Math.ceil(Math.sqrt(this.particleCount));
+        const positions = new Float32Array(this.bufferCapacity * 2);
+        const ages = new Float32Array(this.bufferCapacity);
+        const gridSize = Math.ceil(Math.sqrt(this.bufferCapacity));
         
-        for (let i = 0; i < this.particleCount; i++) {
+        for (let i = 0; i < this.bufferCapacity; i++) {
             const x = i % gridSize;
             const y = Math.floor(i / gridSize);
             
@@ -942,6 +1020,12 @@ export default class NewParticleMotion {
             percentReset = 1.0;
             shouldReset = true;
             this.reseedViewport = false;
+            const zoom = typeof this.map.getZoom === 'function' ? this.map.getZoom() : 0;
+            this.liveCount = liveCountForZoom(this.particleCountForZoom, zoom, this.bufferCapacity);
+            console.log('NewParticleMotion zoom count', {
+                zoom,
+                liveCount: this.liveCount,
+            });
         }
 
         gl.uniform4fv(this.updateProgram.u_viewport, viewport.window);
@@ -977,7 +1061,7 @@ export default class NewParticleMotion {
         gl.beginTransformFeedback(gl.POINTS);
 
         // Draw particles to update positions (but nothing will be rendered due to colorMask)
-        gl.drawArrays(gl.POINTS, 0, this.particleCount);
+        gl.drawArrays(gl.POINTS, 0, this.liveCount);
 
         // End transform feedback
         gl.endTransformFeedback();
@@ -1011,8 +1095,8 @@ export default class NewParticleMotion {
         gl.uniform4fv(renderProgram.u_bounds, this.bounds);
         gl.uniform1f(renderProgram.u_point_size, this.pointSize);
         gl.uniform1f(renderProgram.u_opacity, this.fadeOpacity);
-        gl.uniform1f(renderProgram.u_speed_factor, this.velocityFactor);
         gl.uniform1f(renderProgram.u_trail_size_decay, this.trailSizeDecay);
+        gl.uniform2f(renderProgram.u_viewport_px, gl.canvas.width, gl.canvas.height);
         gl.uniform2fv(renderProgram.u_value_range_u, this.valueRange_u);
         gl.uniform2fv(renderProgram.u_value_range_v, this.valueRange_v);
         gl.uniform2fv(renderProgram.u_speed_range, this.speedRange);
@@ -1042,7 +1126,7 @@ export default class NewParticleMotion {
 
         // Draw trails using instanced rendering
         // Each main particle will be drawn (trailLength+1) times with different offsets
-        gl.drawArraysInstanced(gl.POINTS, 0, this.particleCount, this.trailLength + 1);
+        gl.drawArraysInstanced(gl.POINTS, 0, this.liveCount, this.trailLength + 1);
 
         // Reset vertex attrib divisor
         gl.vertexAttribDivisor(renderProgram.a_trail_offset, 0);
