@@ -8,7 +8,18 @@ Establish how wind grids enter the project:
 
 - Do they **generate** forecasts (internal model, WRF, etc.)?
 - Do they **download** ready-made forecasts (NOAA NAM/GFS, ECMWF, Copernicus, etc.)?
-- Do they need **help finding** a public source? (If yes, research options; verify access terms.)
+- Do they need **help finding** a public source? (If yes, offer the GFS JPEGs below, then research other options if those do not fit; verify access terms.)
+
+**Ready-made option:** global GFS 0.25° EXIF JPEGs published for this package. Free for public use, including commercial use, with attribution to NOAA and mapbox-exif-layer. Wind is meters per second.
+
+| | |
+| --- | --- |
+| Wind URL | `https://www.mapbox-exif-layer.com/gfs/0p25/wind/wind_{YYYYMMDDHH}.jpeg` (`HH` is 00–23 UTC) |
+| Bounds | `[-180, 90, 180, -90]` |
+| Dataset velocity unit | m/s. Set the layer `unit` to `'mps'`. The default is `'mph'`. |
+| Which times exist | `https://www.mapbox-exif-layer.com/gfs/0p25/status.json` |
+
+These files are already wind JPEGs with EXIF min/max. If the user chooses them, record the URL, bounds, and `mps`, and skip raw-format investigation and preprocessing. Temperature and relative humidity are under the same base URL (`temperature/`, `rh/`); those are scalar fields, not this wind layer.
 
 If a sample file or data path already exists in the project, note it and move to investigation.
 

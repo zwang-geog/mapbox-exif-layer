@@ -45,6 +45,8 @@ Read and follow [weather-raster-checklist.md](references/weather-raster-checklis
 
 ## Step 3 — Weather delivery format: JPEG/PNG vs GeoTIFF
 
+**Skip this step** only when Step 2 chose the EXIF JPEGs this package already publishes at `https://www.mapbox-exif-layer.com/gfs/0p25/` (2 m temperature or 2 m relative humidity). Those files are already encoded for `SmoothRaster`. Go to Step 5 with the recorded URL, bounds `[-180, 90, 180, -90]`, and the unit (°C or %). A NOAA GFS download, or any other GFS file this package did not encode, still goes through this step.
+
 **When to ask:** After Steps 1–2, once you know which scalar weather variable(s) they will map and have (or will produce) raster data.
 
 **What to do:** Read [weather-delivery-format.md](references/weather-delivery-format.md). **Explain the trade-offs to the user** and **ask them to choose** between Option A (JPEG/PNG) and Option B (GeoTIFF). If they choose JPEG/PNG, **explain the min/max sub-paths**, **ask them** to pick dataset-independent or dataset-dependent scaling, then **confirm output format** (JPEG or PNG for independent; JPEG only for dependent). If they choose GeoTIFF and map **more than one variable**, **ask** multi-band (one GeoTIFF per timestep) vs single-band (one GeoTIFF per variable per timestep).
@@ -54,6 +56,8 @@ Read and follow [weather-raster-checklist.md](references/weather-raster-checklis
 ---
 
 ## Step 4 — Process data for weather raster delivery
+
+**Skip this step** only when Step 2 chose those hosted EXIF JPEGs. Leave them as published. A NOAA GFS download, or any other GFS file this package did not encode, still needs preprocessing here.
 
 **When to run:** After Step 3, using recorded choices and Step 2 metadata (scalar band indices, variable/field name, dataset and display physical units, source CRS).
 

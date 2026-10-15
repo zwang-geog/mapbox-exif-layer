@@ -503,7 +503,9 @@ function computeWrapLongitude(bounds) {
 }
 
 const VIEWPORT_PADDING = 0.08;
-// Default live count, log-interpolated between these stops. Zoom at or above
+// MapLibre draws mercator from this zoom up, even when the style projection is globe.
+const GLOBE_MERCATOR_ZOOM = 12;
+// Mercator live count, log-interpolated between these stops. Zoom at or above
 // the first stop stays on that count. Zoom at or below the last stop stays on
 // that count. The zoom-12 stop keeps 8–12 near 5000; the drop to 10 is the
 // last level. Integer zooms:
@@ -515,6 +517,15 @@ const DEFAULT_PARTICLE_COUNT_STOPS = [
     { zoom: 8, count: 5000 },
     { zoom: 4, count: 10000 },
     { zoom: 2, count: 100000 },
+];
+// Globe live count while zoom is under GLOBE_MERCATOR_ZOOM. Meets the mercator
+// list at zoom 12. Doubles it at zoom 2 and below. A first guess to tune.
+const GLOBE_PARTICLE_COUNT_STOPS = [
+    { zoom: 13, count: 10 },
+    { zoom: 12, count: 4000 },
+    { zoom: 8, count: 8000 },
+    { zoom: 4, count: 20000 },
+    { zoom: 2, count: 200000 },
 ];
 const PARTICLE_ZOOM_SAMPLE_MAX = 24;
 
@@ -576,8 +587,7 @@ function logCountBetween(zoom, highZoom, highCount, lowZoom, lowCount) {
     return normalizeParticleCount(Math.exp(logCount));
 }
 
-function defaultParticleCountForZoom(zoom) {
-    const stops = DEFAULT_PARTICLE_COUNT_STOPS;
+function countFromStops(zoom, stops) {
     if (!Number.isFinite(zoom) || zoom <= stops[stops.length - 1].zoom) {
         return stops[stops.length - 1].count;
     }
@@ -594,17 +604,43 @@ function defaultParticleCountForZoom(zoom) {
     return stops[stops.length - 1].count;
 }
 
-// Buffer size is the largest count the function returns on integer zooms 0..24.
+function defaultParticleCountForZoom(zoom, projection) {
+    const stops = projection === 'globe' ? GLOBE_PARTICLE_COUNT_STOPS : DEFAULT_PARTICLE_COUNT_STOPS;
+    return countFromStops(zoom, stops);
+}
+
+function mapZoom(map) {
+    const zoom = map && typeof map.getZoom === 'function' ? map.getZoom() : 0;
+    return Number.isFinite(zoom) ? zoom : 0;
+}
+
+// 'globe' only while MapLibre is still drawing the globe. From zoom 12 the
+// picture is mercator even if getProjection() still reports globe.
+function projectionForCount(map, zoom) {
+    if (!map || typeof map.getProjection !== 'function' || !(zoom < GLOBE_MERCATOR_ZOOM)) {
+        return 'mercator';
+    }
+    const projection = map.getProjection();
+    const type = projection && (projection.type || projection.name);
+    return type === 'globe' ? 'globe' : 'mercator';
+}
+
+// Buffer size is the largest count the function returns for either projection
+// on integer zooms 0..24.
 function bufferCapacityFor(countForZoom) {
     let capacity = 1;
     for (let zoom = 0; zoom <= PARTICLE_ZOOM_SAMPLE_MAX; zoom += 1) {
-        capacity = Math.max(capacity, normalizeParticleCount(countForZoom(zoom)));
+        capacity = Math.max(
+            capacity,
+            normalizeParticleCount(countForZoom(zoom, 'mercator')),
+            normalizeParticleCount(countForZoom(zoom, 'globe')),
+        );
     }
     return capacity;
 }
 
-function liveCountForZoom(countForZoom, zoom, capacity) {
-    const count = normalizeParticleCount(countForZoom(Number.isFinite(zoom) ? zoom : 0));
+function liveCountForZoom(countForZoom, zoom, projection, capacity) {
+    const count = normalizeParticleCount(countForZoom(Number.isFinite(zoom) ? zoom : 0, projection));
     return Math.min(capacity, count);
 }
 
@@ -646,7 +682,7 @@ export default class NewParticleMotion {
             ? particleCount
             : () => normalizeParticleCount(particleCount);
         this.bufferCapacity = bufferCapacityFor(this.particleCountForZoom);
-        this.liveCount = liveCountForZoom(this.particleCountForZoom, 0, this.bufferCapacity);
+        this.liveCount = liveCountForZoom(this.particleCountForZoom, 0, 'mercator', this.bufferCapacity);
         
         this.sourceLoaded = false;
         this.readyForDisplay = readyForDisplay;
@@ -687,8 +723,13 @@ export default class NewParticleMotion {
     onAdd(map, gl) {
         this.map = map;
         this.gl = gl;
-        const zoom = typeof map.getZoom === 'function' ? map.getZoom() : 0;
-        this.liveCount = liveCountForZoom(this.particleCountForZoom, zoom, this.bufferCapacity);
+        const zoom = mapZoom(map);
+        this.liveCount = liveCountForZoom(
+            this.particleCountForZoom,
+            zoom,
+            projectionForCount(map, zoom),
+            this.bufferCapacity,
+        );
 
         // Create programs with appropriate fragment shaders
         this.updateProgram = createProgram(gl, vertexShader, updateFragmentShader);
@@ -1020,8 +1061,13 @@ export default class NewParticleMotion {
             percentReset = 1.0;
             shouldReset = true;
             this.reseedViewport = false;
-            const zoom = typeof this.map.getZoom === 'function' ? this.map.getZoom() : 0;
-            this.liveCount = liveCountForZoom(this.particleCountForZoom, zoom, this.bufferCapacity);
+            const zoom = mapZoom(this.map);
+            this.liveCount = liveCountForZoom(
+                this.particleCountForZoom,
+                zoom,
+                projectionForCount(this.map, zoom),
+                this.bufferCapacity,
+            );
         }
 
         gl.uniform4fv(this.updateProgram.u_viewport, viewport.window);

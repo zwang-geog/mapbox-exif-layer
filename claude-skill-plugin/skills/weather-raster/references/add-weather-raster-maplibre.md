@@ -2,10 +2,25 @@
 
 Use after Steps 1–5. Substitute **`source`**, **`bounds`**, and **`color`** from Steps 2–4 (JPEG/PNG: `bounds` from `bounds_<stem>.txt` sidecar; GeoTIFF: `bounds` optional).
 
+Check the installed `maplibre-gl` version. The CSS import is the same. The module import is not.
+
+**v5** has a default export:
+
 ```javascript
 import maplibregl from 'maplibre-gl';
 import { SmoothRaster } from 'mapbox-exif-layer';
 import 'maplibre-gl/dist/maplibre-gl.css';
+```
+
+**v6** has no default export. Import the namespace, and set the worker URL before creating the map:
+
+```javascript
+import * as maplibregl from 'maplibre-gl';
+import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
+import { SmoothRaster } from 'mapbox-exif-layer';
+import 'maplibre-gl/dist/maplibre-gl.css';
+
+maplibregl.setWorkerUrl(workerUrl);
 ```
 
 ## Map

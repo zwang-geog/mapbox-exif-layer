@@ -1,0 +1,12 @@
+---
+description: Leave frontend testing to the user; do not drive Cursor's browser
+alwaysApply: true
+---
+
+# Frontend testing
+
+Do not use Cursor's browser tools (`cursor-ide-browser`, browser navigate, snapshot, click, screenshot, or CDP) to test UI in this repo.
+
+After a frontend change, say what to check and let the user run the app and verify it. Do not start a browser session, click through the page, or treat a screenshot as verification.
+
+Starting a dev server is fine only when the user asks for one.
