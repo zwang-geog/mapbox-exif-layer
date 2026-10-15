@@ -2,7 +2,7 @@
 name: wind-particles
 description: >-
   Guide users through adding wind particle layers on Mapbox GL JS or MapLibre GL JS
-  with mapbox-exif-layer (ParticleMotion). Use when the user asks for wind particles,
+  with mapbox-exif-layer (NewParticleMotion by default, ParticleMotion as the other class). Use when the user asks for wind particles,
   animated wind map, u/v velocity field, GRIB wind, or ocean-current flow on a web map.
 ---
 
@@ -45,6 +45,8 @@ Read and follow [wind-data-checklist.md](references/wind-data-checklist.md) when
 
 ## Step 3 — Wind delivery format: JPEG/PNG vs GeoTIFF
 
+**Skip this step** only when Step 2 chose the wind EXIF JPEGs this package already publishes at `https://www.mapbox-exif-layer.com/gfs/0p25/wind/`. Those files are already encoded for the particle layer. Go to Step 5 with the recorded URL, bounds `[-180, 90, 180, -90]`, and `unit: 'mps'`. A NOAA GFS download, or any other GFS file this package did not encode, still goes through this step.
+
 **When to ask:** After Steps 1–2, once you know they have (or will produce) u/v raster data.
 
 **What to do:** Read [wind-delivery-format.md](references/wind-delivery-format.md). **Explain the trade-offs to the user** and **ask them to choose** between Option A (JPEG/PNG) and Option B (GeoTIFF). If they choose JPEG/PNG, **explain the min/max sub-paths**, **ask them** to pick dataset-independent or dataset-dependent scaling, then **confirm output format** (JPEG or PNG for independent; JPEG only for dependent).
@@ -54,6 +56,8 @@ Read and follow [wind-data-checklist.md](references/wind-data-checklist.md) when
 ---
 
 ## Step 4 — Process data for wind delivery
+
+**Skip this step** only when Step 2 chose those hosted wind EXIF JPEGs. Leave them as published. A NOAA GFS download, or any other GFS file this package did not encode, still needs preprocessing here.
 
 **When to run:** After Step 3, using recorded choices and Step 2 metadata (u/v bands, dataset and display velocity units, source CRS).
 
@@ -114,9 +118,17 @@ JPEG/PNG-only setups do **not** need `geotiff`.
 
 ## Step 6 — Add wind particle layer
 
-**When to run:** After Step 5, using recorded values from Steps 1–4 (SDK, `source` path, bounds sidecar for JPEG/PNG, display `unit`, `velocityRange` if dataset-independent).
+**When to run:** After Step 5, using recorded values from Steps 1–4 (SDK, `source` path, bounds sidecar for JPEG/PNG, display `unit`, `velocityRange` if dataset-independent). For the hosted EXIF JPEGs at `https://www.mapbox-exif-layer.com/gfs/0p25/wind/`, use the URL, bounds, and `unit` recorded in Step 2.
 
-**What to do:** Open the reference for the **Map SDK from Step 1**. Wire `ParticleMotion` with the processed wind file and bounds; add the layer to the map.
+**Which class:** The references default to `NewParticleMotion`. Use `ParticleMotion` in the three cases stated at the top of the reference: the package is below v1.4.0 for legacy data or code compatibility; the area is a city, county, or other small extent where a fixed count across the data extent is reasonable; or the user cares more about how air moves across the u- and v- field than about the local pattern in low-wind areas.
+
+`ParticleMotion` spreads particles over the whole data extent and leaves them on the wind. On a large grid, strong-wind areas collect most of them, and a zoom into calmer inland wind can show few or none. Trail length follows wind speed. `particleCount` is a fixed number (default 5000).
+
+`NewParticleMotion` (v1.4.0+, experimental) keeps particles in the current view, with an 8% buffer. A pan or zoom resets them into that view on `moveend`, and a particle that leaves the view is placed back inside it, so a calm inland zoom still shows the local flow. The count follows zoom. On v1.4.1+, a MapLibre globe below zoom 12 uses a higher count. Trail length is a fixed screen length, so slow wind still shows a direction. Omit `particleCount` unless the user wants a fixed count. Other constructor options match `ParticleMotion`.
+
+Tell the user which class you chose and why. If the picture looks wrong, switch to the other class.
+
+**What to do:** Open the reference for the **Map SDK from Step 1**. The samples construct `NewParticleMotion`. Construct `ParticleMotion` only in the cases above.
 
 | Step 1 SDK | Reference |
 |------------|-----------|

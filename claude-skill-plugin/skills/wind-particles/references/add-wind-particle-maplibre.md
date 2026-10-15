@@ -2,10 +2,27 @@
 
 Use after Steps 1–5. Substitute **`source`**, **`bounds`**, **`unit`**, and **`color`** from Steps 2–4 (JPEG/PNG: `bounds` from `bounds_<stem>.txt` sidecar; GeoTIFF: `bounds` optional).
 
+The samples use `NewParticleMotion` (`mapbox-exif-layer` v1.4.0+). Use `ParticleMotion` instead in these cases: the user needs `mapbox-exif-layer` below v1.4.0, for legacy data or code compatibility; the user is mapping wind for a city, county, or other small area, where a fixed particle count and particles positioned across the whole data extent are reasonable; or the user cares more about how air moves across space given the u- and v- velocity fields, and cares less about seeing the local wind pattern in low-wind areas. Same constructor options. If the chosen class looks wrong, switch to the other one.
+
+Check the installed `maplibre-gl` version. The CSS import is the same. The module import is not.
+
+**v5** has a default export:
+
 ```javascript
 import maplibregl from 'maplibre-gl';
-import { ParticleMotion } from 'mapbox-exif-layer';
+import { NewParticleMotion } from 'mapbox-exif-layer';
 import 'maplibre-gl/dist/maplibre-gl.css';
+```
+
+**v6** has no default export. Import the namespace, and set the worker URL before creating the map:
+
+```javascript
+import * as maplibregl from 'maplibre-gl';
+import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
+import { NewParticleMotion } from 'mapbox-exif-layer';
+import 'maplibre-gl/dist/maplibre-gl.css';
+
+maplibregl.setWorkerUrl(workerUrl);
 ```
 
 ## Map
@@ -31,12 +48,12 @@ map.on('style.load', () => {
 });
 ```
 
-## ParticleMotion layer
+## NewParticleMotion layer
 
-Set **`mapRuntime: 'maplibre'`** on every `ParticleMotion` instance.
+Set **`mapRuntime: 'maplibre'`** on the wind layer, whether it is `NewParticleMotion` or `ParticleMotion`.
 
 ```javascript
-const particleLayer = new ParticleMotion({
+const particleLayer = new NewParticleMotion({
   id: 'wind-particle',
   source: 'path/to/your/wind.jpeg',  // or .png / .tif / .tiff
   color: [[0, [0, 195, 255]],
@@ -77,7 +94,7 @@ velocityRange: [-50, 50],  // same as --min-value / --max-value in preprocessing
 In React, if the app allows switching between basemap styles (e.g. dark, light, satellite), wrap the layer instance in a `useRef` so the same object is re-added when `style.load` fires again after a style change — a new object would lose the current source and color state:
 
 ```javascript
-const particleLayerRef = useRef(new ParticleMotion({
+const particleLayerRef = useRef(new NewParticleMotion({
   id: 'wind-particle',
   source: 'path/to/your/wind.jpeg',
   color: WIND_COLOR,
@@ -98,7 +115,7 @@ map.on('style.load', () => {
 });
 ```
 
-**TypeScript projects:** `mapbox-exif-layer`'s `.d.ts` does not formally declare `ParticleMotion` as implementing `maplibregl.CustomLayerInterface`, though it does so at runtime. Cast to suppress the type error:
+**TypeScript projects:** `mapbox-exif-layer`'s `.d.ts` does not formally declare `NewParticleMotion` as implementing `maplibregl.CustomLayerInterface`, though it does so at runtime. Cast to suppress the type error:
 
 ```typescript
 map.on('style.load', () => {
@@ -118,7 +135,7 @@ map.setLayoutProperty('wind-particle', 'visibility', 'none');     // hide
 If the layer needs to be hidden/off when the map is initially loaded, the constructor needs to have `readyForDisplay` omitted or set to `false`.
 
 ```javascript
-const particleLayer = new ParticleMotion({
+const particleLayer = new NewParticleMotion({
   id: 'wind-particle',
   source: 'path/to/your/wind.jpeg',
   color: WIND_COLOR,

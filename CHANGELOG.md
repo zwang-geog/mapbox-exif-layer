@@ -2,6 +2,10 @@
 
 All notable changes to this project are documented in this file.
 
+## v1.4.1
+
+- **NewParticleMotion:** `particleCount` can now follow the map projection as well as zoom. This is especially useful with MapLibre globe projection, which uses a higher count below zoom 12. From zoom 12 up, that globe view is drawn as mercator, so the mercator count applies. `ParticleMotion` is unchanged.
+
 ## v1.4.0
 
 - **NewParticleMotion (beta):** A new wind-particle class. `ParticleMotion` is unchanged. It differs in three ways: particle positions follow the viewport, `particleCount` defaults to a function of zoom, and trail length is uniform.
