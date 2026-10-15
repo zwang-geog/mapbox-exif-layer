@@ -14,7 +14,7 @@ import {
 } from './util.jsx'
 import { useRef, useEffect, useState, useMemo } from 'react'
 import 'maplibre-gl/dist/maplibre-gl.css'
-import { SmoothRaster, ParticleMotion } from 'mapbox-exif-layer'
+import { SmoothRaster, NewParticleMotion } from 'mapbox-exif-layer'
 import * as maplibregl from 'maplibre-gl'
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
 
@@ -32,6 +32,8 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
+  Collapse,
+  IconButton,
 } from '@mui/material'
 import {
   SkipPrevious,
@@ -40,6 +42,8 @@ import {
   Pause,
   FastForward,
   SkipNext,
+  ExpandLess,
+  ExpandMore,
 } from '@mui/icons-material'
 
 const DEFAULT_BOUNDS = [-180, 90, 180, -90]
@@ -86,15 +90,14 @@ function App() {
       readyForDisplay: true,
       mapRuntime: 'maplibre',
     })
-    windParticleLayerRef.current = new ParticleMotion({
+    windParticleLayerRef.current = new NewParticleMotion({
       id: 'wind-particle',
       source: gfsUrl('wind', unix),
       color: weatherColorMap.wind,
       bounds: DEFAULT_BOUNDS,
-      particleCount: 100000,
       unit: 'mps',
       ageThreshold: 1000,
-      trailLength: 10,
+      trailLength: 3,
       trailSizeDecay: 0.8,
       readyForDisplay: true,
       mapRuntime: 'maplibre',
@@ -117,6 +120,7 @@ function App() {
   const [isPlaying, setIsPlaying] = useState(false)
   const [windLegendOpen, setWindLegendOpen] = useState(false)
   const [rasterLegendOpen, setRasterLegendOpen] = useState(false)
+  const [controlsOpen, setControlsOpen] = useState(true)
 
   const timerRef = useRef(null)
 
@@ -351,10 +355,25 @@ function App() {
           boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
         }}
       >
-        <Typography variant="caption" sx={{ display: 'block', textAlign: 'center', mb: 0.5 }}>
-          {currentUnix != null ? formatFrameLabel(currentUnix) : 'Loading GFS…'}
-          {status?.status ? ` · ${status.status}` : ''}
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', position: 'relative' }}>
+          <Typography
+            variant="caption"
+            sx={{ display: 'block', textAlign: 'center', flex: 1, mb: controlsOpen ? 0.5 : 0 }}
+          >
+            {currentUnix != null ? formatFrameLabel(currentUnix) : 'Loading GFS…'}
+            {status?.status ? ` · ${status.status}` : ''}
+          </Typography>
+          <IconButton
+            size="small"
+            aria-expanded={controlsOpen}
+            aria-label={controlsOpen ? 'Hide controls' : 'Show controls'}
+            onClick={() => setControlsOpen((open) => !open)}
+            sx={{ position: 'absolute', right: 0 }}
+          >
+            {controlsOpen ? <ExpandMore fontSize="small" /> : <ExpandLess fontSize="small" />}
+          </IconButton>
+        </Box>
+        <Collapse in={controlsOpen}>
         <Box sx={{ width: '90%', mb: 0.5, mx: 'auto' }}>
           <Slider
             sx={{ py: 0.5 }}
@@ -485,6 +504,7 @@ function App() {
             </Button>
           </Box>
         </Box>
+        </Collapse>
       </Box>
 
       <Dialog open={windLegendOpen} onClose={() => setWindLegendOpen(false)}>

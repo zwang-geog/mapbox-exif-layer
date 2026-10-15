@@ -1,8 +1,11 @@
 
 import { useRef, useEffect, useState } from 'react'
-import maplibregl from 'maplibre-gl'
-import { ParticleMotion, SmoothRaster } from 'mapbox-exif-layer'
+import * as maplibregl from 'maplibre-gl'
+import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
+import { NewParticleMotion, SmoothRaster } from 'mapbox-exif-layer'
 import 'maplibre-gl/dist/maplibre-gl.css';
+
+maplibregl.setWorkerUrl(workerUrl)
 
 import './App.css'
 
@@ -77,14 +80,13 @@ function App() {
   const [windOn, setWindOn] = useState(true);
   const [temperatureOn, setTemperatureOn] = useState(false);
 
-  const windParticleLayer = useRef(new ParticleMotion({
+  const windParticleLayer = useRef(new NewParticleMotion({
     id: 'wind-particle',
     source: '/wind_1.jpeg',
     color: WIND_COLOR,
     bounds: BOUNDS,
     readyForDisplay: true,
-    mapRuntime: 'maplibre',  // Version 1.3.0+
-    particleCount: 10000  // 2x than default
+    mapRuntime: 'maplibre',
   }));
 
   const temperatureLayer = useRef(new SmoothRaster({
