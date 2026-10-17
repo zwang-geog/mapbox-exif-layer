@@ -34,7 +34,7 @@
     "url": "https://www.mapbox-exif-layer.com/",
     "downloadUrl": "https://www.npmjs.com/package/mapbox-exif-layer",
     "codeRepository": "https://github.com/zwang-geog/mapbox-exif-layer",
-    "softwareVersion": "1.3.3",
+    "softwareVersion": "1.4.1",
     "applicationCategory": "DeveloperApplication",
     "operatingSystem": "Web",
     "description": "Open-source Mapbox & MapLibre GL JS custom layers: GPU wind particles, smooth weather rasters from JPEG/PNG, and client-side scalar or RGB GeoTIFF visualization. No tile server. Globe projection on MapLibre.",
@@ -73,33 +73,46 @@
   <section class="videos" id="videos">
     <div class="section-inner">
       <h2>Demo videos</h2>
-      <p class="section-lead">Watch wind particles in action, then try the interactive demos below.</p>
 
-      <a class="video-featured" href="https://www.youtube.com/watch?v=SLPBfteIbRE" target="_blank" rel="noopener">
-        <div class="video-thumb">
-          <img
-            src="https://img.youtube.com/vi/SLPBfteIbRE/hqdefault.jpg"
-            alt="Wind particles on a MapLibre GL JS globe projection"
-            loading="lazy"
-            width="480"
-            height="360"
-          />
-          <span class="video-play" aria-hidden="true">▶</span>
-        </div>
-        <div class="video-caption">
-          <span class="demo-tag">Featured · v1.3.1</span>
-          <h3>Wind particles on a MapLibre globe</h3>
-          <p>US continental wind particle animation on MapLibre GL JS globe projection — same custom layer, draped on the globe.</p>
-          <span class="demo-link">Watch on YouTube →</span>
-        </div>
-      </a>
+      <div class="video-row">
+        <a class="video-featured" href="https://vimeo.com/1236722322" target="_blank" rel="noopener">
+          <div class="video-thumb">
+            <img
+              src="https://i.vimeocdn.com/video/2213306781-f0a42f754dc519a4756b6085e8cb34661e156ecf984d28d0651639f82d0b6e8c-d_640x360?region=us"
+              alt="NewParticleMotion global wind and relative humidity on a MapLibre globe"
+              loading="lazy"
+              width="640"
+              height="360"
+            />
+            <span class="video-play" aria-hidden="true">▶</span>
+          </div>
+          <div class="video-caption">
+            <span class="demo-tag">v1.4.1</span>
+            <h3>NewParticleMotion layer class for wind particles</h3>
+            <p>Global wind and relative humidity with timestep controls. Particles stay inside the current map viewport.</p>
+            <span class="demo-link">Watch on Vimeo →</span>
+          </div>
+        </a>
 
-      <p class="video-secondary">
-        Also see:
-        <a href="https://www.youtube.com/watch?v=iWKjNriTW-U" target="_blank" rel="noopener">US continental wind (Mapbox GL JS · v1.1.0)</a>
-        ·
-        <a href="https://www.youtube.com/watch?v=HLu0Ylhu5x4" target="_blank" rel="noopener">Southern California (earlier demo)</a>
-      </p>
+        <a class="video-featured" href="https://www.youtube.com/watch?v=SLPBfteIbRE" target="_blank" rel="noopener">
+          <div class="video-thumb">
+            <img
+              src="https://img.youtube.com/vi/SLPBfteIbRE/hqdefault.jpg"
+              alt="ParticleMotion continental US wind and temperature on a MapLibre globe"
+              loading="lazy"
+              width="480"
+              height="360"
+            />
+            <span class="video-play" aria-hidden="true">▶</span>
+          </div>
+          <div class="video-caption">
+            <span class="demo-tag">v1.3.1</span>
+            <h3>ParticleMotion layer class for wind particles</h3>
+            <p>Continental US wind and temperature. Particles always distribute across the entire data extent.</p>
+            <span class="demo-link">Watch on YouTube →</span>
+          </div>
+        </a>
+      </div>
     </div>
   </section>
 
@@ -110,19 +123,19 @@
         <a class="demo-card" href="https://www.weather-map-time-slider-demo.mapbox-exif-layer.com" target="_blank" rel="noopener">
           <span class="demo-tag">MapLibre · Global</span>
           <h3>Weather map time slider</h3>
-          <p>NOAA GFS 0.25° forecast — wind, temperature, and relative humidity with timestep controls - on MapLibre's globe projection.</p>
+          <p>NewParticleMotion on a MapLibre globe. NOAA GFS 0.25° global wind, temperature, and relative humidity, with timestep controls.</p>
           <span class="demo-link">Open demo →</span>
         </a>
         <a class="demo-card" href="https://www.mapbox-exif-layer.com/maplibre-gl-js-globe-projection-demo/index.html" target="_blank" rel="noopener">
           <span class="demo-tag">MapLibre · CONUS</span>
           <h3>Country-scale forecast on a globe</h3>
-          <p>A large-country (CONUS) wind and temperature overlay on the globe. No-data cells are masked, unlike a full-Earth GFS grid.</p>
+          <p>NewParticleMotion on a MapLibre globe. Continental US wind and temperature. No-data cells are masked.</p>
           <span class="demo-link">Open demo →</span>
         </a>
         <a class="demo-card" href="https://www.us-wind-particle-map-demo.mapbox-exif-layer.com" target="_blank" rel="noopener">
           <span class="demo-tag">Mapbox · CONUS</span>
           <h3>Country-scale forecast on Mapbox (mercator)</h3>
-          <p>Contiguous United States wind particle animation and temperature smooth raster. Toggle each layer on and off.</p>
+          <p>ParticleMotion on Mapbox mercator. Continental US wind and a temperature raster. Toggle each layer on and off.</p>
           <span class="demo-link">Open demo →</span>
         </a>
       </div>
@@ -131,21 +144,27 @@
 
   <section class="layer-types" id="layer-types">
     <div class="section-inner">
-      <h2>Three Layer Classes, Four Use Cases</h2>
+      <h2>Four Use Cases</h2>
       <div class="layer-grid">
 
         <article class="layer-card">
           <div class="layer-card-img">
             <img
-              src="wind_example.png"
-              alt="Particle motion wind layer example with colored wind streaks"
+              src="wind_example_2.png"
+              alt="Wind particle layer example with colored wind streaks"
               loading="lazy"
             />
           </div>
           <div class="layer-card-body">
             <div class="layer-card-header">
               <h3>Wind</h3>
-              <span class="layer-class-badge">Particle Motion</span>
+              <p class="layer-class-line">
+                <span class="layer-class-label">Layer Class:</span>
+                <span class="layer-class-names">
+                  <a class="layer-class-badge" href="https://github.com/zwang-geog/mapbox-exif-layer#newparticlemotion" target="_blank" rel="noopener">New Particle Motion</a>,
+                  <a class="layer-class-badge" href="https://github.com/zwang-geog/mapbox-exif-layer#particlemotion" target="_blank" rel="noopener">Particle Motion</a>
+                </span>
+              </p>
             </div>
             <p class="layer-card-desc">
               Particles sample local u/v-component velocity, move a small displacement, and are re-colored by local speed at each update interval. A flowing animation that makes direction and relative speed easy to read.
@@ -157,7 +176,6 @@
                   <a class="btn btn-secondary" href="https://github.com/zwang-geog/mapbox-exif-layer/blob/main/claude-skill-plugin/skills/wind-particles/references/add-wind-particle-mapbox.md" target="_blank" rel="noopener">Mapbox</a>
                   <a class="btn btn-secondary" href="https://github.com/zwang-geog/mapbox-exif-layer/blob/main/claude-skill-plugin/skills/wind-particles/references/add-wind-particle-maplibre.md" target="_blank" rel="noopener">MapLibre</a>
                 </div>
-                <a class="btn btn-secondary layer-card-ref-btn" href="https://github.com/zwang-geog/mapbox-exif-layer/tree/main#particlemotion" target="_blank" rel="noopener">Options &amp; Methods</a>
               </div>
               <div>
                 <p class="layer-card-section-label">Sources Supported</p>
@@ -181,7 +199,7 @@
           <div class="layer-card-body">
             <div class="layer-card-header">
               <h3>Smooth, non-blocky weather display</h3>
-              <span class="layer-class-badge">Smooth Raster</span>
+              <a class="layer-class-badge" href="https://github.com/zwang-geog/mapbox-exif-layer/tree/main#smoothraster" target="_blank" rel="noopener">Smooth Raster</a>
             </div>
             <p class="layer-card-desc">
               Utilizing WebGL RGBA texture with linear filtering; the GPU bilinearly interpolates between adjacent texel values when sampling, producing a smooth gradient. Suitable for scalar (grayscale) variables such as temperature and precipitation.
@@ -193,7 +211,6 @@
                   <a class="btn btn-secondary" href="https://github.com/zwang-geog/mapbox-exif-layer/blob/main/claude-skill-plugin/skills/weather-raster/references/add-weather-raster-mapbox.md" target="_blank" rel="noopener">Mapbox</a>
                   <a class="btn btn-secondary" href="https://github.com/zwang-geog/mapbox-exif-layer/blob/main/claude-skill-plugin/skills/weather-raster/references/add-weather-raster-maplibre.md" target="_blank" rel="noopener">MapLibre</a>
                 </div>
-                <a class="btn btn-secondary layer-card-ref-btn" href="https://github.com/zwang-geog/mapbox-exif-layer/tree/main#smoothraster" target="_blank" rel="noopener">Options &amp; Methods</a>
               </div>
               <div>
                 <p class="layer-card-section-label">Sources Supported</p>
@@ -216,7 +233,7 @@
           <div class="layer-card-body">
             <div class="layer-card-header">
               <h3>Grayscale, Scalar GeoTIFF</h3>
-              <span class="layer-class-badge">Smooth Raster</span>
+              <a class="layer-class-badge" href="https://github.com/zwang-geog/mapbox-exif-layer/tree/main#smoothraster" target="_blank" rel="noopener">Smooth Raster</a>
             </div>
             <p class="layer-card-desc">
               Visualize a small single-band GeoTIFF directly in the browser. Multi-band GeoTIFFs (each band holding a different scalar variable) are also accepted; just pick one band to display. Grid size should be no more than 4096x4096. (v1.3.1+)
@@ -228,7 +245,6 @@
                   <a class="btn btn-secondary" href="https://github.com/zwang-geog/mapbox-exif-layer/blob/main/claude-skill-plugin/skills/weather-raster/references/add-weather-raster-mapbox.md" target="_blank" rel="noopener">Mapbox</a>
                   <a class="btn btn-secondary" href="https://github.com/zwang-geog/mapbox-exif-layer/blob/main/claude-skill-plugin/skills/weather-raster/references/add-weather-raster-maplibre.md" target="_blank" rel="noopener">MapLibre</a>
                 </div>
-                <a class="btn btn-secondary layer-card-ref-btn" href="https://github.com/zwang-geog/mapbox-exif-layer/tree/main#smoothraster" target="_blank" rel="noopener">Options &amp; Methods</a>
               </div>
               <div>
                 <p class="layer-card-section-label">Sources Supported</p>
@@ -251,16 +267,12 @@
           <div class="layer-card-body">
             <div class="layer-card-header">
               <h3>RGB or RGBA GeoTIFF</h3>
-              <span class="layer-class-badge">RgbGeoTiff</span>
+              <a class="layer-class-badge" href="https://github.com/zwang-geog/mapbox-exif-layer/tree/main#rgbgeotiff" target="_blank" rel="noopener">RgbGeoTiff</a>
             </div>
             <p class="layer-card-desc">
               Display a true-color (RGB) or transparent (RGBA) GeoTIFF as a native map image layer. The file is decoded client-side and added as a Mapbox/MapLibre image source. Supports uint8 and uint16 bands. (v1.3.3+)
             </p>
             <div class="layer-card-meta">
-              <div>
-                <p class="layer-card-section-label">Quick Start</p>
-                <a class="btn btn-secondary layer-card-ref-btn" href="https://github.com/zwang-geog/mapbox-exif-layer/tree/main#rgbgeotiff" target="_blank" rel="noopener">README</a>
-              </div>
               <div>
                 <p class="layer-card-section-label">Sources Supported</p>
                 <div class="source-tags">
@@ -281,7 +293,7 @@
       <p class="resource-group-label">Featured sample code</p>
       <div class="resource-button-grid">
         <a class="btn btn-secondary resource-btn" href="https://github.com/zwang-geog/mapbox-exif-layer/blob/main/maplibre-gl-demo/global-gfs-slider/src/App.jsx" target="_blank" rel="noopener">Timeslider</a>
-        <a class="btn btn-secondary resource-btn" href="https://github.com/zwang-geog/mapbox-exif-layer/blob/main/maplibre-gl-demo/geotif-demo/src/App.jsx" target="_blank" rel="noopener">MapLibre globe projection &amp; Grayscale GeoTIFF</a>
+        <a class="btn btn-secondary resource-btn" href="https://github.com/zwang-geog/mapbox-exif-layer/blob/main/maplibre-gl-demo/geotif-demo/src/App.jsx" target="_blank" rel="noopener">Grayscale GeoTIFF</a>
         <a class="btn btn-secondary resource-btn" href="https://github.com/zwang-geog/mapbox-exif-layer/blob/main/maplibre-gl-demo/rgba-geotif-demo/index.html" target="_blank" rel="noopener">RGB GeoTIFF (no npm)</a>
       </div>
 
@@ -290,6 +302,73 @@
         <a class="btn btn-secondary resource-btn" href="https://github.com/zwang-geog/mapbox-exif-layer/blob/main/docs/jpeg-source.md" target="_blank" rel="noopener">Properly encoded JPEG/PNG image</a>
         <a class="btn btn-secondary resource-btn" href="https://github.com/zwang-geog/mapbox-exif-layer/blob/main/docs/geotiff-source.md" target="_blank" rel="noopener">Scalar GeoTIFF</a>
         <a class="btn btn-secondary resource-btn" href="https://github.com/zwang-geog/mapbox-exif-layer/blob/main/docs/rgb-geotiff.md" target="_blank" rel="noopener">RGB GeoTIFF</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="getting-started" id="getting-started">
+    <div class="section-inner">
+      <h2>Getting started</h2>
+      <p class="section-lead">
+        This package does not include a map SDK. Install one map runtime, then add
+        <code>mapbox-exif-layer</code> (and optionally <code>geotiff</code> for <code>.tif</code> sources).
+      </p>
+
+      <div class="install-block">
+        <h3>Mapbox GL JS</h3>
+        <p class="install-note">Default <code>mapRuntime: 'mapbox'</code></p>
+        <pre><code>npm install mapbox-gl</code></pre>
+      </div>
+
+      <div class="install-block">
+        <h3>MapLibre GL JS</h3>
+        <p class="install-note">Remember to set <code>mapRuntime: 'maplibre'</code> on each layer</p>
+        <pre><code>npm install maplibre-gl</code></pre>
+      </div>
+
+      <div class="install-block">
+        <h3>This package</h3>
+        <pre><code>npm install mapbox-exif-layer</code></pre>
+      </div>
+
+      <div class="install-block">
+        <h3>GeoTIFF sources <span class="install-optional">optional</span></h3>
+        <p class="install-note">Only for <code>.tif</code> / <code>.tiff</code> URLs — JPEG-only setups do not need this.</p>
+        <pre><code>npm install geotiff</code></pre>
+      </div>
+
+      <div class="install-block">
+        <h3>Import</h3>
+        <p class="install-note">Import only the classes your map uses.</p>
+
+        <h4>Wind — NewParticleMotion</h4>
+        <p class="install-note">v1.4.0+. Particles distribution constrained by both data extent and map viewport.</p>
+        <pre><code>import { NewParticleMotion } from 'mapbox-exif-layer';</code></pre>
+
+        <h4>Wind — ParticleMotion</h4>
+        <p class="install-note">Particles distribute across the entire data extent.</p>
+        <pre><code>import { ParticleMotion } from 'mapbox-exif-layer';</code></pre>
+
+        <h4>Smooth weather and scalar GeoTIFF — SmoothRaster</h4>
+        <pre><code>import { SmoothRaster } from 'mapbox-exif-layer';</code></pre>
+
+        <h4>RGB or RGBA GeoTIFF — RgbGeoTiff</h4>
+        <pre><code>import { RgbGeoTiff } from 'mapbox-exif-layer';</code></pre>
+      </div>
+
+      <div class="install-block">
+        <h3>Add a wind layer</h3>
+        <p class="install-note">Replace <code>YYYYMMDDHH</code> with the current UTC hour: year, month, day, and hour (<code>HH</code> is 00–23). Set <code>unit: 'mps'</code> for these files: GFS wind is meters per second, and the default unit is miles per hour. On MapLibre, also set <code>mapRuntime: 'maplibre'</code>.</p>
+        <pre><code>const windLayer = new NewParticleMotion({
+  id: 'wind-particle',
+  source: 'https://www.mapbox-exif-layer.com/gfs/0p25/wind/wind_YYYYMMDDHH.jpeg',
+  color: [[0, [0, 195, 255]], [20, [249, 243, 1]], [42, [128, 0, 0]]],
+  unit: 'mps',
+  bounds: [-180, 90, 180, -90],
+  readyForDisplay: true
+});
+
+map.on('style.load', () => map.addLayer(windLayer));</code></pre>
       </div>
     </div>
   </section>
@@ -513,44 +592,6 @@
           Field-by-field <code>status.json</code> notes are in the
           <a href="https://github.com/zwang-geog/mapbox-exif-layer/blob/main/README.md#gfs-025-free-open-data-update-every-6-hours" target="_blank" rel="noopener">README GFS section</a>.
         </p>
-      </div>
-    </div>
-  </section>
-
-  <section class="getting-started" id="getting-started">
-    <div class="section-inner">
-      <h2>Getting started</h2>
-      <p class="section-lead">
-        This package does not include a map SDK. Install one map runtime, then add
-        <code>mapbox-exif-layer</code> (and optionally <code>geotiff</code> for <code>.tif</code> sources).
-      </p>
-
-      <div class="install-block">
-        <h3>Mapbox GL JS</h3>
-        <p class="install-note">Default <code>mapRuntime: 'mapbox'</code></p>
-        <pre><code>npm install mapbox-gl</code></pre>
-      </div>
-
-      <div class="install-block">
-        <h3>MapLibre GL JS</h3>
-        <p class="install-note">Set <code>mapRuntime: 'maplibre'</code> on each layer</p>
-        <pre><code>npm install maplibre-gl</code></pre>
-      </div>
-
-      <div class="install-block">
-        <h3>This package</h3>
-        <pre><code>npm install mapbox-exif-layer</code></pre>
-      </div>
-
-      <div class="install-block">
-        <h3>GeoTIFF sources <span class="install-optional">optional</span></h3>
-        <p class="install-note">Only for <code>.tif</code> / <code>.tiff</code> URLs — JPEG-only setups do not need this.</p>
-        <pre><code>npm install geotiff</code></pre>
-      </div>
-
-      <div class="install-block">
-        <h3>Import</h3>
-        <pre><code>import { ParticleMotion, SmoothRaster, RgbGeoTiff } from 'mapbox-exif-layer';</code></pre>
       </div>
     </div>
   </section>

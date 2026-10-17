@@ -178,11 +178,17 @@ a:hover {
   font-size: 1.35rem;
 }
 
-.video-featured {
+.video-row {
   display: grid;
-  grid-template-columns: minmax(240px, 420px) 1fr;
-  gap: 1.5rem;
-  align-items: center;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  align-items: stretch;
+}
+
+.video-featured {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -239,18 +245,8 @@ a:hover {
   color: var(--text-muted);
 }
 
-.video-secondary {
-  margin: 1.25rem 0 0;
-  font-size: 0.9rem;
-  color: var(--text-muted);
-}
-
-.video-secondary a {
-  font-weight: 600;
-}
-
 @media (max-width: 720px) {
-  .video-featured {
+  .video-row {
     grid-template-columns: 1fr;
   }
 }
@@ -383,6 +379,26 @@ a:hover {
   line-height: 1.3;
 }
 
+.layer-class-line {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  margin: 0;
+}
+
+.layer-class-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.layer-class-names {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
 .layer-class-badge {
   font-size: 0.75rem;
   font-weight: 600;
@@ -392,6 +408,10 @@ a:hover {
   padding: 0.18rem 0.5rem;
   border-radius: 4px;
   white-space: nowrap;
+}
+
+a.layer-class-badge:hover {
+  color: var(--accent-hover);
 }
 
 
@@ -436,15 +456,9 @@ a:hover {
   margin-bottom: 0.45rem;
 }
 
-.layer-card-btns .btn,
-.layer-card-ref-btn {
+.layer-card-btns .btn {
   font-size: 0.8rem;
   padding: 0.35rem 0.75rem;
-}
-
-.layer-card-ref-btn {
-  display: block;
-  text-align: center;
 }
 
 .source-tags {
@@ -692,6 +706,13 @@ a.source-tag:hover {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+.install-block h4 {
+  margin: 1.1rem 0 0.35rem;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--text);
 }
 
 .install-optional {

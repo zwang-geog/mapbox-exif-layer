@@ -27,9 +27,8 @@ Four use cases. `SmoothRaster` covers two of them. Wind can use `ParticleMotion`
 * [Weather map time slider demo](https://www.weather-map-time-slider-demo.mapbox-exif-layer.com) ([source](maplibre-gl-demo/global-gfs-slider/src/App.jsx))
 * [MapLibre country-scale globe demo (masked no-data cells)](https://www.mapbox-exif-layer.com/maplibre-gl-js-globe-projection-demo/index.html) ([source](maplibre-gl-demo/maplibre-gl-demo/src/App.jsx))
 * [US wind & temperature demo with Mapbox](https://www.us-wind-particle-map-demo.mapbox-exif-layer.com) ([source](react-demo/react-demo/src/App.jsx))
-* [Demo video — Southern California wind particles](https://www.youtube.com/watch?v=HLu0Ylhu5x4)
-* [Demo video — US continental wind particle animation (v1.1.0)](https://www.youtube.com/watch?v=iWKjNriTW-U)
-* [Demo video — MapLibre GL JS globe projection (v1.3.1)](https://www.youtube.com/watch?v=SLPBfteIbRE)
+* [Demo video — NewParticleMotion layer class for wind particles (v1.4.1)](https://vimeo.com/1236722322)
+* [Demo video — ParticleMotion layer class for wind particles (v1.3.1)](https://www.youtube.com/watch?v=SLPBfteIbRE)
 * [Technique explanation (Medium)](https://medium.com/@zifanw9/a-low-cost-custom-wind-particle-motion-layer-in-mapbox-gl-js-9a51978e3ffb)
 
 ### Quick starts
