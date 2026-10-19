@@ -69,6 +69,7 @@ a:hover {
 
 .header-links {
   display: flex;
+  align-items: center;
   gap: 1.25rem;
   margin-left: auto;
 }
@@ -84,17 +85,28 @@ a:hover {
 
 .nav-menu {
   position: relative;
+  line-height: 1.15;
 }
 
 .nav-menu-label {
   font-size: 0.9rem;
+  line-height: 1.15;
   color: var(--text-muted);
   cursor: default;
 }
 
-.nav-menu-label::after {
-  content: " ▾";
-  font-size: 0.7em;
+.nav-menu-label-tail {
+  white-space: nowrap;
+}
+
+.nav-menu-label-tail::after {
+  content: "";
+  display: inline-block;
+  margin-left: 0.35em;
+  vertical-align: 0.15em;
+  border-left: 0.28em solid transparent;
+  border-right: 0.28em solid transparent;
+  border-top: 0.32em solid currentColor;
 }
 
 .nav-menu:hover .nav-menu-label,
