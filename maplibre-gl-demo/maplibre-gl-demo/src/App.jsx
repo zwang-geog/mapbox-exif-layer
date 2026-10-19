@@ -107,21 +107,23 @@ function App() {
       center: [-119.699944, 34.432546]
     });
 
-    mapRef.current.on('load', () => {
-      mapRef.current.addLayer(temperatureLayer.current);
-      mapRef.current.addLayer(windParticleLayer.current);
+    mapRef.current.on('style.load', () => {
+      mapRef.current.setProjection({
+          type: 'globe', // Set projection to globe
+      });
+
+      if (!mapRef.current.getLayer('temperature')) {
+        mapRef.current.addLayer(temperatureLayer.current);
+      }
+      if (!mapRef.current.getLayer('wind-particle')) {
+        mapRef.current.addLayer(windParticleLayer.current);
+      }
 
       // Let map layout property to control temperature layer visibility
       // since temperature layer is initially off by default
       mapRef.current.setLayoutProperty('temperature', 'visibility', 'none');
       temperatureLayer.current.readyForDisplay = true;
       setMapLoaded(true);
-    });
-
-    mapRef.current.on('style.load', () => {
-      mapRef.current.setProjection({
-          type: 'globe', // Set projection to globe
-      });
     });
 
     return () => {

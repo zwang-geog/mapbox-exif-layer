@@ -8,7 +8,7 @@ import './App.css'
 import { weatherColorMap, weatherUrl, WeatherColorbar, getCurrentTime, StyleToggleControl } from './util.jsx'
 import { useRef, useEffect, useState } from 'react'
 import 'mapbox-gl/dist/mapbox-gl.css'
-import { SmoothRaster, ParticleMotion } from 'mapbox-exif-layer'
+import { SmoothRaster, NewParticleMotion } from 'mapbox-exif-layer'
 import mapboxgl from 'mapbox-gl';
 import { 
   Slider, 
@@ -51,13 +51,13 @@ function App() {
   // Store those as refs in case base layer is changed
   const smoothRasterLayerMappedAttributeRef = useRef("temperature");
   const forecastTimestepRef = useRef("00");
-  const smoothRasterLayerIsOnRef = useRef(true);
-  const windParticleLayerIsOnRef = useRef(false);
+  const smoothRasterLayerIsOnRef = useRef(false);
+  const windParticleLayerIsOnRef = useRef(true);
 
   // Store those as states for user interaction
   const [smoothRasterLayerMappedAttribute, setSmoothRasterLayerMappedAttribute] = useState("temperature");
   const [forecastTimestep, setForecastTimestep] = useState("00");
-  const [activeLayerIds, setActiveLayerIds] = useState(["smooth-raster"]);
+  const [activeLayerIds, setActiveLayerIds] = useState(["wind-particle"]);
   const [isPlaying, setIsPlaying] = useState(false);
   const [windLegendOpen, setWindLegendOpen] = useState(false);
   const [rasterLegendOpen, setRasterLegendOpen] = useState(false);
@@ -72,6 +72,7 @@ function App() {
 
   // Reusable function when base layer is changed
   const addLayers = (bottomlabellayername) => {
+    // Temperature raster stays off until the user turns it on. Wind starts on.
     smoothRasterLayerRef.current = new SmoothRaster({
       id: 'smooth-raster',
       source: weatherUrl(smoothRasterLayerMappedAttributeRef.current, forecastTimestepRef.current),
@@ -81,8 +82,7 @@ function App() {
       readyForDisplay: smoothRasterLayerIsOnRef.current
     });
   
-    // Wind layer will not be shown when the map is first loaded.
-    windParticleLayerRef.current = new ParticleMotion({
+    windParticleLayerRef.current = new NewParticleMotion({
       id: 'wind-particle',
       source: weatherUrl("wind", forecastTimestepRef.current),
       color: weatherColorMap["wind"],
