@@ -38,15 +38,16 @@ const vertexShader =
     precision mediump float;
     
     in vec2 a_position;  // Current position [0,1]
+    in vec2 a_seed;      // Initial grid position. Stable random seed, not updated.
     in float a_age;      // Particle age for tracking circular patterns
     out vec2 v_position; // Updated position for transform feedback
     out float v_age;     // Updated age for transform feedback
     
     uniform sampler2D u_velocity_texture;  // Texture with normalized velocities [0,1]
     uniform mediump vec4 u_bounds;
-    uniform highp vec4 u_viewport; // west, south, east, north in degrees. east >= west; values may lie outside [-180, 180]
+    uniform highp vec4 u_viewport; // data UV [uWest, vNorth, uEast, vSouth]. y = 0 is north. uEast >= uWest, uEast - uWest <= 1. A wrapping raster may cross 0/1.
     uniform mediump float u_speed_factor;
-    uniform mediump float u_time;
+    uniform mediump vec2 u_rand_seed; // Fresh value each update, kept near [0, 1]
     uniform mediump vec2 u_value_range_u;    // Wind U component range
     uniform mediump vec2 u_value_range_v;    // Wind V component range
     uniform mediump float u_age_threshold;   // Age threshold for reset probability
@@ -57,14 +58,10 @@ const vertexShader =
     ${velocityUniformGlsl}
     ${velocityDecodeGlsl}
     
-    // Random function based on time and position
+    // Hash stays in mediump range. The caller mixes a_seed with u_rand_seed.
     float random(vec2 co) {
-        float a = 12.9898;
-        float b = 78.233;
-        float c = 43758.5453;
-        float dt = dot(co, vec2(a,b));
-        float sn = mod(dt, 3.14);
-        return fract(sin(sn) * c + u_time);
+        float t = dot(vec2(12.9898, 78.233), co);
+        return fract(sin(t) * (4375.85453 + t));
     }
     
     // Convert mph to degrees per frame
@@ -79,24 +76,15 @@ const vertexShader =
         return rangeStart + mod(value - rangeStart, rangeSpan);
     }
 
-    // Camera longitude is an increasing window and may sit outside [-180, 180].
-    // Compare a particle by sliding it into that same window, instead of folding
-    // the camera back into the raster first.
+    // u_viewport is already data UV. A wrapping raster keeps one interval that
+    // may cross the 0/1 edge, so slide x into that interval before comparing.
     bool outsideCamera(vec2 pos) {
-        highp float lng = mix(u_bounds[0], u_bounds[2], pos.x);
-        highp float lat = mix(u_bounds[3], u_bounds[1], 1.0 - pos.y);
-        highp float shifted = wrapToRange(lng, u_viewport.x, 360.0);
-        return shifted > u_viewport.z || lat < u_viewport.y || lat > u_viewport.w;
-    }
-
-    // Store a geographic point back into data-extent UV. Longitude is folded
-    // into the raster so a spawn past ±180 still lands on the matching cell.
-    vec2 lngLatToPosition(float lng, float lat) {
-        float span = u_bounds[2] - u_bounds[0];
-        float folded = wrapToRange(lng, u_bounds[0], span);
-        float u = (folded - u_bounds[0]) / span;
-        float v = (u_bounds[1] - lat) / (u_bounds[1] - u_bounds[3]);
-        return vec2(clamp(u, 0.0, 1.0), clamp(v, 0.0, 1.0));
+        highp float x = pos.x;
+        if (u_wrap_longitude) {
+            x = wrapToRange(pos.x, u_viewport.x, 1.0);
+        }
+        return x < u_viewport.x || x > u_viewport.z
+            || pos.y < u_viewport.y || pos.y > u_viewport.w;
     }
 
     vec2 generateRandomPosition(vec2 seed) {
@@ -104,9 +92,14 @@ const vertexShader =
             random(seed + vec2(1.23, 4.56)),
             random(seed + vec2(7.89, 0.12))
         );
-        float lng = mix(u_viewport.x, u_viewport.z, r.x);
-        float lat = mix(u_viewport.y, u_viewport.w, r.y);
-        return lngLatToPosition(lng, lat);
+        float x = mix(u_viewport.x, u_viewport.z, r.x);
+        float y = mix(u_viewport.y, u_viewport.w, r.y);
+        if (u_wrap_longitude) {
+            x = wrapToRange(x, 0.0, 1.0);
+        } else {
+            x = clamp(x, 0.0, 1.0);
+        }
+        return vec2(x, clamp(y, 0.0, 1.0));
     }
     
     // Function to generate a position on one of the boundaries
@@ -164,8 +157,7 @@ const vertexShader =
         float age = a_age + 1.0;
         
         // Reset if outside the camera, no-data, or very low wind speed.
-        // Wrap only at the raster edge. The camera test runs in degrees and
-        // accepts a longitude on either side of the dateline.
+        // Wrap only at the raster edge. The camera test runs in data UV.
         bool leftRasterX = newPos.x < 0.0 || newPos.x > 1.0;
         if (u_wrap_longitude && leftRasterX) {
             newPos.x = fract(newPos.x);
@@ -178,7 +170,7 @@ const vertexShader =
         // Reset based on age with increasing probability
         if (age > u_age_threshold) {
             float resetProbability = (age - u_age_threshold) / (u_max_age - u_age_threshold);
-            if (random(a_position + vec2(u_time * 0.1, age * 0.01)) < resetProbability) {
+            if (random(a_position + u_rand_seed + vec2(0.17, age * 0.01)) < resetProbability) {
                 shouldReset = true;
             }
         }
@@ -190,14 +182,14 @@ const vertexShader =
         
         // Additional reset based on percentParticleWhenSetSource if flag is set
         if (!shouldReset && u_should_reset) {
-            if (random(a_position + vec2(u_time)) < u_percent_reset) {
+            if (random(a_position + u_rand_seed + vec2(5.1, 1.7)) < u_percent_reset) {
                 shouldReset = true;
             }
         }
         
         // Handle reset by generating a new position
         if (shouldReset) {
-            newPos = generateRandomPosition(a_position + vec2(u_time));
+            newPos = generateRandomPosition(a_seed + u_rand_seed);
 
             age = 0.0; // Reset age
         }
@@ -503,47 +495,49 @@ function computeWrapLongitude(bounds) {
 }
 
 const VIEWPORT_PADDING = 0.08;
-// MapLibre draws mercator from this zoom up, even when the style projection is globe.
-const GLOBE_MERCATOR_ZOOM = 12;
-// Mercator live count, log-interpolated between these stops. Zoom at or above
-// the first stop stays on that count. Zoom at or below the last stop stays on
-// that count. The zoom-12 stop keeps 8–12 near 5000; the drop to 10 is the
-// last level. Integer zooms:
-// 13→10, 12→4000, 11→4229, 10→4472, 9→4729, 8→5000,
-// 7→5946, 6→7071, 5→8409, 4→10000, 3→31623, 2 and below→100000.
+// Live count by zoom. Integer zooms 2 through 14 are stops, so the README
+// table matches. Zoom 14 and above stays at 10. Zoom 2 and below stays at
+// 30000. Fractional zooms are log-interpolated between the neighboring stops.
 const DEFAULT_PARTICLE_COUNT_STOPS = [
-    { zoom: 13, count: 10 },
-    { zoom: 12, count: 4000 },
-    { zoom: 8, count: 5000 },
-    { zoom: 4, count: 10000 },
-    { zoom: 2, count: 100000 },
-];
-// Globe live count while zoom is under GLOBE_MERCATOR_ZOOM. Meets the mercator
-// list at zoom 12. Doubles it at zoom 2 and below. A first guess to tune.
-const GLOBE_PARTICLE_COUNT_STOPS = [
-    { zoom: 13, count: 10 },
-    { zoom: 12, count: 4000 },
-    { zoom: 8, count: 8000 },
-    { zoom: 4, count: 20000 },
-    { zoom: 2, count: 200000 },
+    { zoom: 14, count: 10 },
+    { zoom: 13, count: 100 },
+    { zoom: 12, count: 500 },
+    { zoom: 11, count: 1000 },
+    { zoom: 10, count: 3000 },
+    { zoom: 9, count: 4000 },
+    { zoom: 8, count: 4500 },
+    { zoom: 7, count: 5000 },
+    { zoom: 6, count: 5300 },
+    { zoom: 5, count: 5600 },
+    { zoom: 4, count: 6000 },
+    { zoom: 3, count: 13400 },
+    { zoom: 2, count: 30000 },
 ];
 const PARTICLE_ZOOM_SAMPLE_MAX = 24;
 
-// Raw camera window in degrees: [west, south, east, north].
-// Longitude is not folded into [-180, 180]. A mercator camera with west > east
-// is made increasing by adding 360 to east. The shader decides which particles
-// fall inside, including longitudes on both sides of the dateline.
+// Padded camera as data UV [uWest, vNorth, uEast, vSouth], y = 0 at north.
+// Longitude is made increasing before the conversion, so a dateline crossing
+// stays one interval. Width is capped at 1. A window that wide covers every
+// longitude of the raster and becomes [0, 1]. Latitude is clipped to [0, 1].
+// A wrapping raster may leave uWest < 0 or uEast > 1. Any other raster is
+// clipped to the data square.
 function cameraLngLatWindow(map, bounds, padding = VIEWPORT_PADDING) {
-    const dataWest = bounds && bounds[0];
-    const dataNorth = bounds && bounds[1];
-    const dataEast = bounds && bounds[2];
-    const dataSouth = bounds && bounds[3];
     const fallback = {
-        window: [dataWest, dataSouth, dataEast, dataNorth],
+        window: [0, 0, 1, 1],
         reseed: false,
     };
 
     if (!map || typeof map.getBounds !== 'function' || !bounds || bounds.length < 4) {
+        return fallback;
+    }
+
+    const dataWest = bounds[0];
+    const dataNorth = bounds[1];
+    const dataEast = bounds[2];
+    const dataSouth = bounds[3];
+    const spanLng = dataEast - dataWest;
+    const spanLat = dataNorth - dataSouth;
+    if (!(spanLng > 0) || !(spanLat > 0)) {
         return fallback;
     }
 
@@ -567,8 +561,21 @@ function cameraLngLatWindow(map, bounds, padding = VIEWPORT_PADDING) {
     south = Math.max(-90, south - padLat);
     north = Math.min(90, north + padLat);
 
+    let uWest = (west - dataWest) / spanLng;
+    let uEast = (east - dataWest) / spanLng;
+    if (uEast - uWest >= 1) {
+        uWest = 0;
+        uEast = 1;
+    } else if (!computeWrapLongitude(bounds)) {
+        uWest = Math.min(1, Math.max(0, uWest));
+        uEast = Math.min(1, Math.max(0, uEast));
+    }
+
+    const vNorth = Math.min(1, Math.max(0, (dataNorth - north) / spanLat));
+    const vSouth = Math.min(1, Math.max(0, (dataNorth - south) / spanLat));
+
     return {
-        window: [west, south, east, north],
+        window: [uWest, vNorth, uEast, vSouth],
         reseed: true,
     };
 }
@@ -604,9 +611,8 @@ function countFromStops(zoom, stops) {
     return stops[stops.length - 1].count;
 }
 
-function defaultParticleCountForZoom(zoom, projection) {
-    const stops = projection === 'globe' ? GLOBE_PARTICLE_COUNT_STOPS : DEFAULT_PARTICLE_COUNT_STOPS;
-    return countFromStops(zoom, stops);
+function defaultParticleCountForZoom(zoom) {
+    return countFromStops(zoom, DEFAULT_PARTICLE_COUNT_STOPS);
 }
 
 function mapZoom(map) {
@@ -614,33 +620,17 @@ function mapZoom(map) {
     return Number.isFinite(zoom) ? zoom : 0;
 }
 
-// 'globe' only while MapLibre is still drawing the globe. From zoom 12 the
-// picture is mercator even if getProjection() still reports globe.
-function projectionForCount(map, zoom) {
-    if (!map || typeof map.getProjection !== 'function' || !(zoom < GLOBE_MERCATOR_ZOOM)) {
-        return 'mercator';
-    }
-    const projection = map.getProjection();
-    const type = projection && (projection.type || projection.name);
-    return type === 'globe' ? 'globe' : 'mercator';
-}
-
-// Buffer size is the largest count the function returns for either projection
-// on integer zooms 0..24.
+// Buffer size is the largest count the function returns on integer zooms 0..24.
 function bufferCapacityFor(countForZoom) {
     let capacity = 1;
     for (let zoom = 0; zoom <= PARTICLE_ZOOM_SAMPLE_MAX; zoom += 1) {
-        capacity = Math.max(
-            capacity,
-            normalizeParticleCount(countForZoom(zoom, 'mercator')),
-            normalizeParticleCount(countForZoom(zoom, 'globe')),
-        );
+        capacity = Math.max(capacity, normalizeParticleCount(countForZoom(zoom)));
     }
     return capacity;
 }
 
-function liveCountForZoom(countForZoom, zoom, projection, capacity) {
-    const count = normalizeParticleCount(countForZoom(Number.isFinite(zoom) ? zoom : 0, projection));
+function liveCountForZoom(countForZoom, zoom, capacity) {
+    const count = normalizeParticleCount(countForZoom(Number.isFinite(zoom) ? zoom : 0));
     return Math.min(capacity, count);
 }
 
@@ -682,7 +672,7 @@ export default class NewParticleMotion {
             ? particleCount
             : () => normalizeParticleCount(particleCount);
         this.bufferCapacity = bufferCapacityFor(this.particleCountForZoom);
-        this.liveCount = liveCountForZoom(this.particleCountForZoom, 0, 'mercator', this.bufferCapacity);
+        this.liveCount = liveCountForZoom(this.particleCountForZoom, 0, this.bufferCapacity);
         
         this.sourceLoaded = false;
         this.readyForDisplay = readyForDisplay;
@@ -727,7 +717,6 @@ export default class NewParticleMotion {
         this.liveCount = liveCountForZoom(
             this.particleCountForZoom,
             zoom,
-            projectionForCount(map, zoom),
             this.bufferCapacity,
         );
 
@@ -766,6 +755,8 @@ export default class NewParticleMotion {
         // Create double-buffered particle position buffers (for main particles only)
         this.particleBufferA = createBuffer(gl, positions);
         this.particleBufferB = createBuffer(gl, positions);
+        // Same grid, kept fixed so packed particles still hash apart.
+        this.seedBuffer = createBuffer(gl, positions);
         this.currentBuffer = this.particleBufferA;
         this.nextBuffer = this.particleBufferB;
         
@@ -1045,7 +1036,7 @@ export default class NewParticleMotion {
         gl.useProgram(this.updateProgram.program);
 
         // Set uniforms for update
-        gl.uniform1f(this.updateProgram.u_time, currentTime / 1000);
+        gl.uniform2f(this.updateProgram.u_rand_seed, Math.random(), Math.random());
         gl.uniform1f(this.updateProgram.u_speed_factor, this.velocityFactor);
         gl.uniform4fv(this.updateProgram.u_bounds, this.bounds);
         gl.uniform2fv(this.updateProgram.u_value_range_u, this.valueRange_u);
@@ -1065,7 +1056,6 @@ export default class NewParticleMotion {
             this.liveCount = liveCountForZoom(
                 this.particleCountForZoom,
                 zoom,
-                projectionForCount(this.map, zoom),
                 this.bufferCapacity,
             );
         }
@@ -1093,6 +1083,11 @@ export default class NewParticleMotion {
         gl.bindBuffer(gl.ARRAY_BUFFER, this.currentAgeBuffer);
         gl.enableVertexAttribArray(this.updateProgram.a_age);
         gl.vertexAttribPointer(this.updateProgram.a_age, 1, gl.FLOAT, false, 0, 0);
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.seedBuffer);
+        gl.enableVertexAttribArray(this.updateProgram.a_seed);
+        gl.vertexAttribPointer(this.updateProgram.a_seed, 2, gl.FLOAT, false, 0, 0);
+        gl.vertexAttribDivisor(this.updateProgram.a_seed, 0);
 
         // Bind transform feedback and next buffers
         gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, this.transformFeedback);
@@ -1273,6 +1268,7 @@ export default class NewParticleMotion {
         if (this.ageBufferA) gl.deleteBuffer(this.ageBufferA);
         if (this.ageBufferB) gl.deleteBuffer(this.ageBufferB);
         if (this.trailOffsetBuffer) gl.deleteBuffer(this.trailOffsetBuffer);
+        if (this.seedBuffer) gl.deleteBuffer(this.seedBuffer);
 
         // Delete transform feedback
         if (this.transformFeedback) gl.deleteTransformFeedback(this.transformFeedback);
@@ -1291,6 +1287,7 @@ export default class NewParticleMotion {
         this.currentAgeBuffer = null;
         this.nextAgeBuffer = null;
         this.trailOffsetBuffer = null;
+        this.seedBuffer = null;
         this.transformFeedback = null;
         this.sourceTexture = null;
         this.colormapTexture = null;

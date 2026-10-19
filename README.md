@@ -12,7 +12,7 @@ Four use cases. `SmoothRaster` covers two of them. Wind can use `ParticleMotion`
 
 | Use case | Class | Data Source | Visual |
 | --- | --- | --- | --- |
-| Wind | `ParticleMotion`, or [`NewParticleMotion`](#newparticlemotion) (beta, v1.4.0) which keeps particles in the current view | [JPEG/PNG](https://github.com/zwang-geog/mapbox-exif-layer/tree/main/docs/jpeg-source.md), [scalar GeoTIFF](https://github.com/zwang-geog/mapbox-exif-layer/tree/main/docs/geotiff-source.md) | Flowing particle animation |
+| Wind | `ParticleMotion`, or [`NewParticleMotion`](#newparticlemotion) (v1.5.0+) which keeps particles in the current view | [JPEG/PNG](https://github.com/zwang-geog/mapbox-exif-layer/tree/main/docs/jpeg-source.md), [scalar GeoTIFF](https://github.com/zwang-geog/mapbox-exif-layer/tree/main/docs/geotiff-source.md) | Flowing particle animation |
 | Smooth weather display | `SmoothRaster` | [JPEG/PNG](https://github.com/zwang-geog/mapbox-exif-layer/tree/main/docs/jpeg-source.md) only | Smooth gradients (linear texture filtering) |
 | Scalar GeoTIFF preview | `SmoothRaster` | [Scalar GeoTIFF](https://github.com/zwang-geog/mapbox-exif-layer/tree/main/docs/geotiff-source.md) | Native grid resolution; blocky when zoomed in |
 | RGB / RGBA GeoTIFF | `RgbGeoTiff` | [RGB GeoTIFF](https://github.com/zwang-geog/mapbox-exif-layer/tree/main/docs/rgb-geotiff.md) | True-color image layer |
@@ -127,7 +127,7 @@ Then import the layer classes in your JavaScript code. Import only the classes y
 import { ParticleMotion, NewParticleMotion, SmoothRaster, RgbGeoTiff } from 'mapbox-exif-layer';
 ```
 
-On v1.4.0+, when you are drawing wind, experiment with `NewParticleMotion` as well as the classic `ParticleMotion` class. How the two differ is under [NewParticleMotion](#newparticlemotion).
+On v1.5.0+, when you are drawing wind, experiment with `NewParticleMotion` as well as the classic `ParticleMotion` class. How the two differ is under [NewParticleMotion](#newparticlemotion).
 
 ## Quick start
 
@@ -148,6 +148,7 @@ const windLayer = new NewParticleMotion({ // use ParticleMotion if the version i
   color: [[0, [0, 195, 255]], [20, [249, 243, 1]], [42, [128, 0, 0]]],  // [speed, [r,g,b]] — see react-demo for full palettes
   unit: 'mps',  // specify this for GFS wind (m/s); the default unit is mph
   bounds: [-180, 90, 180, -90],  // required for JPEG/PNG; optional for GeoTIFF (read from file)
+  // mapRuntime: 'maplibre',  // set this when using MapLibre GL JS; the default is 'mapbox'
   readyForDisplay: true
 });
 
@@ -224,28 +225,29 @@ A particle-based visualization layer that creates animated particles for wind di
 
 The classic `ParticleMotion` layer distributes wind particles across the entire data extent. For example, when rendering a global wind forecast, many particles will be concentrated in high-wind areas such as cyclones, atmospheric rivers, or over ocean, while few or no particles will be present in areas with calmer wind, such as inland. Zooming into an inland area will not affect particle positions, and the user will likely see few or no particles in the map viewport. If the user wants to explore the wind direction and speed in such a calmer area, then there is a problem.
 
-To address this, an alternative particle motion layer is currently implemented as the `NewParticleMotion` class (v1.4.0+).
+To address this, an alternative particle motion layer is currently implemented as the `NewParticleMotion` class (stable release v1.5.0+, beta v1.4.0+).
 
 `NewParticleMotion` differs from `ParticleMotion` in three ways.
 
 1. **Particle position is viewport dependent:** Particle positions are constrained to the data extent and to the map viewport (with an 8% buffer around the viewport). There are two implications. First, when the user pans or zooms (on the `moveend` event), particle positions are randomly reset to be inside or around the viewport. Zooming out relies on this reset: until `moveend`, particles stay in the smaller region they already occupied. Second, the boundary that triggers a new position changes. A particle is reset when it reaches the viewport, rather than when it reaches the edge of the data extent. After the viewport changes, that boundary is what the motion keeps using: a particle that travels past it is placed back inside or around the viewport.
 
-2. **Particle count as a function of zoom level:** At a small zoom level with a large extent, a large number of particles is necessary to depict wind patterns. At a large zoom level with a small extent, a small number of particles is necessary to avoid overcrowding. The `particleCount` parameter also accepts a function `(zoom, projection) => count`. `zoom` is the map zoom. `projection` is `'mercator'` or `'globe'`. A function may ignore `projection`. A number is still a fixed count. When `particleCount` is omitted, the default function returns the counts below. Mercator uses the first count column. A MapLibre globe view below zoom 12 uses the globe column (v1.4.1+). From zoom 12 up the globe setting is drawn as mercator, so both columns match there.
+2. **Particle count as a function of zoom level:** At a small zoom level with a large extent, a large number of particles is necessary to depict wind patterns. At a large zoom level with a small extent, a small number of particles is necessary to avoid overcrowding. The `particleCount` parameter also accepts a function `(zoom) => count`. `zoom` is the map zoom. A number is still a fixed count. When `particleCount` is omitted, the default function returns the counts below. The same counts are used for mercator and MapLibre globe.
 
-| Zoom | Mercator | Globe |
-| --- | --- | --- |
-| 13 and above | 10 | 10 |
-| 12 | 4,000 | 4,000 |
-| 11 | 4,229 | 4,757 |
-| 10 | 4,472 | 5,657 |
-| 9 | 4,729 | 6,727 |
-| 8 | 5,000 | 8,000 |
-| 7 | 5,946 | 10,059 |
-| 6 | 7,071 | 12,649 |
-| 5 | 8,409 | 15,905 |
-| 4 | 10,000 | 20,000 |
-| 3 | 31,623 | 63,246 |
-| 2 and below | 100,000 | 200,000 |
+| Zoom | Particle count |
+| --- | --- |
+| 14 and above | 10 |
+| 13 | 100 |
+| 12 | 500 |
+| 11 | 1,000 |
+| 10 | 3,000 |
+| 9 | 4,000 |
+| 8 | 4,500 |
+| 7 | 5,000 |
+| 6 | 5,300 |
+| 5 | 5,600 |
+| 4 | 6,000 |
+| 3 | 13,400 |
+| 2 and below | 30,000 |
 
 3. **Uniform tails:** Each trail dot sits a fixed screen step upwind, `0.8 × pointSize` pixels, so a slow particle and a fast one draw the same streak. Direction still follows the wind at the head, and the streak uses that head's color. `velocityFactor` still scales how far the head moves on each position update, but it no longer scales the tail. The benefit of this change is that the wind direction of low-speed particles becomes more prominent at a small zoom level. In contrast, `ParticleMotion` places trail dots a multiple of the last motion step back, so faster wind draws a longer tail.
 

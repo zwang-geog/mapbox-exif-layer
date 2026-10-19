@@ -38,6 +38,7 @@ const vertexShader =
     precision mediump float;
     
     in vec2 a_position;  // Current position [0,1]
+    in vec2 a_seed;      // Initial grid position. Stable random seed, not updated.
     in float a_age;      // Particle age for tracking circular patterns
     out vec2 v_position; // Updated position for transform feedback
     out float v_age;     // Updated age for transform feedback
@@ -45,7 +46,7 @@ const vertexShader =
     uniform sampler2D u_velocity_texture;  // Texture with normalized velocities [0,1]
     uniform mediump vec4 u_bounds;
     uniform mediump float u_speed_factor;
-    uniform mediump float u_time;
+    uniform mediump vec2 u_rand_seed; // Fresh value each update, kept near [0, 1]
     uniform mediump vec2 u_value_range_u;    // Wind U component range
     uniform mediump vec2 u_value_range_v;    // Wind V component range
     uniform mediump float u_age_threshold;   // Age threshold for reset probability
@@ -56,14 +57,10 @@ const vertexShader =
     ${velocityUniformGlsl}
     ${velocityDecodeGlsl}
     
-    // Random function based on time and position
+    // Hash stays in mediump range. The caller mixes a_seed with u_rand_seed.
     float random(vec2 co) {
-        float a = 12.9898;
-        float b = 78.233;
-        float c = 43758.5453;
-        float dt = dot(co, vec2(a,b));
-        float sn = mod(dt, 3.14);
-        return fract(sin(sn) * c + u_time);
+        float t = dot(vec2(12.9898, 78.233), co);
+        return fract(sin(t) * (4375.85453 + t));
     }
     
     // Convert mph to degrees per frame
@@ -151,7 +148,7 @@ const vertexShader =
         // Reset based on age with increasing probability
         if (age > u_age_threshold) {
             float resetProbability = (age - u_age_threshold) / (u_max_age - u_age_threshold);
-            if (random(a_position + vec2(u_time * 0.1, age * 0.01)) < resetProbability) {
+            if (random(a_position + u_rand_seed + vec2(0.17, age * 0.01)) < resetProbability) {
                 shouldReset = true;
             }
         }
@@ -163,14 +160,14 @@ const vertexShader =
         
         // Additional reset based on percentParticleWhenSetSource if flag is set
         if (!shouldReset && u_should_reset) {
-            if (random(a_position + vec2(u_time)) < u_percent_reset) {
+            if (random(a_position + u_rand_seed + vec2(5.1, 1.7)) < u_percent_reset) {
                 shouldReset = true;
             }
         }
         
         // Handle reset by generating a new position
         if (shouldReset) {
-            newPos = generateRandomPosition(a_position + vec2(u_time));
+            newPos = generateRandomPosition(a_seed + u_rand_seed);
 
             age = 0.0; // Reset age
         }
@@ -570,6 +567,8 @@ export default class ParticleMotion {
         // Create double-buffered particle position buffers (for main particles only)
         this.particleBufferA = createBuffer(gl, positions);
         this.particleBufferB = createBuffer(gl, positions);
+        // Same grid, kept fixed so packed particles still hash apart.
+        this.seedBuffer = createBuffer(gl, positions);
         this.currentBuffer = this.particleBufferA;
         this.nextBuffer = this.particleBufferB;
         
@@ -843,7 +842,7 @@ export default class ParticleMotion {
         gl.useProgram(this.updateProgram.program);
 
         // Set uniforms for update
-        gl.uniform1f(this.updateProgram.u_time, currentTime / 1000);
+        gl.uniform2f(this.updateProgram.u_rand_seed, Math.random(), Math.random());
         gl.uniform1f(this.updateProgram.u_speed_factor, this.velocityFactor);
         gl.uniform4fv(this.updateProgram.u_bounds, this.bounds);
         gl.uniform2fv(this.updateProgram.u_value_range_u, this.valueRange_u);
@@ -874,6 +873,11 @@ export default class ParticleMotion {
         gl.bindBuffer(gl.ARRAY_BUFFER, this.currentAgeBuffer);
         gl.enableVertexAttribArray(this.updateProgram.a_age);
         gl.vertexAttribPointer(this.updateProgram.a_age, 1, gl.FLOAT, false, 0, 0);
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.seedBuffer);
+        gl.enableVertexAttribArray(this.updateProgram.a_seed);
+        gl.vertexAttribPointer(this.updateProgram.a_seed, 2, gl.FLOAT, false, 0, 0);
+        gl.vertexAttribDivisor(this.updateProgram.a_seed, 0);
 
         // Bind transform feedback and next buffers
         gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, this.transformFeedback);
@@ -1049,6 +1053,7 @@ export default class ParticleMotion {
         if (this.ageBufferA) gl.deleteBuffer(this.ageBufferA);
         if (this.ageBufferB) gl.deleteBuffer(this.ageBufferB);
         if (this.trailOffsetBuffer) gl.deleteBuffer(this.trailOffsetBuffer);
+        if (this.seedBuffer) gl.deleteBuffer(this.seedBuffer);
 
         // Delete transform feedback
         if (this.transformFeedback) gl.deleteTransformFeedback(this.transformFeedback);
@@ -1067,6 +1072,7 @@ export default class ParticleMotion {
         this.currentAgeBuffer = null;
         this.nextAgeBuffer = null;
         this.trailOffsetBuffer = null;
+        this.seedBuffer = null;
         this.transformFeedback = null;
         this.sourceTexture = null;
         this.colormapTexture = null;
