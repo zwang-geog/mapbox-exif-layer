@@ -12,7 +12,7 @@ Four use cases. `SmoothRaster` covers two of them. Wind can use `ParticleMotion`
 
 | Use case | Class | Data Source | Visual |
 | --- | --- | --- | --- |
-| Wind | `ParticleMotion`, or [`NewParticleMotion`](#newparticlemotion) (beta, v1.4.0) which keeps particles in the current view | [JPEG/PNG](https://github.com/zwang-geog/mapbox-exif-layer/tree/main/docs/jpeg-source.md), [scalar GeoTIFF](https://github.com/zwang-geog/mapbox-exif-layer/tree/main/docs/geotiff-source.md) | Flowing particle animation |
+| Wind | `ParticleMotion`, or [`NewParticleMotion`](#newparticlemotion) (v1.5.0+) which keeps particles in the current view | [JPEG/PNG](https://github.com/zwang-geog/mapbox-exif-layer/tree/main/docs/jpeg-source.md), [scalar GeoTIFF](https://github.com/zwang-geog/mapbox-exif-layer/tree/main/docs/geotiff-source.md) | Flowing particle animation |
 | Smooth weather display | `SmoothRaster` | [JPEG/PNG](https://github.com/zwang-geog/mapbox-exif-layer/tree/main/docs/jpeg-source.md) only | Smooth gradients (linear texture filtering) |
 | Scalar GeoTIFF preview | `SmoothRaster` | [Scalar GeoTIFF](https://github.com/zwang-geog/mapbox-exif-layer/tree/main/docs/geotiff-source.md) | Native grid resolution; blocky when zoomed in |
 | RGB / RGBA GeoTIFF | `RgbGeoTiff` | [RGB GeoTIFF](https://github.com/zwang-geog/mapbox-exif-layer/tree/main/docs/rgb-geotiff.md) | True-color image layer |
@@ -128,7 +128,7 @@ Then import the layer classes in your JavaScript code. Import only the classes y
 import { ParticleMotion, NewParticleMotion, SmoothRaster, RgbGeoTiff } from 'mapbox-exif-layer';
 ```
 
-On v1.4.0+, when you are drawing wind, experiment with `NewParticleMotion` as well as the classic `ParticleMotion` class. How the two differ is under [NewParticleMotion](#newparticlemotion).
+On v1.5.0+, when you are drawing wind, experiment with `NewParticleMotion` as well as the classic `ParticleMotion` class. How the two differ is under [NewParticleMotion](#newparticlemotion).
 
 ## Quick start
 
@@ -149,6 +149,7 @@ const windLayer = new NewParticleMotion({ // use ParticleMotion if the version i
   color: [[0, [0, 195, 255]], [20, [249, 243, 1]], [42, [128, 0, 0]]],  // [speed, [r,g,b]] — see react-demo for full palettes
   unit: 'mps',  // specify this for GFS wind (m/s); the default unit is mph
   bounds: [-180, 90, 180, -90],  // required for JPEG/PNG; optional for GeoTIFF (read from file)
+  // mapRuntime: 'maplibre',  // set this when using MapLibre GL JS; the default is 'mapbox'
   readyForDisplay: true
 });
 
@@ -225,7 +226,7 @@ A particle-based visualization layer that creates animated particles for wind di
 
 The classic `ParticleMotion` layer distributes wind particles across the entire data extent. For example, when rendering a global wind forecast, many particles will be concentrated in high-wind areas such as cyclones, atmospheric rivers, or over ocean, while few or no particles will be present in areas with calmer wind, such as inland. Zooming into an inland area will not affect particle positions, and the user will likely see few or no particles in the map viewport. If the user wants to explore the wind direction and speed in such a calmer area, then there is a problem.
 
-To address this, an alternative particle motion layer is currently implemented as the `NewParticleMotion` class (v1.4.0+).
+To address this, an alternative particle motion layer is currently implemented as the `NewParticleMotion` class (stable release v1.5.0+, beta v1.4.0+).
 
 `NewParticleMotion` differs from `ParticleMotion` in three ways.
 

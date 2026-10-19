@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## v1.5.0
+
+- **ParticleMotion and NewParticleMotion:** Particle reset now hashes each particle's initial grid position, including its jitter, together with a new random value on every update. The new position no longer depends on the live position alone, so two particles that meet can leave for different places. This stops `NewParticleMotion` from collapsing into a few visible streaks after repeated zoom in and out.
+- **NewParticleMotion:** The padded viewport is clipped to the data extent in JavaScript and passed to the update shader as data UV. The shader tests and respawns inside that interval. A dateline window may cross 0 or 1, and the stored position is folded back into the wind texture before it is sampled.
+- **NewParticleMotion:** `particleCount` is a fixed number or a function of zoom, `(zoom) => count`. It no longer takes a projection argument. Mercator and MapLibre globe use the same zoom table.
+
 ## v1.4.1
 
 - **NewParticleMotion:** `particleCount` can now follow the map projection as well as zoom. This is especially useful with MapLibre globe projection, which uses a higher count below zoom 12. From zoom 12 up, that globe view is drawn as mercator, so the mercator count applies. `ParticleMotion` is unchanged.
