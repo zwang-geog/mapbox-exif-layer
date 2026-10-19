@@ -8,7 +8,7 @@ Official site: [https://www.mapbox-exif-layer.com/](https://www.mapbox-exif-laye
 
 ## At a glance
 
-Four use cases. `SmoothRaster` covers two of them. Wind can use `ParticleMotion` or `NewParticleMotion`.
+Four use cases. `SmoothRaster` covers two use cases. Wind can use `ParticleMotion` or `NewParticleMotion`; a thorough explanation of the two wind particle animation classes is in this [Medium article](https://medium.com/@zifanw9/viewport-dependent-wind-visualization-for-mapbox-gl-and-maplibre-ecb8356d65a8).
 
 | Use case | Class | Data Source | Visual |
 | --- | --- | --- | --- |
@@ -253,7 +253,7 @@ To address this, an alternative particle motion layer is currently implemented a
 
 Other constructor options and `setSource(source, percentParticleWhenSetSource = 0.5)` match `ParticleMotion`.
 
-This `NewParticleMotion` class is experimental. It puts a heavier emphasis on the picture, while `ParticleMotion` is the better fit for simulating how air might actually move given the u- and v- velocity fields.
+This `NewParticleMotion` class puts a heavier emphasis on the picture, while `ParticleMotion` is the better fit for simulating how air might actually move given the u- and v- velocity fields.
 
 ### SmoothRaster
 

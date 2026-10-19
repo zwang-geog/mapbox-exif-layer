@@ -12,8 +12,8 @@
   <meta property="og:url"         content="https://www.mapbox-exif-layer.com/" />
   <meta property="og:title"       content="mapbox-exif-layer — Wind particles, smooth weather rasters &amp; GeoTIFF | Mapbox &amp; MapLibre GL JS" />
   <meta property="og:description" content="Open-source Mapbox &amp; MapLibre GL JS custom layers: GPU wind particles, smooth weather rasters from JPEG/PNG, and client-side scalar or RGB GeoTIFF visualization. No tile server. Globe projection on MapLibre. Live demos and docs." />
-  <meta property="og:image"       content="https://www.mapbox-exif-layer.com/wind_example.png" />
-  <meta property="og:image:alt"   content="GPU-accelerated wind particle animation rendered on a Mapbox GL JS map" />
+  <meta property="og:image"       content="https://www.mapbox-exif-layer.com/wind_example_2.png" />
+  <meta property="og:image:alt"   content="GPU-accelerated wind particle animation rendered on a MapLibre GL JS map" />
   <meta property="og:image:width"  content="1200" />
   <meta property="og:image:height" content="630" />
 
@@ -21,8 +21,8 @@
   <meta name="twitter:card"        content="summary_large_image" />
   <meta name="twitter:title"       content="mapbox-exif-layer — Wind particles, smooth weather rasters &amp; GeoTIFF | Mapbox &amp; MapLibre GL JS" />
   <meta name="twitter:description" content="Open-source Mapbox &amp; MapLibre GL JS custom layers: GPU wind particles, smooth weather rasters from JPEG/PNG, and client-side scalar or RGB GeoTIFF visualization. No tile server. Globe projection on MapLibre. Live demos and docs." />
-  <meta name="twitter:image"       content="https://www.mapbox-exif-layer.com/wind_example.png" />
-  <meta name="twitter:image:alt"   content="GPU-accelerated wind particle animation rendered on a Mapbox GL JS map" />
+  <meta name="twitter:image"       content="https://www.mapbox-exif-layer.com/wind_example_2.png" />
+  <meta name="twitter:image:alt"   content="GPU-accelerated wind particle animation rendered on a MapLibre GL JS map" />
 
   <link rel="stylesheet" href="styles.css" />
 
@@ -34,7 +34,7 @@
     "url": "https://www.mapbox-exif-layer.com/",
     "downloadUrl": "https://www.npmjs.com/package/mapbox-exif-layer",
     "codeRepository": "https://github.com/zwang-geog/mapbox-exif-layer",
-    "softwareVersion": "1.4.1",
+    "softwareVersion": "1.5.0",
     "applicationCategory": "DeveloperApplication",
     "operatingSystem": "Web",
     "description": "Open-source Mapbox & MapLibre GL JS custom layers: GPU wind particles, smooth weather rasters from JPEG/PNG, and client-side scalar or RGB GeoTIFF visualization. No tile server. Globe projection on MapLibre.",
@@ -52,7 +52,14 @@
       <nav class="header-links">
         <a href="https://www.npmjs.com/package/mapbox-exif-layer" target="_blank" rel="noopener">npm</a>
         <a href="https://github.com/zwang-geog/mapbox-exif-layer" target="_blank" rel="noopener">GitHub</a>
-        <a href="https://medium.com/@zifanw9/a-low-cost-custom-wind-particle-motion-layer-in-mapbox-gl-js-9a51978e3ffb" target="_blank" rel="noopener">Article</a>
+        <div class="nav-menu">
+          <span class="nav-menu-label" tabindex="0">Wind explained</span>
+          <div class="nav-dropdown">
+            <a href="https://medium.com/@zifanw9/a-low-cost-custom-wind-particle-motion-layer-in-mapbox-gl-js-9a51978e3ffb" target="_blank" rel="noopener">Low processing and hosting cost</a>
+            <a href="https://medium.com/@zifanw9/assessing-packages-for-mapping-wind-as-particle-motion-layer-in-maplibre-2ec8db9aea33" target="_blank" rel="noopener">High aesthetics and fidelity</a>
+            <a href="https://medium.com/@zifanw9/viewport-dependent-wind-visualization-for-mapbox-gl-and-maplibre-ecb8356d65a8" target="_blank" rel="noopener">Wind that stays in view</a>
+          </div>
+        </div>
       </nav>
     </div>
   </header>
@@ -72,7 +79,10 @@
 
   <section class="videos" id="videos">
     <div class="section-inner">
-      <h2>Demo videos</h2>
+      <div class="videos-heading">
+        <h2>Demo videos</h2>
+        <p>Two powerful wind particle animation layer classes at your disposal. <a href="https://medium.com/@zifanw9/viewport-dependent-wind-visualization-for-mapbox-gl-and-maplibre-ecb8356d65a8" target="_blank" rel="noopener">Learn how they differ</a>.</p>
+      </div>
 
       <div class="video-row">
         <a class="video-featured" href="https://vimeo.com/1236722322" target="_blank" rel="noopener">
@@ -132,10 +142,10 @@
           <p>NewParticleMotion on a MapLibre globe. Continental US wind and temperature. No-data cells are masked.</p>
           <span class="demo-link">Open demo →</span>
         </a>
-        <a class="demo-card" href="https://www.us-wind-particle-map-demo.mapbox-exif-layer.com" target="_blank" rel="noopener">
-          <span class="demo-tag">Mapbox · CONUS</span>
-          <h3>Country-scale forecast on Mapbox (mercator)</h3>
-          <p>ParticleMotion on Mapbox mercator. Continental US wind and a temperature raster. Toggle each layer on and off.</p>
+        <a class="demo-card" href="https://www.webapp.wri.ucsb.edu/?layers_on_when_page_loads=building-access%2Cevacuation%2Chydrant-spacing%2Cwind-particle" target="_blank" rel="noopener">
+          <span class="demo-tag">Mapbox · Southern California</span>
+          <h3>Overlay wind with other map layers on Mapbox (mercator)</h3>
+          <p>ParticleMotion on Mapbox mercator. NOAA NAM NEST wind forecast clipped to Southern California only, overlaid with many other wildfire-related layers.</p>
           <span class="demo-link">Open demo →</span>
         </a>
       </div>
@@ -601,9 +611,14 @@ map.on('style.load', () => map.addLayer(windLayer));</code></pre>
       <a href="https://github.com/zwang-geog/mapbox-exif-layer" target="_blank" rel="noopener">GitHub</a>
       ·
       <a href="https://www.npmjs.com/package/mapbox-exif-layer" target="_blank" rel="noopener">npm</a>
-      ·
-      <a href="https://medium.com/@zifanw9/a-low-cost-custom-wind-particle-motion-layer-in-mapbox-gl-js-9a51978e3ffb" target="_blank" rel="noopener">Medium article</a>
       · © Zifan Wang 2026
+    </p>
+    <p class="footer-articles">
+      <a href="https://medium.com/@zifanw9/a-low-cost-custom-wind-particle-motion-layer-in-mapbox-gl-js-9a51978e3ffb" target="_blank" rel="noopener">Low processing and hosting cost</a>
+      ·
+      <a href="https://medium.com/@zifanw9/assessing-packages-for-mapping-wind-as-particle-motion-layer-in-maplibre-2ec8db9aea33" target="_blank" rel="noopener">High aesthetics and fidelity</a>
+      ·
+      <a href="https://medium.com/@zifanw9/viewport-dependent-wind-visualization-for-mapbox-gl-and-maplibre-ecb8356d65a8" target="_blank" rel="noopener">Wind that stays in view</a>
     </p>
   </footer>
 </body>

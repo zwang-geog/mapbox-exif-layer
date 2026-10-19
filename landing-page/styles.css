@@ -82,6 +82,64 @@ a:hover {
   color: var(--text);
 }
 
+.nav-menu {
+  position: relative;
+}
+
+.nav-menu-label {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  cursor: default;
+}
+
+.nav-menu-label::after {
+  content: " ▾";
+  font-size: 0.7em;
+}
+
+.nav-menu:hover .nav-menu-label,
+.nav-menu:focus-within .nav-menu-label {
+  color: var(--text);
+}
+
+.nav-dropdown {
+  display: none;
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 2;
+  min-width: 16.5rem;
+  padding-top: 0.45rem;
+}
+
+.nav-menu:hover .nav-dropdown,
+.nav-menu:focus-within .nav-dropdown {
+  display: block;
+}
+
+.nav-dropdown a {
+  display: block;
+  padding: 0.45rem 0.85rem;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-bottom: none;
+  white-space: nowrap;
+}
+
+.nav-dropdown a:first-child {
+  border-radius: 8px 8px 0 0;
+}
+
+.nav-dropdown a:last-child {
+  border-bottom: 1px solid var(--border);
+  border-radius: 0 0 8px 8px;
+}
+
+.nav-dropdown a:hover {
+  background: var(--bg-card);
+  color: var(--text);
+}
+
 /* Hero */
 .hero {
   background: linear-gradient(160deg, #152238 0%, var(--bg) 60%);
@@ -173,9 +231,23 @@ a:hover {
   font-size: 0.95rem;
 }
 
-.videos h2 {
-  margin: 0 0 0.5rem;
+.videos-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 1rem;
+  margin: 0 0 1.25rem;
+}
+
+.videos-heading h2 {
+  margin: 0;
   font-size: 1.35rem;
+}
+
+.videos-heading p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.95rem;
 }
 
 .video-row {
@@ -765,6 +837,10 @@ a.source-tag:hover {
   margin: 0;
   font-size: 0.85rem;
   color: var(--text-muted);
+}
+
+.site-footer .footer-articles {
+  margin-top: 0.5rem;
 }
 
 .site-footer a {
