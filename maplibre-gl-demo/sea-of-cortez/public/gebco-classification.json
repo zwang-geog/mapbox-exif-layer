@@ -1,0 +1,41 @@
+{
+  "source": "gebco_2026_n30.0_s22.0_w-115.0_e-108.0_geotiff.tif",
+  "source_product": "GEBCO_2026",
+  "source_doi": "10.5285/4f68d5c7-45eb-f999-e063-7086abc036fa",
+  "crs": "EPSG:4326",
+  "width": 1680,
+  "height": 1920,
+  "bounds": [
+    -115.0,
+    30.000000000000004,
+    -108.0,
+    22.000000000000004
+  ],
+  "transform": [
+    0.004166666666666669,
+    0.0,
+    -115.0,
+    0.0,
+    -0.004166666666666667,
+    30.000000000000004
+  ],
+  "resolution_degrees": [
+    0.004166666666666669,
+    0.004166666666666667
+  ],
+  "elevation_units": "metres",
+  "source_nodata": -32767.0,
+  "threshold_meters": -10,
+  "class_values": {
+    "water": 255,
+    "uncertain_coast": 128,
+    "land": 0,
+    "nodata": 64
+  },
+  "class_counts": {
+    "water": 1926196,
+    "uncertain_coast": 53131,
+    "land": 1246273,
+    "nodata": 0
+  }
+}

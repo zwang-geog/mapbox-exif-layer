@@ -1,0 +1,5 @@
+certifi>=2024.2
+numpy>=1.26
+Pillow>=10
+pyproj>=3.6
+rasterio>=1.3

@@ -1,0 +1,25 @@
+{
+  "name": "sea-of-cortez-wind",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "test": "node --test",
+    "test:goes": "python3 -m unittest discover -s scripts -p 'test_*.py'",
+    "update:goes": "python3 scripts/update_goes18.py --once",
+    "watch:goes": "python3 scripts/update_goes18.py --watch"
+  },
+  "dependencies": {
+    "exifreader": "^4.44.0",
+    "mapbox-exif-layer": "^1.5.0",
+    "maplibre-gl": "^6.11.2",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^5.0.0",
+    "vite": "^7.1.2"
+  }
+}

@@ -33,6 +33,31 @@ const velocityDecodeGlsl = `
     }
 `;
 
+const temporalVelocityGlsl = `
+    vec2 sampleVelocity(vec2 position, out bool valid) {
+        vec4 currentData = texture(u_velocity_texture, position);
+        bool currentValid = !velocityIsInvalid(currentData);
+        vec2 currentWind = decodeVelocity(currentData);
+        if (u_temporal_blend <= 0.0) {
+            valid = currentValid;
+            return currentWind;
+        }
+
+        vec4 nextData = texture(u_temporal_velocity_texture, position);
+        bool nextValid = !velocityIsInvalid(nextData);
+        vec2 nextWind = u_physical_velocity
+            ? vec2(nextData.r, nextData.g)
+            : vec2(
+                mix(u_temporal_value_range_u[0], u_temporal_value_range_u[1], nextData.r),
+                mix(u_temporal_value_range_v[0], u_temporal_value_range_v[1], nextData.g)
+            );
+        valid = currentValid || nextValid;
+        if (!currentValid) return nextWind;
+        if (!nextValid) return currentWind;
+        return mix(currentWind, nextWind, u_temporal_blend);
+    }
+`;
+
 const vertexShader = 
     `#version 300 es
     precision mediump float;
@@ -44,6 +69,10 @@ const vertexShader =
     out float v_age;     // Updated age for transform feedback
     
     uniform sampler2D u_velocity_texture;  // Texture with normalized velocities [0,1]
+    uniform sampler2D u_temporal_velocity_texture;
+    uniform mediump float u_temporal_blend;
+    uniform mediump vec2 u_temporal_value_range_u;
+    uniform mediump vec2 u_temporal_value_range_v;
     uniform mediump vec4 u_bounds;
     uniform highp vec4 u_viewport; // data UV [uWest, vNorth, uEast, vSouth]. y = 0 is north. uEast >= uWest, uEast - uWest <= 1. A wrapping raster may cross 0/1.
     uniform mediump float u_speed_factor;
@@ -57,6 +86,7 @@ const vertexShader =
     uniform bool u_wrap_longitude;   // True when bounds span wraps east/west across the dateline
     ${velocityUniformGlsl}
     ${velocityDecodeGlsl}
+    ${temporalVelocityGlsl}
     
     // Hash stays in mediump range. The caller mixes a_seed with u_rand_seed.
     float random(vec2 co) {
@@ -126,8 +156,8 @@ const vertexShader =
     
     void main() {
         // Sample velocity from texture
-        vec4 velocity = texture(u_velocity_texture, a_position);
-        vec2 wind = decodeVelocity(velocity);
+        bool velocityValid;
+        vec2 wind = sampleVelocity(a_position, velocityValid);
         float u = wind.x;
         float v = wind.y;
         
@@ -163,7 +193,7 @@ const vertexShader =
             newPos.x = fract(newPos.x);
         }
 
-        if (outsideCamera(newPos) || velocityIsInvalid(velocity) || windSpeed < ${MIN_WIND_SPEED_MPH}) {
+        if (outsideCamera(newPos) || !velocityValid || windSpeed < ${MIN_WIND_SPEED_MPH}) {
             shouldReset = true;
         }
         
@@ -213,6 +243,7 @@ const fragmentShader =
     ${velocityDecodeGlsl}
     
     in vec2 v_position;         // Current position
+    in float v_trail_alpha;
     out vec4 fragColor;         // Output color
     
     void main() {
@@ -226,7 +257,7 @@ const fragmentShader =
         }
         
         // Create soft-edged circular particles
-        float edgeFactor = 1.0 - smoothstep(0.45, 0.5, dist);
+        float edgeFactor = 1.0 - smoothstep(0.28, 0.5, dist);
         
         // Sample wind velocity for coloring
         vec4 velocity = texture(u_velocity_texture, v_position);
@@ -254,11 +285,11 @@ const fragmentShader =
         // Sample color from colormap using normalized speed
         vec4 color = texture(u_wind_color, vec2(normalizedSpeed, 0.5));
         
-        // Ensure we have some minimum color intensity
-        color.rgb = max(color.rgb, vec3(0.2));
+        float centerLight = 1.0 - smoothstep(0.0, 0.42, dist);
+        color.rgb *= mix(0.82, 1.08, centerLight);
         
         // Combine edge fade with opacity
-        float finalAlpha = edgeFactor * u_opacity;
+        float finalAlpha = edgeFactor * v_trail_alpha * u_opacity;
         
         // Output final color with alpha
         fragColor = vec4(color.rgb, finalAlpha);
@@ -282,7 +313,7 @@ const renderVertexShaderInner =
     ${velocityDecodeGlsl}
     
     out vec2 v_position;     // Pass position to fragment shader
-    // out float v_opacity;     // Varying opacity for trail
+    out float v_trail_alpha;
     
     vec2 latLngToMercator(vec2 lnglat) {
         // Convert lng/lat to Web Mercator coordinates in [0, 1] range
@@ -360,9 +391,8 @@ const renderVertexShaderInner =
         // Color the whole tail from the head, so a streak stays one color.
         v_position = mainPos;
         
-        // Compute opacity for trail particles (1.0 for main particle, decreasing for trail)
-        // v_opacity = trailOffset == 0.0 ? 1.0 : 1.0 - (trailOffset / float(3));
-        
+        v_trail_alpha = pow(0.58, trailOffset);
+
         // Compute point size (decreasing for trail particles)
         float size = trailOffset == 0.0 ? u_point_size : u_point_size * pow(u_trail_size_decay, trailOffset);
         gl_PointSize = size;

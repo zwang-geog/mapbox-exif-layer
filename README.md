@@ -88,6 +88,12 @@ The pipeline does not delete old JPEGs. An S3 lifecycle rule expires objects abo
 
 Build slider timestamps as hourly steps from `init_unix` through `hourly_until_unix`. A MapLibre globe demo is [`maplibre-gl-demo/global-gfs-slider`](maplibre-gl-demo/global-gfs-slider/src/App.jsx).
 
+### Sea of Cortez demo and renderer assessment
+
+The regional [`maplibre-gl-demo/sea-of-cortez`](maplibre-gl-demo/sea-of-cortez) keeps the existing renderer and adds a NOAA GFS wind forecast, timeline, GEBCO bathymetry, and a coastline mask for the Sea of Cortez.
+
+The application renderer is **MapLibre GL JS**. Its basemap and map layers use WebGL; `mapbox-exif-layer` adds wind as a MapLibre custom layer and advances particles with WebGL2 transform feedback. Canvas 2D is used only to sample the source image for the readout and to create the explicitly labelled synthetic fallback. This architecture already supports the target data and forecast time control, so replacing it with a separate Canvas renderer or another map SDK would add cost without solving a current limitation. The regional demo uses `NewParticleMotion`, reads initialization and valid times from GFS `status.json`, and clips particles to land with a regional Natural Earth mask. See its README for attribution, run instructions, and fallback behavior.
+
 To run the same NOAA → JPEG conversion on your own schedule (cron, EventBridge, or similar), see [`pipeline/gfs`](pipeline/gfs) (`run_gfs.py`, plus `ecs-fargate.yaml` if you want a Fargate example).
 
 ## Installation
